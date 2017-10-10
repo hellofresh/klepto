@@ -1,0 +1,16 @@
+---
+platform: linux
+
+image_resource:
+  type: docker-image
+  source:
+    repository: golang
+    tag: ""
+
+inputs:
+  - name: source-code
+  - name: docker
+
+run:
+  path: ./ci/scripts/integration-tests.sh
+  dir: source-code

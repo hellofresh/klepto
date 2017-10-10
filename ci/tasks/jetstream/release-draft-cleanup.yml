@@ -1,0 +1,18 @@
+##
+## Clear unused draft releases
+##
+
+platform: linux
+
+image_resource:
+  type: docker-image
+  source:
+    repository: quay.io/hellofresh/ci-ansible
+    tag: "latest"
+
+inputs:
+  - name: source-code
+
+run:
+  path: ci/scripts/jetstream/release-draft-cleanup.sh
+  dir: source-code

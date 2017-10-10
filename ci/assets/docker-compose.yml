@@ -1,0 +1,3 @@
+version: '2'
+services:
+#TODO define the needed external services

@@ -1,0 +1,383 @@
+---
+
+#-----------------------------------------------------------------------------------------------------------------------
+# Resource Types
+#-----------------------------------------------------------------------------------------------------------------------
+resource_types:
+
+- name: git-pull-request
+  type: docker-image
+  source:
+    repository: quay.io/hellofresh/scm-concourse-pr-glide
+    tag: latest
+
+- name: git-master
+  type: docker-image
+  source:
+    repository: quay.io/hellofresh/scm-concourse-git-glide
+    tag: latest
+
+#-----------------------------------------------------------------------------------------------------------------------
+# Resources
+#-----------------------------------------------------------------------------------------------------------------------
+
+resources:
+
+- name: pull-request
+  type: git-pull-request
+  check_every: 1h
+  webhook_token: {{concourse_webhook_pr}}
+  source:
+    uri: {{github_repository_uri}}
+    repo: {{github_repository}}
+    access_token: {{github_token}}
+
+- name: pull-request-release
+  type: github-release
+  source:
+    user: {{github_user}}
+    repository: {{github_repository_name}}
+    access_token: {{github_token}}
+    drafts: true
+
+- name: master-source-code
+  type: git-master
+  check_every: 1h
+  webhook_token: {{concourse_webhook_master}}
+  source:
+    uri: {{github_repository_uri}}
+    branch: master
+
+- name: master-release
+  type: github-release
+  source:
+    user: {{github_user}}
+    repository: {{github_repository_name}}
+    access_token: {{github_token}}
+
+- name: master-release-version
+  type: semver
+  source:
+    driver: git
+    uri: {{github_repository_uri}}
+    initial_version: 0.1.0
+    branch: version
+    file: version
+
+- name: housekeeper
+  type: time
+  source:
+    interval: 12h
+
+#-----------------------------------------------------------------------------------------------------------------------
+# Groups
+#-----------------------------------------------------------------------------------------------------------------------
+groups:
+  - name: klepto
+    jobs:
+    - 'PR: Lint and Syntax check'
+    - 'PR: Code Style'
+    - 'Unit Tests'
+    - 'PR: Unit Tests'
+    - 'Integration Tests'
+    - 'PR: Integration Tests'
+    - 'Create release'
+    - 'PR: Draft release'
+    - 'Cleanup releases'
+
+  - name: Master
+    jobs:
+    - 'Unit Tests'
+    - 'Integration Tests'
+    - 'Create release'
+
+  - name: Pull Request
+    jobs:
+    - 'PR: Lint and Syntax check'
+    - 'PR: Code Style'
+    - 'PR: Unit Tests'
+    - 'PR: Integration Tests'
+    - 'PR: Draft release'
+
+  - name: House keeping
+    jobs:
+      - 'Cleanup releases'
+
+#-----------------------------------------------------------------------------------------------------------------------
+# Jobs
+#-----------------------------------------------------------------------------------------------------------------------
+jobs:
+
+##----------------------------------------------------------------------------------------------------------------------
+## Pull Request flow
+##----------------------------------------------------------------------------------------------------------------------
+
+- name: 'PR: Lint and Syntax check'
+  plan:
+    - get: source-code
+      resource: pull-request
+      trigger: True
+      version: every
+
+    - put: Set lint badge (pending)
+      resource: pull-request
+      params: { path: source-code, context: lint, status: pending }
+
+    - aggregate:
+      - task: Check committed files
+        file: source-code/ci/tasks/jetstream/check-files.yml
+
+      - task: Check branch name
+        file: source-code/ci/tasks/jetstream/check-branch.yml
+
+  on_failure:
+    put: Set lint badge (failure)
+    resource: pull-request
+    params: { path: source-code, context: lint, status: failure }
+
+  on_success:
+    put: Set lint badge (success)
+    resource: pull-request
+    params: { path: source-code, context: lint, status: success }
+
+- name: 'PR: Code Style'
+  plan:
+    - get: source-code
+      resource: pull-request
+      trigger: True
+      version: every
+      passed:
+        - 'PR: Lint and Syntax check'
+
+    - put: Set code-style badge (pending)
+      resource: pull-request
+      params: { path: source-code, context: code-style, status: pending }
+
+    - task: Check the code styles
+      file: source-code/ci/tasks/jetstream/code-style.yml
+
+  on_failure:
+    put: Set code-style badge (failure)
+    resource: pull-request
+    params: { path: source-code, context: code-style, status: failure }
+
+  on_success:
+    put: Set code-style badge (success)
+    resource: pull-request
+    params: { path: source-code, context: code-style, status: success }
+
+- name: 'PR: Unit Tests'
+  plan:
+    - get: source-code
+      resource: pull-request
+      trigger: True
+      version: every
+      passed:
+        - 'PR: Lint and Syntax check'
+
+    - put: Set unit-tests badge (pending)
+      resource: pull-request
+      params: { path: source-code, context: unit-tests, status: pending }
+
+    - task: Run unit tests
+      file: source-code/ci/tasks/unit-tests.yml
+
+  on_failure:
+    put: Set unit-tests badge (failure)
+    resource: pull-request
+    params: { path: source-code, context: unit-tests, status: failure }
+
+  on_success:
+    put: Set unit-tests badge (success)
+    resource: pull-request
+    params: { path: source-code, context: unit-tests, status: success }
+
+- name: 'PR: Integration Tests'
+  plan:
+    - get: source-code
+      resource: pull-request
+      trigger: True
+      version: every
+      passed:
+        - 'PR: Code Style'
+        - 'PR: Unit Tests'
+
+    - put: Set integration-tests badge (pending)
+      resource: pull-request
+      params: { path: source-code, context: integration-tests, status: pending }
+
+    - task: Start docker container
+      file: source-code/ci/tasks/jetstream/docker-up.yml
+      params:
+        DOCKER_HOST: {{docker_host}}
+        DOCKER_PORT: {{docker_port}}
+        DOCKER_COMPOSE: ci/assets/docker-compose.yml
+
+    - task: Run integration tests
+      file: source-code/ci/tasks/integration-tests.yml
+      params:
+        PROJECT_VARS: {{docker_variables}}
+
+  ensure:
+    do:
+    - task: Destroy docker container
+      file: source-code/ci/tasks/jetstream/docker-down.yml
+      params:
+        DOCKER_HOST: {{docker_host}}
+        DOCKER_PORT: {{docker_port}}
+        DOCKER_COMPOSE: ci/assets/docker-compose.yml
+
+  on_failure:
+    put: Set integration-tests badge (failure)
+    resource: pull-request
+    params: { path: source-code, context: integration-tests, status: failure }
+
+  on_success:
+    put: Set integration-tests badge (success)
+    resource: pull-request
+    params: { path: source-code, context: integration-tests, status: success }
+
+- name: 'PR: Draft release'
+  plan:
+    - get: source-code
+      resource: pull-request
+      trigger: True
+      version: every
+      passed:
+        - 'PR: Integration Tests'
+
+    - put: Set release badge (pending)
+      resource: pull-request
+      params: { path: source-code, context: release, status: pending }
+
+    - task: Get PR draft version
+      file: source-code/ci/tasks/jetstream/draft-version.yml
+      output_mapping:
+        draft-version: version
+
+    - task: Build application
+      file: source-code/ci/tasks/build.yml
+
+    - task: Create release archive
+      file: source-code/ci/tasks/jetstream/archive.yml
+
+    - put: Push release
+      resource: pull-request-release
+      params:
+        name: version/version
+        tag: version/version
+        body: version/message
+        globs:
+          - archive/*.tar.gz
+
+  on_failure:
+    put: Set release badge (failure)
+    resource: pull-request
+    params: { path: source-code, context: release, status: failure }
+
+  on_success:
+    put: Set release badge (success)
+    resource: pull-request
+    params: { path: source-code, context: release, status: success }
+
+#-----------------------------------------------------------------------------------------------------------------------
+# Master flow
+#-----------------------------------------------------------------------------------------------------------------------
+
+- name: 'Unit Tests'
+  plan:
+    - get: source-code
+      resource: master-source-code
+      trigger: true
+
+    - task: Run unit tests
+      file: source-code/ci/tasks/unit-tests.yml
+
+- name: 'Integration Tests'
+  plan:
+    - get: source-code
+      resource: master-source-code
+      trigger: true
+
+    - task: Start docker container
+      file: source-code/ci/tasks/jetstream/docker-up.yml
+      params:
+        DOCKER_HOST: {{docker_host}}
+        DOCKER_PORT: {{docker_port}}
+        DOCKER_COMPOSE: ci/assets/docker-compose.yml
+
+    - task: Run integration tests
+      file: source-code/ci/tasks/integration-tests.yml
+      params:
+        PROJECT_VARS: {{docker_variables}}
+
+  ensure:
+    do:
+    - task: Destroy docker container
+      file: source-code/ci/tasks/jetstream/docker-down.yml
+      params:
+        DOCKER_HOST: {{docker_host}}
+        DOCKER_PORT: {{docker_port}}
+        DOCKER_COMPOSE: ci/assets/docker-compose.yml
+
+- name: 'Create release'
+  serial: true
+  plan:
+    - get: source-code
+      resource: master-source-code
+      trigger: true
+      passed:
+        - 'Unit Tests'
+        - 'Integration Tests'
+
+    - get: master-release-version
+
+    - task: Update release version
+      file: source-code/ci/tasks/jetstream/release-version-bump.yml
+      params:
+        ACCESS_TOKEN: {{github_token}}
+        REPOSITORY: {{github_repository}}
+      input_mapping:
+        version: master-release-version
+      output_mapping:
+        release-version: version
+
+    - task: Build application
+      file: source-code/ci/tasks/build.yml
+
+    - task: Create release archive
+      file: source-code/ci/tasks/jetstream/archive.yml
+
+    - put: Push release
+      resource: master-release
+      params:
+        name: version/version
+        tag : version/version
+        globs:
+          - archive/*.tar.gz
+
+    - put: Push release version
+      resource: master-release-version
+      params:
+        file: version/version
+
+
+#-----------------------------------------------------------------------------------------------------------------------
+# House keeping flow
+#-----------------------------------------------------------------------------------------------------------------------
+
+- name: 'Cleanup releases'
+  serial: true
+  plan:
+    - get: housekeeper
+      trigger: true
+
+    - get: source-code
+      resource: master-source-code
+      trigger: false
+
+    - task: Cleanup draft releases
+      file: source-code/ci/tasks/jetstream/release-draft-cleanup.yml
+      params:
+        ACCESS_TOKEN: {{github_token}}
+        REPOSITORY: {{github_repository}}

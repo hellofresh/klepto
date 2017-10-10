@@ -1,0 +1,25 @@
+---
+platform: linux
+
+image_resource:
+  type: docker-image
+  source:
+    repository: quay.io/hellofresh/scm-concourse-helper-shell
+    tag: "latest"
+
+inputs:
+  - name: source-code
+
+run:
+  path: sh
+  args:
+    - -ec
+    - >-
+      BRANCH_NAME=$(git config --get pullrequest.branch);
+      if echo "${BRANCH_NAME}" | grep -i -E '^(major|release|minor|feature|patch|issue|hotfix)[-/]?'; then
+        echo "Valid branch name";
+      else
+        echo "Invalid branch name \"${BRANCH_NAME}\"";
+        exit 1;
+      fi
+  dir: source-code

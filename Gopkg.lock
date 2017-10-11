@@ -20,6 +20,18 @@
   revision = "2efee857e7cfd4f3d0138cc3cbb1b4966962b93a"
 
 [[projects]]
+  name = "github.com/go-sql-driver/mysql"
+  packages = ["."]
+  revision = "a0583e0143b1624142adab07e0e97fe106d99561"
+  version = "v1.3"
+
+[[projects]]
+  name = "github.com/hgfischer/mysqlsuperdump"
+  packages = ["dumper"]
+  revision = "f359c8092e69204380dac6ffda009c936f86c136"
+  version = "v0.5.0"
+
+[[projects]]
   name = "github.com/mattn/go-isatty"
   packages = ["."]
   revision = "0360b2af4f38e8d38c7fce2a9f4e702702d73a39"
@@ -40,6 +52,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "21b7ad59649ff95b48f028121525f4c2f3ccb51b9cf1f5f3f565d4c9566704e0"
+  inputs-digest = "8b0a5d812117e8bda1b6486e6dab2dc584b1d20622ef4f52a396334dfd978d20"
   solver-name = "gps-cdcl"
   solver-version = 1

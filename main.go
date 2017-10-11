@@ -4,11 +4,14 @@ import (
 	"database/sql"
 	"log"
 	"os"
+	"bytes"
 
 	"github.com/alecthomas/colour"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/hgfischer/mysqlsuperdump/dumper"
 	"gopkg.in/alecthomas/kingpin.v2"
+	"bufio"
+	"io"
 )
 
 var (
@@ -52,12 +55,17 @@ func main() {
 	db, err := sql.Open("mysql", *stealingDSN)
 	logger := log.New(os.Stdout, "klepto: ", log.LstdFlags|log.Lshortfile|log.Lmicroseconds)
 	if err != nil {
-		log.Fatalf("MySQL connection failed: %s \n", err)
+		log.Fatalf("Input MySQL connection failed: %s \n", err)
 	}
 
 	err = ensureConnectionIsGood(db)
 	if err != nil {
-		log.Fatalf("Error in MySQL connection: %s \n", err)
+		log.Fatalf("Error in MySQL input connection: %s \n", err)
+	}
+
+	outdb, err := sql.Open("mysql", *swagDSN)
+	if err != nil {
+		log.Fatalf("Output MySQL connection failed: %s \n", err)
 	}
 
 	switch command {
@@ -66,6 +74,20 @@ func main() {
 		// TODO: Define masks from config file
 		if *swagDSN == "STDOUT" {
 			d.Dump(os.Stdout) // TODO: Define out as another mysql db (config from CLI)
+		} else {
+			var b bytes.Buffer
+			writer := bufio.NewWriter(&b)
+			d.Dump(writer)
+			writer.Flush()
+			for {
+				s, err := b.ReadString(';')
+				if (err == io.EOF) {
+					break
+				} else if (err != nil) {
+					log.Fatalf("Error reading from dumped data : %s \n", err)
+				}
+				outdb.Exec(s)
+			}
 		}
 		break
 	}

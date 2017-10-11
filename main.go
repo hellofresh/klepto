@@ -20,6 +20,8 @@ var (
 )
 
 func ensureConnectionIsGood(db *sql.DB) error {
+	// this is a copy of what the dumper does as it's first step with one exception, it actually returns an error not
+	// just returns nothing in case of error!
 	tables := make([]string, 0)
 	var rows *sql.Rows
 	var err = error(nil)

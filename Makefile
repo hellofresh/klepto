@@ -27,7 +27,8 @@ test: test-unit
 # Install dependencies
 deps:
 	git config --global http.https://gopkg.in.followRedirects true
-
+	@go get -u github.com/golang/dep/cmd/dep
+	@go get -u github.com/golang/lint/golint
 	@echo "$(OK_COLOR)==> Installing dependencies$(NO_COLOR)"
 	@dep ensure
 

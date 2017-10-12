@@ -1,30 +1,31 @@
 package main
 
 import (
+	"bytes"
 	"database/sql"
 	"log"
 	"os"
-	"bytes"
+
+	"bufio"
+	"io"
 
 	"github.com/alecthomas/colour"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/hgfischer/mysqlsuperdump/dumper"
 	"gopkg.in/alecthomas/kingpin.v2"
-	"bufio"
-	"io"
 )
 
 var (
 	app = kingpin.New("klepto", "Steals data from production to put on staging")
 
-	steal = app.Command("steal", "Steal a live database")
+	steal       = app.Command("steal", "Steal a live database")
 	stealingDSN = steal.Flag("inputdsn", "DSN for the input database").Default("root:root@localhost/example").String()
-	swagDSN = steal.Flag("outputdsn", "DSN for the output database (or just 'STDOUT' for a dump)").Default("root:root@localhost/example").String()
+	swagDSN     = steal.Flag("outputdsn", "DSN for the output database (or just 'STDOUT' for a dump)").Default("root:root@localhost/example").String()
 )
 
 func ensureConnectionIsGood(db *sql.DB) error {
-	// this is a copy of what the dumper does as it's first step with one exception, it actually returns an error not
-	// just returns nothing in case of error!
+	// This is a copy of what mysqlsuperdump does as its first step with one exception: it actually returns an error
+	// rather than nothing in case of error!
 	tables := make([]string, 0)
 	var rows *sql.Rows
 	var err = error(nil)
@@ -81,9 +82,9 @@ func main() {
 			writer.Flush()
 			for {
 				s, err := b.ReadString(';')
-				if (err == io.EOF) {
+				if err == io.EOF {
 					break
-				} else if (err != nil) {
+				} else if err != nil {
 					log.Fatalf("Error reading from dumped data : %s \n", err)
 				}
 				outdb.Exec(s)

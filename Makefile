@@ -22,6 +22,8 @@ WARN_COLOR=\033[33;01m
 
 all: clean deps test-unit install
 
+test: test-unit
+
 # Install dependencies
 deps:
 	git config --global http.https://gopkg.in.followRedirects true
@@ -44,7 +46,7 @@ install:
 # Test our project
 test-unit:
 	@printf "$(OK_COLOR)==> Running tests$(NO_COLOR)\n"
-	@go test -v $(REPO)/tests
+	@go test -v
 
 # Cleans our project: deletes binaries
 clean:

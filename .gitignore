@@ -1,3 +1,15 @@
-vendor/
-.idea/
+# Binaries for programs and plugins
+*.exe
+*.dll
+*.so
+*.dylib
+*.test
+debug
 klepto
+
+# Output of the go coverage tool, specifically when used with LiteIDE
+*.out
+
+# Vendor stuff
+.glide/
+vendor/

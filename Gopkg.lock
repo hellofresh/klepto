@@ -26,10 +26,10 @@
   version = "v1.3"
 
 [[projects]]
-  name = "github.com/hgfischer/mysqlsuperdump"
-  packages = ["dumper"]
-  revision = "f359c8092e69204380dac6ffda009c936f86c136"
-  version = "v0.5.0"
+  branch = "master"
+  name = "github.com/manveru/faker"
+  packages = ["."]
+  revision = "717f7cf83fb78669bfab612749c2e8ff63d5be11"
 
 [[projects]]
   name = "github.com/mattn/go-isatty"
@@ -52,6 +52,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "8b0a5d812117e8bda1b6486e6dab2dc584b1d20622ef4f52a396334dfd978d20"
+  inputs-digest = "a251c94220d6680bed7cb84c525a60df390ee2c0102e0e67fac1836ab2e2e4e0"
   solver-name = "gps-cdcl"
   solver-version = 1

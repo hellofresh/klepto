@@ -3,7 +3,6 @@ package database
 import (
 	"database/sql"
 	"fmt"
-	"io"
 	"time"
 )
 
@@ -13,8 +12,8 @@ type MySQLDumper struct {
 }
 
 // NewMySQLDumper is the constructor for MySQLDumper
-func NewMySQLDumper(conn *sql.DB) (*MySQLDumper, error) {
-	return &MySQLDumper{conn: conn}, nil
+func NewMySQLDumper(conn *sql.DB) *MySQLDumper {
+	return &MySQLDumper{conn: conn}
 }
 
 // getPreamble puts a big old comment at the top of the database dump.
@@ -83,12 +82,11 @@ func (d *MySQLDumper) getTableStructure(table string) (stmt string, err error) {
 }
 
 // DumpStructure writes the database's structure to the provided stream
-func (d *MySQLDumper) DumpStructure(w io.Writer) (err error) {
+func (d *MySQLDumper) DumpStructure() (structure string, err error) {
 	preamble, err := d.getPreamble()
 	if err != nil {
 		return
 	}
-	fmt.Fprintf(w, preamble)
 
 	tables, err := d.getTables()
 	if err != nil {
@@ -101,12 +99,8 @@ func (d *MySQLDumper) DumpStructure(w io.Writer) (err error) {
 		if err != nil {
 			return
 		}
-
-		fmt.Fprintf(w, "%s;\n", tableStructure)
-		fmt.Fprintln(w)
 	}
 
-	fmt.Fprintln(w)
-	fmt.Fprintf(w, "\nSET FOREIGN_KEY_CHECKS = 1;\n")
-	return nil
+	structure = fmt.Sprintf("%s\n%s;\n\nSET FOREIGN_KEY_CHECKS = 1;\n", preamble, tableStructure)
+	return
 }

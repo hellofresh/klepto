@@ -20,22 +20,9 @@
 #  name = "github.com/x/y"
 #  version = "2.4.0"
 
-
-[[constraint]]
-  branch = "master"
-  name = "github.com/alecthomas/colour"
-
-[[constraint]]
-  name = "gopkg.in/alecthomas/kingpin.v2"
-  version = "^2.2.5"
-
 [[constraint]]
   name = "github.com/go-sql-driver/mysql"
   version = "^1.3.0"
-
-[[constraint]]
-  name = "github.com/hgfischer/mysqlsuperdump"
-  version = "^0.5.0"
 
 [[constraint]]
   name = "github.com/spf13/viper"
@@ -44,3 +31,11 @@
 [[constraint]]
   branch = "master"
   name = "github.com/manveru/faker"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/spf13/cobra"
+
+[[constraint]]
+  name = "github.com/fatih/color"
+  version = "1.5.0"

@@ -11,11 +11,15 @@ import (
 // MySQLAnonymiser anonymises MySQL tables and
 type MySQLAnonymiser struct {
 	conn *sql.DB
-	out  chan<- *Cell
 }
 
-func DumpTable(conn *sql.DB, table string, out chan *Cell) error {
-	rows, _ := conn.Query(fmt.Sprintf("SELECT * FROM `%s`", table))
+func NewMySQLAnonymiser(conn *sql.DB) *MySQLAnonymiser {
+	return &MySQLAnonymiser{conn: conn}
+}
+
+// DumpTable grabs the data from the provided database table and runs Faker against some columns
+func (a *MySQLAnonymiser) DumpTable(table string, out chan<- *Cell) error {
+	rows, _ := a.conn.Query(fmt.Sprintf("SELECT * FROM `%s`", table))
 	defer rows.Close()
 
 	columns, _ := rows.Columns()

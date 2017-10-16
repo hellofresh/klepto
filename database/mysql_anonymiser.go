@@ -3,10 +3,9 @@ package database
 import (
 	"database/sql"
 	"fmt"
-	"reflect"
 	"time"
 
-	"github.com/manveru/faker"
+	"github.com/malisit/kolpa"
 	"github.com/spf13/viper"
 )
 
@@ -38,19 +37,13 @@ func (a *MySQLAnonymiser) DumpTable(table string, out chan<- *Cell) error {
 			return err
 		}
 
-		f, _ := faker.New("en")
+		k := kolpa.C()
 		for idx, column := range columns {
 			var cell *Cell
 			replacement := a.shouldAnonymise(table, column)
 
 			if replacement != "" {
-				m := reflect.ValueOf(f).MethodByName(replacement)
-				if !m.IsValid() {
-					return fmt.Errorf("%s type not found", replacement)
-				}
-
-				out := m.Call(nil)
-				cell = &Cell{Column: column, Value: out[0]}
+				cell = &Cell{Column: column, Value: k.GenericGenerator(replacement)}
 			} else {
 				scanner := row[idx].(*TypeScanner)
 				cell = &Cell{Column: column, Value: scanner.value}

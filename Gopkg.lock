@@ -44,12 +44,6 @@
   revision = "778fe503b699c10bbfd26769f5c68a0643a91f56"
 
 [[projects]]
-  branch = "master"
-  name = "github.com/manveru/faker"
-  packages = ["."]
-  revision = "717f7cf83fb78669bfab612749c2e8ff63d5be11"
-
-[[projects]]
   name = "github.com/mattn/go-colorable"
   packages = ["."]
   revision = "167de6bfdfba052fa6b2d3664c8f5272e23c9072"
@@ -136,6 +130,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "0e843ffe49540a062a8e04d1ad323413a7d29eaea0cc5375b933cb9746bc4321"
+  inputs-digest = "e69ab26ae0d914b7920b98d7d41892869550d4fbd21b55a66da4a3c5e9b32912"
   solver-name = "gps-cdcl"
   solver-version = 1

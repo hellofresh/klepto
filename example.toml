@@ -1,3 +1,2 @@
 [anonymise]
-"users" = "Yes"
-"users.example" = "Name"
+"users.example" = "person_name"

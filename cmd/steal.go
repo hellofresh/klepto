@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/fatih/color"
 	"github.com/hellofresh/klepto/database"
@@ -30,13 +31,16 @@ func RunSteal(cmd *cobra.Command, args []string) {
 		for {
 			cell, more := <-out
 			if more {
-				fmt.Println(cell)
+				fmt.Println(cell.Value)
 			} else {
 				done <- true
 				return
 			}
 		}
 	}()
+
+	columns, err := dumper.GetColumns("users")
+	fmt.Printf("INSERT INTO `users` (%s) VALUES\n", strings.Join(columns, ", "))
 
 	anonymiser := database.NewMySQLAnonymiser(inputConn)
 	err = anonymiser.DumpTable("users", out)

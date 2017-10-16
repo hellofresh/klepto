@@ -81,6 +81,22 @@ func (d *MySQLDumper) getTableStructure(table string) (stmt string, err error) {
 	return
 }
 
+// GetColumns returns the columns in the specified database table
+func (d *MySQLDumper) GetColumns(table string) (columns []string, err error) {
+	var rows *sql.Rows
+	if rows, err = d.conn.Query(fmt.Sprintf("SELECT * FROM `%s` LIMIT 1", table)); err != nil {
+		return
+	}
+	defer rows.Close()
+	if columns, err = rows.Columns(); err != nil {
+		return
+	}
+	for k, column := range columns {
+		columns[k] = fmt.Sprintf("`%s`", column)
+	}
+	return
+}
+
 // DumpStructure writes the database's structure to the provided stream
 func (d *MySQLDumper) DumpStructure() (structure string, err error) {
 	preamble, err := d.getPreamble()

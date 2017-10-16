@@ -3,9 +3,11 @@ package database
 import (
 	"database/sql"
 	"fmt"
+	"reflect"
 	"time"
 
 	"github.com/manveru/faker"
+	"github.com/spf13/viper"
 )
 
 // MySQLAnonymiser anonymises MySQL tables and
@@ -13,6 +15,7 @@ type MySQLAnonymiser struct {
 	conn *sql.DB
 }
 
+// NewMySQLAnonymiser returns an initialised instance of MySQLAnonymiser
 func NewMySQLAnonymiser(conn *sql.DB) *MySQLAnonymiser {
 	return &MySQLAnonymiser{conn: conn}
 }
@@ -37,13 +40,20 @@ func (a *MySQLAnonymiser) DumpTable(table string, out chan<- *Cell) error {
 
 		f, _ := faker.New("en")
 		for idx, column := range columns {
-			var scanner = row[idx].(*TypeScanner)
 			var cell *Cell
+			replacement := a.shouldAnonymise(table, column)
 
-			if column == "example" {
-				cell = &Cell{column: column, value: f.Name()}
+			if replacement != "" {
+				m := reflect.ValueOf(f).MethodByName(replacement)
+				if !m.IsValid() {
+					return fmt.Errorf("%s type not found", replacement)
+				}
+
+				out := m.Call(nil)
+				cell = &Cell{Column: column, Value: out[0]}
 			} else {
-				cell = &Cell{column: column, value: scanner.value}
+				scanner := row[idx].(*TypeScanner)
+				cell = &Cell{Column: column, Value: scanner.value}
 			}
 
 			out <- cell
@@ -51,6 +61,10 @@ func (a *MySQLAnonymiser) DumpTable(table string, out chan<- *Cell) error {
 	}
 
 	return nil
+}
+
+func (a *MySQLAnonymiser) shouldAnonymise(table, column string) string {
+	return viper.GetString(fmt.Sprintf("anonymise.%s.%s", table, column))
 }
 
 // TypeScanner tries to determine the type of a provided value
@@ -90,7 +104,7 @@ func (scanner *TypeScanner) Scan(src interface{}) error {
 		scanner.valid = true
 	case []byte:
 		value := scanner.getBytes(src)
-		scanner.value = value
+		scanner.value = string(value)
 		scanner.valid = true
 	case time.Time:
 		if value, ok := src.(time.Time); ok {

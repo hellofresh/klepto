@@ -25,29 +25,51 @@ func RunSteal(cmd *cobra.Command, args []string) {
 	}
 	cmd.Print(structure)
 
-	out := make(chan *database.Cell, 100)
+	out := make(chan []*database.Cell, 1000)
 	done := make(chan bool)
 	go func() {
 		for {
-			cell, more := <-out
-			if more {
-				fmt.Println(cell.Value)
-			} else {
+			var sql string
+			cells, more := <-out
+			if !more {
 				done <- true
 				return
 			}
+
+			len := len(cells)
+			for i, c := range cells {
+				if i == 0 {
+					sql += "("
+				}
+
+				if i == len-1 {
+					sql += fmt.Sprintf("\"%s\"),", c.Value)
+				} else {
+					sql += fmt.Sprintf("\"%s\", ", c.Value)
+				}
+			}
+
+			fmt.Println(sql)
 		}
 	}()
 
-	columns, err := dumper.GetColumns("users")
-	fmt.Printf("INSERT INTO `users` (%s) VALUES\n", strings.Join(columns, ", "))
-
-	anonymiser := database.NewMySQLAnonymiser(inputConn)
-	err = anonymiser.DumpTable("users", out)
+	tables, err := dumper.GetTables()
 	if err != nil {
 		color.Red("Error stealing data: %s", err.Error())
-		return
 	}
+
+	for _, table := range tables {
+		columns, err := dumper.GetColumns(table)
+		fmt.Printf("\nINSERT INTO `%s` (%s) VALUES\n", table, strings.Join(columns, ", "))
+
+		anonymiser := database.NewMySQLAnonymiser(inputConn)
+		err = anonymiser.DumpTable(table, out)
+		if err != nil {
+			color.Red("Error stealing data: %s", err.Error())
+			return
+		}
+	}
+
 	close(out)
 	<-done
 

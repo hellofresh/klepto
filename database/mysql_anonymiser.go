@@ -20,7 +20,7 @@ func NewMySQLAnonymiser(conn *sql.DB) *MySQLAnonymiser {
 }
 
 // DumpTable grabs the data from the provided database table and runs Faker against some columns
-func (a *MySQLAnonymiser) DumpTable(table string, out chan<- *Cell) error {
+func (a *MySQLAnonymiser) DumpTable(table string, out chan<- []*Cell) error {
 	rows, _ := a.conn.Query(fmt.Sprintf("SELECT * FROM `%s`", table))
 	defer rows.Close()
 
@@ -38,6 +38,7 @@ func (a *MySQLAnonymiser) DumpTable(table string, out chan<- *Cell) error {
 		}
 
 		k := kolpa.C()
+		var cells []*Cell
 		for idx, column := range columns {
 			var cell *Cell
 			replacement := a.shouldAnonymise(table, column)
@@ -49,8 +50,11 @@ func (a *MySQLAnonymiser) DumpTable(table string, out chan<- *Cell) error {
 				cell = &Cell{Column: column, Value: scanner.value}
 			}
 
-			out <- cell
+			cells = append(cells, cell)
+			// out <- cell
 		}
+
+		out <- cells
 	}
 
 	return nil

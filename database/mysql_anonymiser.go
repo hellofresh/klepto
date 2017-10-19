@@ -20,7 +20,7 @@ func NewMySQLAnonymiser(conn *sql.DB) *MySQLAnonymiser {
 }
 
 // DumpTable grabs the data from the provided database table and runs Faker against some columns
-func (a *MySQLAnonymiser) DumpTable(table string, out chan<- []*Cell) error {
+func (a *MySQLAnonymiser) DumpTable(table string, rowChan chan<- []*Cell, endChan chan<- bool) error {
 	rows, _ := a.conn.Query(fmt.Sprintf("SELECT * FROM `%s`", table))
 	defer rows.Close()
 
@@ -51,12 +51,12 @@ func (a *MySQLAnonymiser) DumpTable(table string, out chan<- []*Cell) error {
 			}
 
 			cells = append(cells, cell)
-			// out <- cell
 		}
 
-		out <- cells
+		rowChan <- cells
 	}
 
+	endChan <- true
 	return nil
 }
 

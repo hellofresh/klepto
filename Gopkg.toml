@@ -39,3 +39,7 @@
 [[constraint]]
   branch = "master"
   name = "github.com/malisit/kolpa"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/gernest/wow"

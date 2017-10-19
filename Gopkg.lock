@@ -14,6 +14,12 @@
   version = "v1.4.2"
 
 [[projects]]
+  branch = "master"
+  name = "github.com/gernest/wow"
+  packages = [".","spin"]
+  revision = "57298475c6371a5a652e74dcf624c80edfc5ae1a"
+
+[[projects]]
   name = "github.com/go-sql-driver/mysql"
   packages = ["."]
   revision = "a0583e0143b1624142adab07e0e97fe106d99561"
@@ -30,6 +36,12 @@
   packages = ["."]
   revision = "76626ae9c91c4f2a10f34cad8ce83ea42c93bb75"
   version = "v1.0"
+
+[[projects]]
+  name = "github.com/magefile/mage"
+  packages = ["mg","sh"]
+  revision = "2f974307b636f59c13b88704cf350a4772fef271"
+  version = "v1.0.2"
 
 [[projects]]
   name = "github.com/magiconair/properties"
@@ -111,8 +123,14 @@
 
 [[projects]]
   branch = "master"
+  name = "golang.org/x/crypto"
+  packages = ["ssh/terminal"]
+  revision = "ed5229da99e3a6df35c756cd64b6982d19505d86"
+
+[[projects]]
+  branch = "master"
   name = "golang.org/x/sys"
-  packages = ["unix"]
+  packages = ["unix","windows"]
   revision = "ebfc5b4631820b793c9010c87fd8fef0f39eb082"
 
 [[projects]]
@@ -130,6 +148,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "e69ab26ae0d914b7920b98d7d41892869550d4fbd21b55a66da4a3c5e9b32912"
+  inputs-digest = "8a0788b14320a27a892b4b0c5040c59ce1d916317edc99cf05f22d0f4534a5fa"
   solver-name = "gps-cdcl"
   solver-version = 1

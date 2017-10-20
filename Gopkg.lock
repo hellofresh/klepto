@@ -14,6 +14,12 @@
   version = "v1.4.2"
 
 [[projects]]
+  branch = "master"
+  name = "github.com/gernest/wow"
+  packages = [".","spin"]
+  revision = "57298475c6371a5a652e74dcf624c80edfc5ae1a"
+
+[[projects]]
   name = "github.com/go-sql-driver/mysql"
   packages = ["."]
   revision = "a0583e0143b1624142adab07e0e97fe106d99561"
@@ -32,6 +38,12 @@
   version = "v1.0"
 
 [[projects]]
+  name = "github.com/magefile/mage"
+  packages = ["mg","sh"]
+  revision = "2f974307b636f59c13b88704cf350a4772fef271"
+  version = "v1.0.2"
+
+[[projects]]
   name = "github.com/magiconair/properties"
   packages = ["."]
   revision = "be5ece7dd465ab0765a9682137865547526d1dfb"
@@ -39,9 +51,9 @@
 
 [[projects]]
   branch = "master"
-  name = "github.com/manveru/faker"
+  name = "github.com/malisit/kolpa"
   packages = ["."]
-  revision = "717f7cf83fb78669bfab612749c2e8ff63d5be11"
+  revision = "778fe503b699c10bbfd26769f5c68a0643a91f56"
 
 [[projects]]
   name = "github.com/mattn/go-colorable"
@@ -111,8 +123,14 @@
 
 [[projects]]
   branch = "master"
+  name = "golang.org/x/crypto"
+  packages = ["ssh/terminal"]
+  revision = "ed5229da99e3a6df35c756cd64b6982d19505d86"
+
+[[projects]]
+  branch = "master"
   name = "golang.org/x/sys"
-  packages = ["unix"]
+  packages = ["unix","windows"]
   revision = "ebfc5b4631820b793c9010c87fd8fef0f39eb082"
 
 [[projects]]
@@ -130,6 +148,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "2ba0be596a9bd1cfaacb1514db9b24a0238ffd1bf8cf93035cb91bf3d9f1a65e"
+  inputs-digest = "8a0788b14320a27a892b4b0c5040c59ce1d916317edc99cf05f22d0f4534a5fa"
   solver-name = "gps-cdcl"
   solver-version = 1

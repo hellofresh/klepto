@@ -5,7 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/manveru/faker"
+	"github.com/malisit/kolpa"
+	"github.com/spf13/viper"
 )
 
 // MySQLAnonymiser anonymises MySQL tables and
@@ -13,12 +14,13 @@ type MySQLAnonymiser struct {
 	conn *sql.DB
 }
 
+// NewMySQLAnonymiser returns an initialised instance of MySQLAnonymiser
 func NewMySQLAnonymiser(conn *sql.DB) *MySQLAnonymiser {
 	return &MySQLAnonymiser{conn: conn}
 }
 
 // DumpTable grabs the data from the provided database table and runs Faker against some columns
-func (a *MySQLAnonymiser) DumpTable(table string, out chan<- *Cell) error {
+func (a *MySQLAnonymiser) DumpTable(table string, rowChan chan<- []*Cell, endChan chan<- bool) error {
 	rows, _ := a.conn.Query(fmt.Sprintf("SELECT * FROM `%s`", table))
 	defer rows.Close()
 
@@ -35,22 +37,31 @@ func (a *MySQLAnonymiser) DumpTable(table string, out chan<- *Cell) error {
 			return err
 		}
 
-		f, _ := faker.New("en")
+		k := kolpa.C()
+		var cells []*Cell
 		for idx, column := range columns {
-			var scanner = row[idx].(*TypeScanner)
 			var cell *Cell
+			replacement := a.shouldAnonymise(table, column)
 
-			if column == "example" {
-				cell = &Cell{column: column, value: f.Name()}
+			if replacement != "" {
+				cell = &Cell{Column: column, Value: k.GenericGenerator(replacement)}
 			} else {
-				cell = &Cell{column: column, value: scanner.value}
+				scanner := row[idx].(*TypeScanner)
+				cell = &Cell{Column: column, Value: scanner.value}
 			}
 
-			out <- cell
+			cells = append(cells, cell)
 		}
+
+		rowChan <- cells
 	}
 
+	endChan <- true
 	return nil
+}
+
+func (a *MySQLAnonymiser) shouldAnonymise(table, column string) string {
+	return viper.GetString(fmt.Sprintf("anonymise.%s.%s", table, column))
 }
 
 // TypeScanner tries to determine the type of a provided value
@@ -90,7 +101,7 @@ func (scanner *TypeScanner) Scan(src interface{}) error {
 		scanner.valid = true
 	case []byte:
 		value := scanner.getBytes(src)
-		scanner.value = value
+		scanner.value = string(value)
 		scanner.valid = true
 	case time.Time:
 		if value, ok := src.(time.Time); ok {

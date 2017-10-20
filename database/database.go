@@ -19,8 +19,8 @@ type Anonymiser interface {
 
 // A Cell represents the value in a particular row and column
 type Cell struct {
-	column string
-	value  interface{}
+	Column string
+	Value  interface{}
 }
 
 // Connect to a (for now) MySQL database with the provided DSN

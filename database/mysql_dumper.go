@@ -49,8 +49,8 @@ SET FOREIGN_KEY_CHECKS = 0;
 	return fmt.Sprintf(preamble, hostname, database, time.Now().Format(time.RFC1123Z)), nil
 }
 
-// getTables gets a list of all tables in the database
-func (d *MySQLDumper) getTables() (tables []string, err error) {
+// GetTables gets a list of all tables in the database
+func (d *MySQLDumper) GetTables() (tables []string, err error) {
 	tables = make([]string, 0)
 	var rows *sql.Rows
 	if rows, err = d.conn.Query("SHOW FULL TABLES"); err != nil {
@@ -81,6 +81,22 @@ func (d *MySQLDumper) getTableStructure(table string) (stmt string, err error) {
 	return
 }
 
+// GetColumns returns the columns in the specified database table
+func (d *MySQLDumper) GetColumns(table string) (columns []string, err error) {
+	var rows *sql.Rows
+	if rows, err = d.conn.Query(fmt.Sprintf("SELECT * FROM `%s` LIMIT 1", table)); err != nil {
+		return
+	}
+	defer rows.Close()
+	if columns, err = rows.Columns(); err != nil {
+		return
+	}
+	for k, column := range columns {
+		columns[k] = fmt.Sprintf("`%s`", column)
+	}
+	return
+}
+
 // DumpStructure writes the database's structure to the provided stream
 func (d *MySQLDumper) DumpStructure() (structure string, err error) {
 	preamble, err := d.getPreamble()
@@ -88,7 +104,7 @@ func (d *MySQLDumper) DumpStructure() (structure string, err error) {
 		return
 	}
 
-	tables, err := d.getTables()
+	tables, err := d.GetTables()
 	if err != nil {
 		return
 	}
@@ -101,6 +117,6 @@ func (d *MySQLDumper) DumpStructure() (structure string, err error) {
 		}
 	}
 
-	structure = fmt.Sprintf("%s\n%s;\n\nSET FOREIGN_KEY_CHECKS = 1;\n", preamble, tableStructure)
+	structure = fmt.Sprintf("%s\n%s;\n\n", preamble, tableStructure)
 	return
 }

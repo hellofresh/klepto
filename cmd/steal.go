@@ -43,27 +43,10 @@ func RunSteal(cmd *cobra.Command, args []string) {
 	spinner.Start()
 
 	var tableBuffers []*bytes.Buffer
-	for _, table := range tables {
-		columns, err := dumper.GetColumns(table)
-		buf := bytes.NewBufferString(fmt.Sprintf("\nINSERT INTO `%s` (%s) VALUES", table, strings.Join(columns, ", ")))
 
-		wg.Add(1)
-		go bufferer(buf, out, done, &wg)
+	anonymiser := database.NewMySQLAnonymiser(inputConn)
 
-		anonymiser := database.NewMySQLAnonymiser(inputConn)
-		err = anonymiser.DumpTable(table, out, done)
-		if err != nil {
-			color.Red("Error stealing data: %s", err.Error())
-			return
-		}
-
-		wg.Wait()
-
-		b := buf.Bytes()
-		b = b[:len(b)-1]
-		b = append(b, []byte(";")...)
-		tableBuffers = append(tableBuffers, buf)
-	}
+	tableBuffers = waitGroupBufferer(tables, anonymiser, dumper, out, done, &wg)
 
 	close(out)
 	spinner.Stop()
@@ -112,4 +95,31 @@ func bufferer(buf *bytes.Buffer, rowChan chan []*database.Cell, done chan bool, 
 			return
 		}
 	}
+}
+
+func waitGroupBufferer(tables []string, anonymiser *database.MySQLAnonymiser, dumper *database.MySQLDumper, out chan []*database.Cell, done chan bool, wg *sync.WaitGroup) []*bytes.Buffer {
+
+	var tableBuffers []*bytes.Buffer
+	for _, table := range tables {
+		columns, err := dumper.GetColumns(table)
+		buf := bytes.NewBufferString(fmt.Sprintf("\nINSERT INTO `%s` (%s) VALUES", table, strings.Join(columns, ", ")))
+
+		wg.Add(1)
+		go bufferer(buf, out, done, wg)
+
+		err = anonymiser.DumpTable(table, out, done)
+		if err != nil {
+			color.Red("Error stealing data: %s", err.Error())
+			return tableBuffers
+		}
+
+		wg.Wait()
+
+		b := buf.Bytes()
+		b = b[:len(b)-1]
+		b = append(b, []byte(";")...)
+		tableBuffers = append(tableBuffers, buf)
+	}
+
+	return tableBuffers
 }

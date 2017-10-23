@@ -13,6 +13,7 @@ import (
 var configFile string
 var fromDSN string
 var toDSN string
+var nRows string
 
 var Klepto = &cobra.Command{
 	Use:   "klepto",
@@ -32,8 +33,10 @@ func init() {
 	Klepto.PersistentFlags().StringVarP(&configFile, "config", "c", "", "Path to config file (default is $HOME/.klepto.toml)")
 	Klepto.PersistentFlags().StringVarP(&fromDSN, "from", "f", "root:root@tcp(localhost:3306)/klepto", "MySQL database dsn to steal from")
 	Klepto.PersistentFlags().StringVarP(&toDSN, "to", "t", "", "MySQL database to output to (default writes to stdOut)")
+	Klepto.PersistentFlags().StringVarP(&nRows, "rows", "r", "10000", "Number of rows you want to steal")
 	viper.BindPFlag("fromDSN", Klepto.PersistentFlags().Lookup("from"))
 	viper.BindPFlag("toDSN", Klepto.PersistentFlags().Lookup("to"))
+	viper.BindPFlag("nRows", Klepto.PersistentFlags().Lookup("rows"))
 }
 
 func initConfig() {

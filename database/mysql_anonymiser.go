@@ -43,11 +43,12 @@ func (a *MySQLAnonymiser) DumpTable(table string, rowChan chan<- []*Cell, endCha
 			var cell *Cell
 			replacement := a.shouldAnonymise(table, column)
 
-			if replacement != "" {
-				cell = &Cell{Column: column, Value: k.GenericGenerator(replacement)}
+			scanner := row[idx].(*TypeScanner)
+
+			if replacement != "" && scanner.detected != "null" {
+				cell = &Cell{Column: column, Type: scanner.detected, Value: k.GenericGenerator(replacement)}
 			} else {
-				scanner := row[idx].(*TypeScanner)
-				cell = &Cell{Column: column, Value: scanner.value}
+				cell = &Cell{Column: column, Type: scanner.detected, Value: scanner.value}
 			}
 
 			cells = append(cells, cell)
@@ -66,8 +67,9 @@ func (a *MySQLAnonymiser) shouldAnonymise(table, column string) string {
 
 // TypeScanner tries to determine the type of a provided value
 type TypeScanner struct {
-	valid bool
-	value interface{}
+	valid    bool
+	value    interface{}
+	detected string
 }
 
 func (scanner *TypeScanner) getBytes(src interface{}) []byte {
@@ -84,33 +86,40 @@ func (scanner *TypeScanner) Scan(src interface{}) error {
 		if value, ok := src.(int64); ok {
 			scanner.value = value
 			scanner.valid = true
+			scanner.detected = "int"
 		}
 	case float64:
 		if value, ok := src.(float64); ok {
 			scanner.value = value
 			scanner.valid = true
+			scanner.detected = "float"
 		}
 	case bool:
 		if value, ok := src.(bool); ok {
 			scanner.value = value
 			scanner.valid = true
+			scanner.detected = "bool"
 		}
 	case string:
 		value := scanner.getBytes(src)
 		scanner.value = string(value)
 		scanner.valid = true
+		scanner.detected = "string"
 	case []byte:
 		value := scanner.getBytes(src)
 		scanner.value = string(value)
 		scanner.valid = true
+		scanner.detected = "string"
 	case time.Time:
 		if value, ok := src.(time.Time); ok {
 			scanner.value = value
 			scanner.valid = true
+			scanner.detected = "time"
 		}
 	case nil:
-		scanner.value = nil
+		scanner.value = "NULL"
 		scanner.valid = true
+		scanner.detected = "null"
 	}
 	return nil
 }

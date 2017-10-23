@@ -15,6 +15,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// RunSteal is the handler for the rootCmd.
 func RunSteal(cmd *cobra.Command, args []string) {
 	inputConn, err := database.Connect(fromDSN)
 	if err != nil {
@@ -29,7 +30,6 @@ func RunSteal(cmd *cobra.Command, args []string) {
 		color.Red("Error connecting to input database: %s", err.Error())
 		return
 	}
-	cmd.Print(structure)
 
 	out := make(chan []*database.Cell, 1000)
 	done := make(chan bool)
@@ -39,7 +39,10 @@ func RunSteal(cmd *cobra.Command, args []string) {
 	}
 
 	var wg sync.WaitGroup
-	w := wow.New(os.Stdout, spin.Get(spin.Smiley), " Stealing...")
+	spinner := wow.New(os.Stdout, spin.Get(spin.Smiley), " Stealing...")
+	spinner.Start()
+
+	var tableBuffers []*bytes.Buffer
 	for _, table := range tables {
 		columns, err := dumper.GetColumns(table)
 		buf := bytes.NewBufferString(fmt.Sprintf("\nINSERT INTO `%s` (%s) VALUES", table, strings.Join(columns, ", ")))
@@ -54,18 +57,22 @@ func RunSteal(cmd *cobra.Command, args []string) {
 			return
 		}
 
-		w.Start()
 		wg.Wait()
-		w.Stop()
 
-		// TODO: How 2 buf.TrimSuffix(",")
-		buf.WriteString(";\n")
-		io.Copy(os.Stdout, buf)
+		b := buf.Bytes()
+		b = b[:len(b)-1]
+		b = append(b, []byte(";")...)
+		tableBuffers = append(tableBuffers, buf)
 	}
 
-	<-done
 	close(out)
-	os.Exit(0)
+	spinner.Stop()
+
+	// Output everything
+	fmt.Print(structure)
+	for _, tbl := range tableBuffers {
+		io.Copy(os.Stdout, tbl)
+	}
 
 	// outputConn, err := dbConnect(*toDSN)
 	// if err != nil {
@@ -78,7 +85,7 @@ func bufferer(buf *bytes.Buffer, rowChan chan []*database.Cell, done chan bool, 
 		select {
 		case cells, more := <-rowChan:
 			if !more {
-				wg.Done()
+				done <- true
 				return
 			}
 
@@ -88,10 +95,16 @@ func bufferer(buf *bytes.Buffer, rowChan chan []*database.Cell, done chan bool, 
 					buf.WriteString("\n(")
 				}
 
-				if i == len-1 {
-					buf.WriteString(fmt.Sprintf("\"%s\"),", c.Value))
+				if c.Type == "string" {
+					buf.WriteString(fmt.Sprintf("\"%s\"", c.Value))
 				} else {
-					buf.WriteString(fmt.Sprintf("\"%s\", ", c.Value))
+					buf.WriteString(fmt.Sprintf("%s", c.Value))
+				}
+
+				if i == len-1 {
+					buf.WriteString("),")
+				} else {
+					buf.WriteString(", ")
 				}
 			}
 		case <-done:

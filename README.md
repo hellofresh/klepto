@@ -4,7 +4,7 @@ Steal data from a live (mysql) database, anonymise it where defined, and put it 
 
 Vision:
 
-`klepto steal -from "root:root@localhost/urbase" -to "klepto:klepto@localhost/urbase" -config config.yml`
+`klepto --from 'root:root@tcp(localhost:3306)/fromDB' --to 'root:root@tcp(localhost:3306)/toDB' --config example.toml`
 
 By default it just downloads and dumps everything, but you can use the config to define fields to anonymise:
 

@@ -58,8 +58,9 @@ func RunSteal(cmd *cobra.Command, args []string) {
 		wg.Wait()
 		w.Stop()
 
-		// TODO: How 2 buf.TrimSuffix(",")
-		buf.WriteString(";\n")
+		b := buf.Bytes()
+		b = b[:len(b)-1]
+		b = append(b, []byte(";")...)
 		io.Copy(os.Stdout, buf)
 	}
 

@@ -39,7 +39,7 @@ func RunSteal(cmd *cobra.Command, args []string) {
 	}
 
 	var wg sync.WaitGroup
-	w := wow.New(os.Stdout, spin.Get(spin.Smiley), " Stealing...")
+	spinner := wow.New(os.Stdout, spin.Get(spin.Smiley), " Stealing...")
 	for _, table := range tables {
 		columns, err := dumper.GetColumns(table)
 		buf := bytes.NewBufferString(fmt.Sprintf("\nINSERT INTO `%s` (%s) VALUES", table, strings.Join(columns, ", ")))
@@ -54,15 +54,17 @@ func RunSteal(cmd *cobra.Command, args []string) {
 			return
 		}
 
-		w.Start()
+		spinner.Start()
 		wg.Wait()
-		w.Stop()
+		spinner.Stop()
 
 		b := buf.Bytes()
 		b = b[:len(b)-1]
 		b = append(b, []byte(";")...)
 		io.Copy(os.Stdout, buf)
 	}
+
+	fmt.Println("hahahha")
 
 	<-done
 	close(out)
@@ -89,10 +91,16 @@ func bufferer(buf *bytes.Buffer, rowChan chan []*database.Cell, done chan bool, 
 					buf.WriteString("\n(")
 				}
 
-				if i == len-1 {
-					buf.WriteString(fmt.Sprintf("\"%s\"),", c.Value))
+				if c.Type == "string" {
+					buf.WriteString(fmt.Sprintf("\"%s\"", c.Value))
 				} else {
-					buf.WriteString(fmt.Sprintf("\"%s\", ", c.Value))
+					buf.WriteString(fmt.Sprintf("%s", c.Value))
+				}
+
+				if i == len-1 {
+					buf.WriteString("),")
+				} else {
+					buf.WriteString(", ")
 				}
 			}
 		case <-done:

@@ -21,6 +21,7 @@ type Anonymiser interface {
 type Cell struct {
 	Column string
 	Value  interface{}
+	Type   string
 }
 
 // Connect to a (for now) MySQL database with the provided DSN

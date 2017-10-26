@@ -3,11 +3,16 @@ package database
 import (
 	"database/sql"
 	"fmt"
+	"strings"
 
 	"github.com/hellofresh/klepto/utils"
 	"github.com/malisit/kolpa"
 	"github.com/spf13/viper"
 )
+
+const literalPrefix = "literal:"
+
+var k = kolpa.C()
 
 // MySQLAnonymiser anonymises MySQL tables and
 type MySQLAnonymiser struct {
@@ -37,21 +42,11 @@ func (a *MySQLAnonymiser) DumpTable(table string, rowChan chan<- []*Cell, endCha
 			return err
 		}
 
-		k := kolpa.C()
 		var cells []*Cell
 		for idx, column := range columns {
-			var cell *Cell
 			replacement := a.shouldAnonymise(table, column)
-
 			scanner := row[idx].(*utils.TypeScanner)
-
-			if replacement != "" && scanner.Detected != "null" {
-				cell = &Cell{Column: column, Type: scanner.Detected, Value: k.GenericGenerator(replacement)}
-			} else {
-				cell = &Cell{Column: column, Type: scanner.Detected, Value: scanner.Value}
-			}
-
-			cells = append(cells, cell)
+			cells = append(cells, a.anonymiseCell(column, replacement, scanner))
 		}
 
 		rowChan <- cells
@@ -63,4 +58,16 @@ func (a *MySQLAnonymiser) DumpTable(table string, rowChan chan<- []*Cell, endCha
 
 func (a *MySQLAnonymiser) shouldAnonymise(table, column string) string {
 	return viper.GetString(fmt.Sprintf("anonymise.%s.%s", table, column))
+}
+
+func (a *MySQLAnonymiser) anonymiseCell(column, replacement string, scanner *utils.TypeScanner) *Cell {
+	if replacement != "" && scanner.Detected != "null" {
+		if literal := strings.TrimPrefix(replacement, literalPrefix); len(literal) != len(replacement) {
+			return &Cell{Column: column, Type: scanner.Detected, Value: literal}
+		}
+
+		return &Cell{Column: column, Type: scanner.Detected, Value: k.GenericGenerator(replacement)}
+	}
+
+	return &Cell{Column: column, Type: scanner.Detected, Value: scanner.Value}
 }

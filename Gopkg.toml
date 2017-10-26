@@ -38,8 +38,8 @@
 
 [[constraint]]
   branch = "master"
-  name = "github.com/malisit/kolpa"
+  name = "github.com/gernest/wow"
 
 [[constraint]]
   branch = "master"
-  name = "github.com/gernest/wow"
+  name = "github.com/icrowley/fake"

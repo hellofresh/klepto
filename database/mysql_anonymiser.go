@@ -6,13 +6,10 @@ import (
 	"strings"
 
 	"github.com/hellofresh/klepto/utils"
-	"github.com/malisit/kolpa"
 	"github.com/spf13/viper"
 )
 
 const literalPrefix = "literal:"
-
-var k = kolpa.C()
 
 // MySQLAnonymiser anonymises MySQL tables and
 type MySQLAnonymiser struct {
@@ -66,7 +63,7 @@ func (a *MySQLAnonymiser) anonymiseCell(column, replacement string, scanner *uti
 			return &Cell{Column: column, Type: scanner.Detected, Value: literal}
 		}
 
-		return &Cell{Column: column, Type: scanner.Detected, Value: k.GenericGenerator(replacement)}
+		return &Cell{Column: column, Type: scanner.Detected, Value: utils.Functions[replacement].Call(nil)[0]}
 	}
 
 	return &Cell{Column: column, Type: scanner.Detected, Value: scanner.Value}

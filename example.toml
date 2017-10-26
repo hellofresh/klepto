@@ -1,4 +1,4 @@
 [anonymise]
-"users.name" = "person_name"
-"users.username" = "email"
+"users.name" = "FirstName"
+"users.username" = "EmailAddress"
 "users.password" = "literal:1234"

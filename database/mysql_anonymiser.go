@@ -29,11 +29,11 @@ func (a *MySQLAnonymiser) DumpTable(table string, rowChan chan<- []*Cell, endCha
 	for rows.Next() {
 		row := make([]interface{}, len(columns))
 		for idx := range columns {
-			row[idx] = new(utils.TypeScanner)
+			var v interface{}
+			row[idx] = &v
 		}
 
-		err := rows.Scan(row...)
-		if err != nil {
+		if err := rows.Scan(row...); err != nil {
 			return err
 		}
 

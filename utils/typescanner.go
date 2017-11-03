@@ -1,6 +1,8 @@
 package utils
 
-import "time"
+import (
+	"time"
+)
 
 // TypeScanner tries to determine the type of a provided value
 type TypeScanner struct {
@@ -38,13 +40,14 @@ func (scanner *TypeScanner) Scan(src interface{}) {
 			scanner.Detected = "bool"
 		}
 	case string:
-		value := scanner.getBytes(src)
-		scanner.Value = string(value)
-		scanner.Valid = true
-		scanner.Detected = "string"
+		if value, ok := src.(string); ok {
+			scanner.Value = string(value)
+			scanner.Valid = true
+			scanner.Detected = "string"
+		}
 	case []byte:
 		value := scanner.getBytes(src)
-		scanner.Value = string(value)
+		scanner.Value = value
 		scanner.Valid = true
 		scanner.Detected = "string"
 	case time.Time:

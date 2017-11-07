@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"io"
 
+	// Required plugin for database/sql
 	_ "github.com/go-sql-driver/mysql"
 )
 

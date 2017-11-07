@@ -2,6 +2,12 @@
 
 
 [[projects]]
+  branch = "master"
+  name = "github.com/corpix/uarand"
+  packages = ["."]
+  revision = "2b8494104d86337cdd41d0a49cbed8e4583c0ab4"
+
+[[projects]]
   name = "github.com/fatih/color"
   packages = ["."]
   revision = "570b54cabe6b8eb0bc2dfce68d964677d63b5260"
@@ -32,6 +38,12 @@
   revision = "42e33e2d55a0ff1d6263f738896ea8c13571a8d0"
 
 [[projects]]
+  branch = "master"
+  name = "github.com/icrowley/fake"
+  packages = ["."]
+  revision = "e64cc2cf92049a299f359734c6ea76073f2a8b2c"
+
+[[projects]]
   name = "github.com/inconshreveable/mousetrap"
   packages = ["."]
   revision = "76626ae9c91c4f2a10f34cad8ce83ea42c93bb75"
@@ -48,12 +60,6 @@
   packages = ["."]
   revision = "be5ece7dd465ab0765a9682137865547526d1dfb"
   version = "v1.7.3"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/malisit/kolpa"
-  packages = ["."]
-  revision = "778fe503b699c10bbfd26769f5c68a0643a91f56"
 
 [[projects]]
   name = "github.com/mattn/go-colorable"
@@ -148,6 +154,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "90f387b1f5a596046384eaeef2d3f3d6824c5f6e849f3bc641a831794cfc792c"
+  inputs-digest = "bd8f381a842b84d53f1ecc511e2463c18abcccceb032df2c215640f929dce4bf"
   solver-name = "gps-cdcl"
   solver-version = 1

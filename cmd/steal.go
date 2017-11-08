@@ -12,6 +12,7 @@ import (
 	"github.com/gernest/wow"
 	"github.com/gernest/wow/spin"
 	"github.com/hellofresh/klepto/database"
+	"github.com/hellofresh/klepto/database/anonymiser"
 	"github.com/spf13/cobra"
 )
 
@@ -44,7 +45,7 @@ func RunSteal(cmd *cobra.Command, args []string) {
 
 	var tableBuffers []*bytes.Buffer
 
-	anonymiser := database.NewMySQLAnonymiser(inputConn)
+	anonymiser := anonymiser.NewMySQLAnonymiser(inputConn)
 
 	tableBuffers = waitGroupBufferer(tables, anonymiser, dumper, out, done, &wg)
 
@@ -97,7 +98,7 @@ func bufferer(buf *bytes.Buffer, rowChan chan []*database.Cell, done chan bool, 
 	}
 }
 
-func waitGroupBufferer(tables []string, anonymiser *database.MySQLAnonymiser, dumper *database.MySQLDumper, out chan []*database.Cell, done chan bool, wg *sync.WaitGroup) []*bytes.Buffer {
+func waitGroupBufferer(tables []string, anonymiser *anonymiser.MySQLAnonymiser, dumper *database.MySQLDumper, out chan []*database.Cell, done chan bool, wg *sync.WaitGroup) []*bytes.Buffer {
 
 	var tableBuffers []*bytes.Buffer
 	for _, table := range tables {

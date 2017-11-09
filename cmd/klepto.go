@@ -15,6 +15,7 @@ var fromDSN string
 var toDSN string
 var nRows string
 
+// Klepto steals and anonymises databases
 var Klepto = &cobra.Command{
 	Use:   "klepto",
 	Short: "Steals and anonymises databases",

@@ -1,4 +1,4 @@
-package seeder
+package mysql
 
 import (
 	"fmt"
@@ -11,8 +11,8 @@ import (
 type Seeder struct {
 }
 
-// KeepSeedValueUnchanged keeps primary key or any other non-anonymous fields unchanged.
-func KeepSeedValueUnchanged(column string, value, typ interface{}) (*database.Cell, error) {
+// Keep leaves primary key or any other non-anonymous fields unchanged.
+func Keep(column string, value, typ interface{}) (*database.Cell, error) {
 	kind := fmt.Sprintf("%s", reflect.TypeOf(value).Kind())
 	cell := &database.Cell{Column: column, Value: value, Type: kind}
 	if cell.Type != "" {

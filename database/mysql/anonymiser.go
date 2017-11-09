@@ -1,12 +1,9 @@
-package anonymiser
+package mysql
 
 import (
-	"database/sql"
 	"fmt"
 	"reflect"
 	"strings"
-
-	"github.com/hellofresh/klepto/database/seeder"
 
 	"github.com/hellofresh/klepto/database"
 	"github.com/hellofresh/klepto/utils"
@@ -16,37 +13,31 @@ import (
 // literalPrefix defines the constant we use to prefix literals
 const literalPrefix = "literal:"
 
-// MySQLAnonymiser anonymises MySQL tables and
-type MySQLAnonymiser struct {
-	conn *sql.DB
-}
-
-// MySQLSeeder describes mysql seeds
-type MySQLSeeder struct {
-	seeder.Seeder
+// Anonymiser anonymises MySQL tables
+type Anonymiser struct {
+	store database.Store
 }
 
 type scanner struct {
 	utils.TypeScanner
 }
 
-// NewMySQLAnonymiser returns an initialised instance of MySQLAnonymiser
-func NewMySQLAnonymiser(conn *sql.DB) *MySQLAnonymiser {
-	return &MySQLAnonymiser{conn: conn}
+// NewAnonymiser returns an initialised instance of MySQLAnonymiser
+func NewAnonymiser(s database.Store) *Anonymiser {
+	return &Anonymiser{
+		store: s,
+	}
 }
 
-// DumpTable grabs the data from the provided database table and runs Faker against
+// AnonymiseRows grabs the data from the provided database table and runs Faker against
 // columns specified in config file.
-func (a *MySQLAnonymiser) DumpTable(table string, rowChan chan<- []*database.Cell, endChan chan<- bool) error {
-	rows, err := a.conn.Query(fmt.Sprintf("SELECT * FROM `%s`", table))
+func (a *Anonymiser) AnonymiseRows(table string, rowChan chan<- []*database.Cell, endChan chan<- bool) error {
+	rows, err := a.store.Rows(table)
 	if err != nil {
 		return err
 	}
 	defer rows.Close()
 	columns, err := rows.Columns()
-	if err != nil {
-		return err
-	}
 	for rows.Next() {
 		fields := make([]interface{}, len(columns))
 		var cells []*database.Cell
@@ -61,7 +52,7 @@ func (a *MySQLAnonymiser) DumpTable(table string, rowChan chan<- []*database.Cel
 				}
 				cells = append(cells, cell)
 			} else {
-				// TODO: Make this approach more efficient.
+				// TODO (in the exciting future): Make this approach more efficient.
 				// Currently not very efficient because in each loop,
 				// we create len(columns) number of interfaces so that rows.Scan() will not complain
 				// about not having enough params. in reality, we only need
@@ -71,7 +62,7 @@ func (a *MySQLAnonymiser) DumpTable(table string, rowChan chan<- []*database.Cel
 					return err
 				}
 				seed := reflect.ValueOf(nFields[idx]).Elem()
-				cell, err := seeder.KeepSeedValueUnchanged(column, seed, reflect.TypeOf(seed).Kind())
+				cell, err := Keep(column, seed, reflect.TypeOf(seed).Kind())
 				if err != nil {
 					return err
 				}

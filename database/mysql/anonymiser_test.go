@@ -1,4 +1,4 @@
-package anonymiser
+package mysql
 
 import (
 	"strings"
@@ -31,17 +31,6 @@ func TestDoNotAnonymise(t *testing.T) {
 			)
 		}
 	}
-}
-
-type seedsTestPair struct {
-	column     string
-	value, typ interface{}
-	cell       *database.Cell
-}
-
-var seedTests = []seedsTestPair{
-	{"somecolumn", "randompassword", "string", &database.Cell{Column: "somecolumn", Value: "randompassword", Type: "string"}},
-	{"somecolumn", 1234, "int", &database.Cell{Column: "somecolumn", Value: 1234, Type: "int"}},
 }
 
 type anonCellsTestPair struct {
@@ -92,3 +81,84 @@ func TestAnonymise(t *testing.T) {
 	}
 
 }
+
+// type anonymiseRowsTestPair struct {
+// 	table   string
+// 	rowChan chan []*database.Cell
+// 	endChan chan bool
+// 	err     error
+// }
+
+// var rowChan chan []*database.Cell
+// var endChan chan bool
+
+// var dumpTableTests = []anonymiseRowsTestPair{
+// 	{"users", rowChan, endChan, nil},
+// }
+
+// func bufferer(buf *bytes.Buffer, rowChan chan []*database.Cell, done chan bool, wg *sync.WaitGroup) {
+// 	for {
+// 		select {
+// 		case cells, more := <-rowChan:
+// 			if !more {
+// 				done <- true
+// 				return
+// 			}
+
+// 			len := len(cells)
+// 			for i, c := range cells {
+// 				if i == 0 {
+// 					buf.WriteString("\n(")
+// 				}
+
+// 				if c.Type == "string" {
+// 					buf.WriteString(fmt.Sprintf("\"%s\"", c.Value))
+// 				} else {
+// 					buf.WriteString(fmt.Sprintf("%s", c.Value))
+// 				}
+
+// 				if i == len-1 {
+// 					buf.WriteString("),")
+// 				} else {
+// 					buf.WriteString(", ")
+// 				}
+// 			}
+// 		case <-done:
+// 			wg.Done()
+// 			return
+// 		}
+// 	}
+// }
+
+// func TestAnonymiseRows(t *testing.T) {
+// 	fromDSN := "root:@tcp(localhost:3307)/fromDb"
+// 	inputConn, _ := database.Connect(fromDSN)
+// 	// TODO: Pass mock connection here. do not connect to the actual database.
+// 	a := NewMySQLAnonymiser(inputConn)
+// 	var wg sync.WaitGroup
+// 	out := make(chan []*database.Cell, 1000)
+// 	done := make(chan bool)
+// 	dumper := NewMySQLDumper(inputConn)
+
+// 	wg.Add(len(dumpTableTests))
+// 	for _, pair := range dumpTableTests {
+// 		// Check that AnonymiseRows runs sucessfully
+// 		columns, err := dumper.GetColumns(pair.table)
+// 		if err != nil {
+// 			t.Error("Could not get columns")
+// 		}
+
+// 		buf := bytes.NewBufferString(fmt.Sprintf("\nINSERT INTO `%s` (%s) VALUES", pair.table, strings.Join(columns, ", ")))
+// 		go bufferer(buf, out, done, &wg)
+
+// 		if err := a.AnonymiseRows(pair.table, pair.rowChan, pair.endChan); err != nil {
+// 			t.Error(
+// 				"For", pair.table,
+// 				"expected dump to complete successfully. ",
+// 				"got an error instead",
+// 			)
+// 		}
+// 	}
+// 	close(out)
+// 	wg.Wait()
+// }

@@ -15,7 +15,7 @@ type Dumper interface {
 
 // An Anonymiser grabs a table's data and anonymises it, before sending it to a channel
 type Anonymiser interface {
-	DumpTable(string) error
+	AnonymiseRows(string, chan<- []*Cell, chan<- bool) error
 }
 
 // A Cell represents the value in a particular row and column

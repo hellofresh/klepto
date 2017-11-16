@@ -5,13 +5,12 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"strings"
-	"sync"
 
 	"github.com/fatih/color"
 	"github.com/gernest/wow"
 	"github.com/gernest/wow/spin"
 	"github.com/hellofresh/klepto/database"
+	"github.com/hellofresh/klepto/database/mysql"
 	"github.com/spf13/cobra"
 )
 
@@ -24,31 +23,20 @@ func RunSteal(cmd *cobra.Command, args []string) {
 	}
 	defer inputConn.Close()
 
-	dumper := database.NewMySQLDumper(inputConn)
-	structure, err := dumper.DumpStructure()
-	if err != nil {
-		color.Red("Error connecting to input database: %s", err.Error())
-		return
-	}
-
-	out := make(chan []*database.Cell, 1000)
-	done := make(chan bool)
-	tables, err := dumper.GetTables()
-	if err != nil {
-		color.Red("Error stealing data: %s", err.Error())
-	}
-
-	var wg sync.WaitGroup
 	spinner := wow.New(os.Stdout, spin.Get(spin.Smiley), " Stealing...")
 	spinner.Start()
 
+	store := database.NewStorage(inputConn)
+	anonyimiser := mysql.NewAnonymiser(store)
+	dumper := mysql.NewDumper(store, anonyimiser)
+	structure, err := dumper.DumpStructure()
+	if err != nil {
+		color.Red("Error dumping database structure: %s", err.Error())
+		return
+	}
 	var tableBuffers []*bytes.Buffer
+	tableBuffers = dumper.WaitGroupBufferer()
 
-	anonymiser := database.NewMySQLAnonymiser(inputConn)
-
-	tableBuffers = waitGroupBufferer(tables, anonymiser, dumper, out, done, &wg)
-
-	close(out)
 	spinner.Stop()
 
 	// Output everything
@@ -61,65 +49,4 @@ func RunSteal(cmd *cobra.Command, args []string) {
 	// if err != nil {
 	// 	return err
 	// }
-}
-
-func bufferer(buf *bytes.Buffer, rowChan chan []*database.Cell, done chan bool, wg *sync.WaitGroup) {
-	for {
-		select {
-		case cells, more := <-rowChan:
-			if !more {
-				done <- true
-				return
-			}
-
-			len := len(cells)
-			for i, c := range cells {
-				if i == 0 {
-					buf.WriteString("\n(")
-				}
-
-				if c.Type == "string" {
-					buf.WriteString(fmt.Sprintf("\"%s\"", c.Value))
-				} else {
-					buf.WriteString(fmt.Sprintf("%s", c.Value))
-				}
-
-				if i == len-1 {
-					buf.WriteString("),")
-				} else {
-					buf.WriteString(", ")
-				}
-			}
-		case <-done:
-			wg.Done()
-			return
-		}
-	}
-}
-
-func waitGroupBufferer(tables []string, anonymiser *database.MySQLAnonymiser, dumper *database.MySQLDumper, out chan []*database.Cell, done chan bool, wg *sync.WaitGroup) []*bytes.Buffer {
-
-	var tableBuffers []*bytes.Buffer
-	for _, table := range tables {
-		columns, err := dumper.GetColumns(table)
-		buf := bytes.NewBufferString(fmt.Sprintf("\nINSERT INTO `%s` (%s) VALUES", table, strings.Join(columns, ", ")))
-
-		wg.Add(1)
-		go bufferer(buf, out, done, wg)
-
-		err = anonymiser.DumpTable(table, out, done)
-		if err != nil {
-			color.Red("Error stealing data: %s", err.Error())
-			return tableBuffers
-		}
-
-		wg.Wait()
-
-		b := buf.Bytes()
-		b = b[:len(b)-1]
-		b = append(b, []byte(";")...)
-		tableBuffers = append(tableBuffers, buf)
-	}
-
-	return tableBuffers
 }

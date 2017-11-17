@@ -62,7 +62,7 @@ func (a *Anonymiser) AnonymiseRows(table string, rowChan chan<- []*database.Cell
 					return err
 				}
 				seed := reflect.ValueOf(nFields[idx]).Elem()
-				cell, err := Keep(column, seed, reflect.TypeOf(seed).Kind())
+				cell, err := KeepSeedValueUnchanged(column, seed, reflect.TypeOf(seed).Kind())
 				if err != nil {
 					return err
 				}

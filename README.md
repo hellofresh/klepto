@@ -1,4 +1,8 @@
-# Klepto
+Klepto
+=====
+
+
+[![](https://travis-ci.org/hellofresh/klepto.svg?branch=master)](https://travis-ci.org/hellofresh/klepto)
 
 Steal data from a live (mysql) database, anonymise it where defined, and put it in a new database
 

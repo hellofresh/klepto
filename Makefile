@@ -47,7 +47,7 @@ install:
 # Test our project
 test-unit:
 	@printf "$(OK_COLOR)==> Running tests$(NO_COLOR)\n"
-	@go test -v
+	@go test -v ./...
 
 # Cleans our project: deletes binaries
 clean:

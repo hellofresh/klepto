@@ -4,7 +4,7 @@ REPO=github.com/hellofresh/${NAME}
 VERSION ?= "dev"
 
 BINARY=${NAME}
-BINARY_SRC=$(REPO)/main
+BINARY_SRC=$(REPO)
 
 # Build configuration
 BUILD_DIR ?= $(CURDIR)/out

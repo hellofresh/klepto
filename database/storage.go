@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-// Store provides an interface to access database stores.
+// Store provides an interface to access data store referred to by fromDSN.
 type Store interface {
 	GetTables() ([]string, error)
 	GetTableStructure(string) (string, error)
@@ -15,9 +15,42 @@ type Store interface {
 	Rows(string) (*sql.Rows, error)
 }
 
-// Storage ...
+// Storage wraps db connection provided by fromDSN.
 type Storage struct {
 	conn *sql.DB
+}
+
+// CommonStore provides an interface to getTables()
+type CommonStore interface {
+	getTables() ([]string, error)
+}
+
+// IschemaStore provides an interface to access information_schema database.
+// type IschemaStore interface {
+// 	Relationships() ([]string, error)
+// }
+
+// CommonDbs ...
+type CommonDbs struct {
+	iSchemaConn *sql.DB
+	fromDSNconn *sql.DB
+}
+
+// ForeignKeys . . .
+type ForeignKeys struct {
+	fk      string
+	cTable  string
+	cColumn string
+	pTable  string
+	pCol    string
+}
+
+// NewiSchemaStorage ...
+func NewiSchemaStorage(iSchemaConn *sql.DB, fromDSNconn *sql.DB) *CommonDbs {
+	return &CommonDbs{
+		iSchemaConn: iSchemaConn,
+		fromDSNconn: fromDSNconn,
+	}
 }
 
 // NewStorage ...
@@ -41,8 +74,8 @@ SET NAMES utf8;
 SET FOREIGN_KEY_CHECKS = 0;
 
 `
-	hostname, _ := s.hostname()
-	db, _ := s.database()
+	hostname, _ := hostname(s.conn)
+	db, _ := database(s.conn)
 
 	return fmt.Sprintf(preamble, hostname, db, time.Now().Format(time.RFC1123Z)), nil
 }
@@ -107,27 +140,49 @@ func (s *Storage) Rows(table string) (*sql.Rows, error) {
 }
 
 // Relationships returns a list of all foreign key relationships for all tables.
-func (s *Storage) Relationships() (*sql.Rows, error) {
-	db, err := s.database()
+func (c *CommonDbs) Relationships() ([]ForeignKeys, error) {
+
+	// Get database name to which fromDSN(conn)ects
+	db, err := database(c.fromDSNconn)
 	if err != nil {
 		return nil, err
 	}
-	_ = db
 
-	return nil, nil
+	foreignKeys := `SELECT TABLE_NAME, COLUMN_NAME, CONSTRAINT_NAME, REFERENCED_TABLE_NAME,REFERENCED_COLUMN_NAME
+	FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
+	WHERE REFERENCED_TABLE_SCHEMA = "%s" AND REFERENCED_TABLE_NAME = "%s";`
+	var relationships []ForeignKeys
+	tables, _ := c.getTables()
+	for _, table := range tables {
 
-	// rels, err := s.conn.Query(fmt.Sprintf("`
-	// 	SELECT TABLE_NAME, COLUMN_NAME, CONSTRAINT_NAME, REFERENCED_TABLE_NAME, REFERENCED_COLUMN_NAME
-	// 	FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
-	// 	WHERE REFERENCED_TABLE_SCHEMA = '<database>' AND REFERENCED_TABLE_NAME = '<table>';`"
-
-	// 	))
+		rels, err := c.iSchemaConn.Query(fmt.Sprintf(foreignKeys, db, table))
+		defer rels.Close()
+		if err != nil {
+			fmt.Printf("%v", err.Error())
+			return []ForeignKeys{}, err
+		}
+		for rels.Next() {
+			var tableName, columnName, fk, parentTable, parentCol []byte
+			if err = rels.Scan(&tableName, &columnName, &fk, &parentTable, &parentCol); err != nil {
+				return []ForeignKeys{}, err
+			}
+			relationships = append(relationships, ForeignKeys{
+				fk:      string(fk),
+				cTable:  string(tableName),
+				cColumn: string(columnName),
+				pTable:  string(parentTable),
+				pCol:    string(parentCol),
+			})
+		}
+	}
+	fmt.Printf("%v", relationships[0])
+	return relationships, nil
 }
 
-// database returns the name of the database.
-func (s *Storage) database() (string, error) {
+// Database returns the name of the database.
+func database(c *sql.DB) (string, error) {
 	var db string
-	row := s.conn.QueryRow("SELECT DATABASE()")
+	row := c.QueryRow("SELECT DATABASE()")
 	err := row.Scan(&db)
 	if err != nil {
 		return "", err
@@ -135,13 +190,34 @@ func (s *Storage) database() (string, error) {
 	return db, nil
 }
 
-// hostname returns the hostname
-func (s *Storage) hostname() (string, error) {
+// Hostname returns the hostname
+func hostname(c *sql.DB) (string, error) {
 	var hostname string
-	row := s.conn.QueryRow("SELECT @@hostname")
+	row := c.QueryRow("SELECT @@hostname")
 	err := row.Scan(&hostname)
 	if err != nil {
 		return "", err
 	}
 	return hostname, nil
+}
+
+// GetTables gets a list of all tables in the database
+func (c *CommonDbs) getTables() (tables []string, err error) {
+	tables = make([]string, 0)
+	var rows *sql.Rows
+	if rows, err = c.fromDSNconn.Query("SHOW FULL TABLES"); err != nil {
+		return
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var tableName, tableType string
+		if err = rows.Scan(&tableName, &tableType); err != nil {
+			return
+		}
+		if tableType == "BASE TABLE" {
+			tables = append(tables, tableName)
+		}
+	}
+	return
 }

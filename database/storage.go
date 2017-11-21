@@ -45,19 +45,8 @@ SET NAMES utf8;
 SET FOREIGN_KEY_CHECKS = 0;
 
 `
-	var hostname string
-	row := s.conn.QueryRow("SELECT @@hostname")
-	err := row.Scan(&hostname)
-	if err != nil {
-		return "", err
-	}
-
-	var db string
-	row = s.conn.QueryRow("SELECT DATABASE()")
-	err = row.Scan(&db)
-	if err != nil {
-		return "", err
-	}
+	hostname, _ := s.hostname()
+	db, _ := s.database()
 
 	return fmt.Sprintf(preamble, hostname, db, time.Now().Format(time.RFC1123Z)), nil
 }
@@ -142,4 +131,26 @@ func (s *Storage) nRows(table string, n string) (*sql.Rows, error) {
 		return nRows, err
 	}
 	return nRows, nil
+}
+
+// database returns the name of the database.
+func (s *Storage) database() (string, error) {
+	var db string
+	row := s.conn.QueryRow("SELECT DATABASE()")
+	err := row.Scan(&db)
+	if err != nil {
+		return "", err
+	}
+	return db, nil
+}
+
+// hostname returns the hostname
+func (s *Storage) hostname() (string, error) {
+	var hostname string
+	row := s.conn.QueryRow("SELECT @@hostname")
+	err := row.Scan(&hostname)
+	if err != nil {
+		return "", err
+	}
+	return hostname, nil
 }

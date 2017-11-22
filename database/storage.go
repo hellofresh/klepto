@@ -30,24 +30,24 @@ type CommonStore interface {
 // 	Relationships() ([]string, error)
 // }
 
-// CommonDbs ...
-type CommonDbs struct {
+// CommonDBS ...
+type CommonDBS struct {
 	iSchemaConn *sql.DB
 	fromDSNconn *sql.DB
 }
 
 // ForeignKeys . . .
 type ForeignKeys struct {
-	fk      string
-	cTable  string
-	cColumn string
-	pTable  string
-	pCol    string
+	Fk      string
+	Ctable  string
+	Ccolumn string
+	Ptable  string
+	Pcol    string
 }
 
 // NewiSchemaStorage ...
-func NewiSchemaStorage(iSchemaConn *sql.DB, fromDSNconn *sql.DB) *CommonDbs {
-	return &CommonDbs{
+func NewiSchemaStorage(iSchemaConn *sql.DB, fromDSNconn *sql.DB) *CommonDBS {
+	return &CommonDBS{
 		iSchemaConn: iSchemaConn,
 		fromDSNconn: fromDSNconn,
 	}
@@ -74,8 +74,14 @@ SET NAMES utf8;
 SET FOREIGN_KEY_CHECKS = 0;
 
 `
-	hostname, _ := hostname(s.conn)
-	db, _ := database(s.conn)
+	hostname, err := hostname(s.conn)
+	if err != nil {
+		return preamble, err
+	}
+	db, err := database(s.conn)
+	if err != nil {
+		return preamble, err
+	}
 
 	return fmt.Sprintf(preamble, hostname, db, time.Now().Format(time.RFC1123Z)), nil
 }
@@ -140,7 +146,7 @@ func (s *Storage) Rows(table string) (*sql.Rows, error) {
 }
 
 // Relationships returns a list of all foreign key relationships for all tables.
-func (c *CommonDbs) Relationships() ([]ForeignKeys, error) {
+func (c *CommonDBS) Relationships() ([]ForeignKeys, error) {
 
 	// Get database name to which fromDSN(conn)ects
 	db, err := database(c.fromDSNconn)
@@ -167,11 +173,11 @@ func (c *CommonDbs) Relationships() ([]ForeignKeys, error) {
 				return []ForeignKeys{}, err
 			}
 			relationships = append(relationships, ForeignKeys{
-				fk:      string(fk),
-				cTable:  string(tableName),
-				cColumn: string(columnName),
-				pTable:  string(parentTable),
-				pCol:    string(parentCol),
+				Fk:      string(fk),
+				Ctable:  string(tableName),
+				Ccolumn: string(columnName),
+				Ptable:  string(parentTable),
+				Pcol:    string(parentCol),
 			})
 		}
 	}
@@ -194,15 +200,14 @@ func database(c *sql.DB) (string, error) {
 func hostname(c *sql.DB) (string, error) {
 	var hostname string
 	row := c.QueryRow("SELECT @@hostname")
-	err := row.Scan(&hostname)
-	if err != nil {
+	if err := row.Scan(&hostname); err != nil {
 		return "", err
 	}
 	return hostname, nil
 }
 
 // GetTables gets a list of all tables in the database
-func (c *CommonDbs) getTables() (tables []string, err error) {
+func (c *CommonDBS) getTables() (tables []string, err error) {
 	tables = make([]string, 0)
 	var rows *sql.Rows
 	if rows, err = c.fromDSNconn.Query("SHOW FULL TABLES"); err != nil {

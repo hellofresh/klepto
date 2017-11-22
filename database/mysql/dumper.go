@@ -52,8 +52,9 @@ func (d *Dumper) DumpStructure() (structure string, err error) {
 	return
 }
 
-// WaitGroupBufferer buffers table contents for each wait group.
-func (d *Dumper) WaitGroupBufferer() []*bytes.Buffer {
+// DumpInserts uses a wait group of concurrent processes (one buffer per table)
+// and creates insert statements for each table.
+func (d *Dumper) DumpInserts() []*bytes.Buffer {
 	anonymiser := d.anon
 	tables, err := d.store.GetTables()
 	if err != nil {

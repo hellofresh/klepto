@@ -15,7 +15,7 @@ const literalPrefix = "literal:"
 
 // Anonymiser anonymises MySQL tables
 type Anonymiser struct {
-	store database.Store
+	store database.FromDBStore
 }
 
 type scanner struct {
@@ -23,7 +23,7 @@ type scanner struct {
 }
 
 // NewAnonymiser returns an initialised instance of MySQLAnonymiser
-func NewAnonymiser(s database.Store) *Anonymiser {
+func NewAnonymiser(s database.FromDBStore) *Anonymiser {
 	return &Anonymiser{
 		store: s,
 	}

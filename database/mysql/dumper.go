@@ -12,14 +12,14 @@ import (
 
 // Dumper dumps a database's structure to a stream
 type Dumper struct {
-	store database.Store
+	store database.FromDBStore
 	anon  database.Anonymiser
 	out   chan []*database.Cell
 	done  chan bool
 }
 
 // NewDumper is the constructor for MySQLDumper
-func NewDumper(s database.Store, a database.Anonymiser) *Dumper {
+func NewDumper(s database.FromDBStore, a database.Anonymiser) *Dumper {
 	return &Dumper{
 		store: s,
 		anon:  a,

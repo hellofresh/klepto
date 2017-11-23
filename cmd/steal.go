@@ -38,7 +38,7 @@ func RunSteal(cmd *cobra.Command, args []string) {
 		return
 	}
 	var tableBuffers []*bytes.Buffer
-	tableBuffers = dumper.WaitGroupBufferer()
+	tableBuffers = dumper.DumpInserts()
 
 	spinner.Stop()
 

@@ -32,11 +32,10 @@ func TestReadPrimaryRecord(t *testing.T) {
 	if err != nil {
 		t.Errorf("Failed creating a test config: %s", err)
 	}
-
 	// Set expectation
 	expectedRecordType := "users"
 
-	// Call method
+	// Check expectation
 	recordType, err := f.readPrimaryRecord()
 
 	// Check that readPrimaryRecord() reads the given configuration

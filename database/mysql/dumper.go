@@ -14,13 +14,13 @@ import (
 type Dumper struct {
 	store  database.Store
 	anon   database.Anonymiser
-	config ConfigReader
+	config database.ConfigReader
 	out    chan []*database.Cell
 	done   chan bool
 }
 
 // NewDumper is the constructor for MySQLDumper
-func NewDumper(s database.Store, a database.Anonymiser, c ConfigReader) *Dumper {
+func NewDumper(s database.Store, a database.Anonymiser, c database.ConfigReader) *Dumper {
 	return &Dumper{
 		store:  s,
 		anon:   a,
@@ -132,7 +132,7 @@ func (d *Dumper) bufferer(buf *bytes.Buffer, rowChan chan []*database.Cell, done
 // - from the db
 // but don't do both.
 func (d *Dumper) setTables() (tables []string, err error) {
-	table, err := d.config.readPrimaryRecord()
+	table, err := d.config.ReadPrimaryRecord()
 	if err != nil {
 		return
 	}

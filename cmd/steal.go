@@ -27,10 +27,9 @@ func RunSteal(cmd *cobra.Command, args []string) {
 
 	spinner := wow.New(os.Stdout, spin.Get(spin.Smiley), " Stealing...")
 	spinner.Start()
-
-	store := database.NewStorage(inputConn)
+	configReader := database.NewConfigReader(viper.GetViper())
+	store := database.NewStorage(inputConn, *configReader)
 	anonyimiser := mysql.NewAnonymiser(store)
-	configReader := mysql.NewConfigReader(viper.GetViper())
 	dumper := mysql.NewDumper(store, anonyimiser, *configReader)
 	structure, err := dumper.DumpStructure()
 	if err != nil {

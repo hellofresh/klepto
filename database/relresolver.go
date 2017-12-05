@@ -1,7 +1,8 @@
-package mysql
+package database
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/spf13/viper"
 )
@@ -24,7 +25,7 @@ func NewConfigReader(v *viper.Viper) *ConfigReader {
 }
 
 // ReadPrimaryRecord ...
-func (g *ConfigReader) readPrimaryRecord() (pRecordType string, err error) {
+func (g *ConfigReader) ReadPrimaryRecord() (pRecordType string, err error) {
 	c := g.v.Sub("primary_record_type")
 	pRecordType = c.AllKeys()[0] // TODO: In the exciting future when
 	// users can configure multiple record_types, get all keys, not just the first one.
@@ -33,7 +34,16 @@ func (g *ConfigReader) readPrimaryRecord() (pRecordType string, err error) {
 	}
 	return pRecordType, nil
 }
-<<<<<<< HEAD
+
+// ReadPrimaryRecordLimit returns configured number of records to return
+func (g *ConfigReader) ReadPrimaryRecordLimit() (limit string, err error) {
+	pRecord, err := g.ReadPrimaryRecord()
+	if err != nil {
+		return "", err
+	}
+	c := g.v.GetString(fmt.Sprintf("primary_record_type.%s", pRecord))
+	return c, nil
+}
 
 // Read all relationships
 func (g *ConfigReader) readRelationships() (map[string]string, error) {
@@ -47,5 +57,3 @@ func (g *ConfigReader) readRelationships() (map[string]string, error) {
 	return rels, nil
 
 }
-=======
->>>>>>> Wire reading tables in

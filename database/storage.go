@@ -12,17 +12,21 @@ type Store interface {
 	GetTableStructure(string) (string, error)
 	GetColumns(string) ([]string, error)
 	GetPreamble() (string, error)
-	Rows(string) (*sql.Rows, error)
+	GetRows(string) (*sql.Rows, error)
 }
 
 // Storage ...
 type Storage struct {
-	conn *sql.DB
+	conn   *sql.DB
+	config ConfigReader
 }
 
 // NewStorage ...
-func NewStorage(conn *sql.DB) *Storage {
-	return &Storage{conn: conn}
+func NewStorage(conn *sql.DB, c ConfigReader) *Storage {
+	return &Storage{
+		conn:   conn,
+		config: c,
+	}
 }
 
 // GetPreamble puts a big old comment at the top of the database dump.
@@ -108,11 +112,34 @@ func (s *Storage) GetTableStructure(table string) (stmt string, err error) {
 	return
 }
 
+// GetRows returns rows. If primary_record_type has been
+// set and a number is given, return only those
+// number of rows.
+func (s *Storage) GetRows(table string) (*sql.Rows, error) {
+	n, err := s.config.ReadPrimaryRecordLimit()
+	if err != nil {
+		return nil, err
+	}
+	if n != "" {
+		return s.nRows(table, n)
+	}
+	return s.rows(table)
+
+}
+
 // Rows returns a list of all rows in a table
-func (s *Storage) Rows(table string) (*sql.Rows, error) {
+func (s *Storage) rows(table string) (*sql.Rows, error) {
 	rows, err := s.conn.Query(fmt.Sprintf("SELECT * FROM `%s`", table))
 	if err != nil {
 		return rows, err
 	}
 	return rows, nil
+}
+
+func (s *Storage) nRows(table string, n string) (*sql.Rows, error) {
+	nRows, err := s.conn.Query(fmt.Sprintf("SELECT * FROM `%s` LIMIT %s", table, n))
+	if err != nil {
+		return nRows, err
+	}
+	return nRows, nil
 }

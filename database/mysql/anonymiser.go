@@ -32,7 +32,7 @@ func NewAnonymiser(s database.Store) *Anonymiser {
 // AnonymiseRows grabs the data from the provided database table and runs Faker against
 // columns specified in config file.
 func (a *Anonymiser) AnonymiseRows(table string, rowChan chan<- []*database.Cell, endChan chan<- bool) error {
-	rows, err := a.store.Rows(table)
+	rows, err := a.store.GetRows(table)
 	if err != nil {
 		return err
 	}

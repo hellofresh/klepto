@@ -35,7 +35,6 @@ func init() {
 	Klepto.PersistentFlags().StringVarP(&configFile, "config", "c", "", "Path to config file (default is $HOME/.klepto.toml)")
 	Klepto.PersistentFlags().StringVarP(&fromDSN, "from", "f", "root:root@tcp(localhost:3306)/klepto", "MySQL database dsn to steal from")
 	Klepto.PersistentFlags().StringVarP(&toDSN, "to", "t", "", "MySQL database to output to (default writes to stdOut)")
-	Klepto.PersistentFlags().StringVarP(&pRecordType, "primary_record_type", "p", "", "Name of specific table or record type you want to steal")
 	Klepto.PersistentFlags().StringVarP(&nRows, "number", "n", "1000", "Number of rows you want to steal")
 	viper.BindPFlag("fromDSN", Klepto.PersistentFlags().Lookup("from"))
 	viper.BindPFlag("toDSN", Klepto.PersistentFlags().Lookup("to"))

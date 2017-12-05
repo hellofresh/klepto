@@ -55,5 +55,4 @@ func (g *ConfigReader) readRelationships() (map[string]string, error) {
 	}
 
 	return rels, nil
-
 }

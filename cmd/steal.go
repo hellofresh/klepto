@@ -12,10 +12,12 @@ import (
 	"github.com/hellofresh/klepto/database"
 	"github.com/hellofresh/klepto/database/mysql"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 // RunSteal is the handler for the rootCmd.
 func RunSteal(cmd *cobra.Command, args []string) {
+
 	inputConn, err := database.Connect(fromDSN)
 	if err != nil {
 		color.Red("Error connecting to input database: %s", err.Error())
@@ -28,7 +30,8 @@ func RunSteal(cmd *cobra.Command, args []string) {
 
 	store := database.NewStorage(inputConn)
 	anonyimiser := mysql.NewAnonymiser(store)
-	dumper := mysql.NewDumper(store, anonyimiser)
+	configReader := mysql.NewConfigReader(viper.GetViper())
+	dumper := mysql.NewDumper(store, anonyimiser, *configReader)
 	structure, err := dumper.DumpStructure()
 	if err != nil {
 		color.Red("Error dumping database structure: %s", err.Error())

@@ -6,11 +6,24 @@ import (
 	"github.com/spf13/viper"
 )
 
+// RelationshipResolver ...
+type RelationshipResolver struct {
+	g ConfigReader
+}
+
 // ConfigReader ...
 type ConfigReader struct {
 	v *viper.Viper
 }
 
+// NewConfigReader returns an initialised instance of ConfigReader
+func NewConfigReader(v *viper.Viper) *ConfigReader {
+	return &ConfigReader{
+		v,
+	}
+}
+
+// ReadPrimaryRecord ...
 func (g *ConfigReader) readPrimaryRecord() (pRecordType string, err error) {
 	c := g.v.Sub("primary_record_type")
 	pRecordType = c.AllKeys()[0] // TODO: In the exciting future when
@@ -20,6 +33,7 @@ func (g *ConfigReader) readPrimaryRecord() (pRecordType string, err error) {
 	}
 	return pRecordType, nil
 }
+<<<<<<< HEAD
 
 // Read all relationships
 func (g *ConfigReader) readRelationships() (map[string]string, error) {
@@ -33,3 +47,5 @@ func (g *ConfigReader) readRelationships() (map[string]string, error) {
 	return rels, nil
 
 }
+=======
+>>>>>>> Wire reading tables in

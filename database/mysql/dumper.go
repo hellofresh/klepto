@@ -12,19 +12,21 @@ import (
 
 // Dumper dumps a database's structure to a stream
 type Dumper struct {
-	store database.Store
-	anon  database.Anonymiser
-	out   chan []*database.Cell
-	done  chan bool
+	store  database.Store
+	anon   database.Anonymiser
+	config ConfigReader
+	out    chan []*database.Cell
+	done   chan bool
 }
 
 // NewDumper is the constructor for MySQLDumper
-func NewDumper(s database.Store, a database.Anonymiser) *Dumper {
+func NewDumper(s database.Store, a database.Anonymiser, c ConfigReader) *Dumper {
 	return &Dumper{
-		store: s,
-		anon:  a,
-		out:   make(chan []*database.Cell, 1000),
-		done:  make(chan bool),
+		store:  s,
+		anon:   a,
+		config: c,
+		out:    make(chan []*database.Cell, 1000),
+		done:   make(chan bool),
 	}
 }
 
@@ -35,7 +37,7 @@ func (d *Dumper) DumpStructure() (structure string, err error) {
 		return
 	}
 
-	tables, err := d.store.GetTables()
+	tables, err := d.setTables()
 	if err != nil {
 		return
 	}
@@ -55,9 +57,9 @@ func (d *Dumper) DumpStructure() (structure string, err error) {
 // WaitGroupBufferer buffers table contents for each wait group.
 func (d *Dumper) WaitGroupBufferer() []*bytes.Buffer {
 	anonymiser := d.anon
-	tables, err := d.store.GetTables()
+	tables, err := d.setTables()
 	if err != nil {
-		color.Red("Error getting tables: %s", err.Error())
+		color.Red("Error setting tables to dump: %s", err.Error())
 	}
 
 	var (
@@ -123,4 +125,26 @@ func (d *Dumper) bufferer(buf *bytes.Buffer, rowChan chan []*database.Cell, done
 			return
 		}
 	}
+}
+
+// Get tables either:
+// - from config (if specified) or
+// - from the db
+// but don't do both.
+func (d *Dumper) setTables() (tables []string, err error) {
+	table, err := d.config.readPrimaryRecord()
+	if err != nil {
+		return
+	}
+
+	if table != "" {
+		tables = append(tables, table)
+	} else {
+		dbTables, gerr := d.store.GetTables()
+		if err != nil {
+			return nil, gerr
+		}
+		tables = dbTables
+	}
+	return tables, nil
 }

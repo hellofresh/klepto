@@ -40,7 +40,6 @@ func init() {
 	viper.BindPFlag("fromDSN", Klepto.PersistentFlags().Lookup("from"))
 	viper.BindPFlag("toDSN", Klepto.PersistentFlags().Lookup("to"))
 	viper.BindPFlag("nRows", Klepto.PersistentFlags().Lookup("number"))
-	viper.BindPFlag("pRecordType", Klepto.PersistentFlags().Lookup("primary-record-type"))
 }
 
 func initConfig() {

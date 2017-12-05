@@ -1,7 +1,6 @@
 Klepto
 =====
 
-
 [![](https://travis-ci.org/hellofresh/klepto.svg?branch=master)](https://travis-ci.org/hellofresh/klepto)
 
 Steal data from a live (mysql) database, anonymise it where defined, and put it in a new database
@@ -30,4 +29,11 @@ anonymise:
 "customer.password" = "literal:1234"
 ```
 
-This would delete these 3 columns from the `customer` table and run `faker.Email`, `faker.FirstName`, and `faker.LastName` against them respectively. We can use `literal:[some-constant-value]` to specify a constant we want to write for a column. In this case, `password: literal:1234` would write `1234` for every row in the password column of the customer table. 
+This would delete these 3 columns from the `customer` table and run `faker.Email`, `faker.FirstName`, and `faker.LastName` against them respectively. We can use `literal:[some-constant-value]` to specify a constant we want to write for a column. In this case, `password: literal:1234` would write `1234` for every row in the password column of the customer table.
+
+You can configure how many records you want. With this option set, klepto will limit your dump to only the specified `primary_record_type` and its related tables (coming soon to a database thief near you). If you do not set this option, klepto will dump everything in the database.
+
+```toml
+[primary_record_type]
+"users" = 1000
+```

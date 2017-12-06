@@ -10,11 +10,13 @@ import (
 	"github.com/spf13/viper"
 )
 
-var configFile string
-var fromDSN string
-var toDSN string
-var pRecordType string
-var nRows string
+var (
+	configFile  string
+	fromDSN     string
+	toDSN       string
+	pRecordType string
+	nRows       string
+)
 
 // Klepto steals and anonymises databases
 var Klepto = &cobra.Command{

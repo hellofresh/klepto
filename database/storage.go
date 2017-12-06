@@ -45,8 +45,14 @@ SET NAMES utf8;
 SET FOREIGN_KEY_CHECKS = 0;
 
 `
-	hostname, _ := s.hostname()
-	db, _ := s.database()
+	hostname, err := s.hostname()
+	if err != nil {
+		return "", err
+	}
+	db, err := s.database()
+	if err != nil {
+		return "", err
+	}
 
 	return fmt.Sprintf(preamble, hostname, db, time.Now().Format(time.RFC1123Z)), nil
 }
@@ -126,7 +132,12 @@ func (s *Storage) rows(table string) (*sql.Rows, error) {
 }
 
 func (s *Storage) nRows(table string, n string) (*sql.Rows, error) {
-	nRows, err := s.conn.Query(fmt.Sprintf("SELECT * FROM `%s` LIMIT %s", table, n))
+	column, err := s.primaryColumn(table)
+	if err != nil {
+		return nil, err
+	}
+	q := fmt.Sprintf("SELECT * FROM `%s` ORDER BY %s DESC LIMIT %s", table, column, n)
+	nRows, err := s.conn.Query(q)
 	if err != nil {
 		return nRows, err
 	}
@@ -135,8 +146,8 @@ func (s *Storage) nRows(table string, n string) (*sql.Rows, error) {
 
 // database returns the name of the database.
 func (s *Storage) database() (string, error) {
-	var db string
 	row := s.conn.QueryRow("SELECT DATABASE()")
+	var db string
 	err := row.Scan(&db)
 	if err != nil {
 		return "", err
@@ -146,11 +157,30 @@ func (s *Storage) database() (string, error) {
 
 // hostname returns the hostname
 func (s *Storage) hostname() (string, error) {
-	var hostname string
 	row := s.conn.QueryRow("SELECT @@hostname")
+	var hostname string
 	err := row.Scan(&hostname)
 	if err != nil {
 		return "", err
 	}
 	return hostname, nil
+}
+
+func (s *Storage) primaryColumn(table string) (string, error) {
+	q := `SELECT COLUMN_NAME
+FROM information_schema.COLUMNS
+WHERE (TABLE_SCHEMA = "%s")
+AND (TABLE_NAME = "%s")
+AND (COLUMN_KEY = "PRI")`
+	dbName, err := s.database()
+	if err != nil {
+		return "", fmt.Errorf("Could not get database name")
+	}
+	row := s.conn.QueryRow(fmt.Sprintf(q, dbName, table))
+	var priKeyColName string
+	serr := row.Scan(&priKeyColName)
+	if serr != nil {
+		return "", fmt.Errorf("Could not get the primary key column name: %v", serr)
+	}
+	return priKeyColName, nil
 }

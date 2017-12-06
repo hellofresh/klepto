@@ -136,8 +136,7 @@ func (s *Storage) nRows(table string, n string) (*sql.Rows, error) {
 	if err != nil {
 		return nil, err
 	}
-	q := fmt.Sprintf("SELECT * FROM `%s` ORDER BY %s DESC LIMIT %s", table, column, n)
-	nRows, err := s.conn.Query(q)
+	nRows, err := s.conn.Query(fmt.Sprintf("SELECT * FROM %s ORDER BY %s DESC LIMIT ?", table, column), n)
 	if err != nil {
 		return nRows, err
 	}
@@ -169,14 +168,14 @@ func (s *Storage) hostname() (string, error) {
 func (s *Storage) primaryColumn(table string) (string, error) {
 	q := `SELECT COLUMN_NAME
 FROM information_schema.COLUMNS
-WHERE (TABLE_SCHEMA = "%s")
-AND (TABLE_NAME = "%s")
+WHERE (TABLE_SCHEMA = ?)
+AND (TABLE_NAME = ?)
 AND (COLUMN_KEY = "PRI")`
 	dbName, err := s.database()
 	if err != nil {
 		return "", fmt.Errorf("Could not get database name")
 	}
-	row := s.conn.QueryRow(fmt.Sprintf(q, dbName, table))
+	row := s.conn.QueryRow(q, dbName, table)
 	var priKeyColName string
 	serr := row.Scan(&priKeyColName)
 	if serr != nil {

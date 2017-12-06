@@ -27,7 +27,7 @@ type Cell struct {
 
 // Connect to a (for now) MySQL database with the provided DSN
 func Connect(dsn string) (*sql.DB, error) {
-	conn, err := sql.Open("mysql", dsn)
+	conn, err := sql.Open("mysql", dsn+"?parseTime=true")
 	if err != nil {
 		return nil, err
 	}

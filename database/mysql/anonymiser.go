@@ -61,8 +61,13 @@ func (a *Anonymiser) AnonymiseRows(table string, rowChan chan<- []*database.Cell
 				if err := rows.Scan(nFields...); err != nil {
 					return err
 				}
-				seed := reflect.ValueOf(nFields[idx]).Elem()
-				cell, err := KeepSeedValueUnchanged(column, seed, reflect.TypeOf(seed).Kind())
+				// Perform type conversions before internal scan
+				vPtr := nFields[idx]
+				v := vPtr.(*interface{})
+				scanner := new(utils.TypeScanner)
+				scanner.Scan(*v)
+
+				cell, err := KeepSeedValueUnchanged(column, scanner.Value, scanner.Detected)
 				if err != nil {
 					return err
 				}

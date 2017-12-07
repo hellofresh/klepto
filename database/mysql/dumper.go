@@ -111,9 +111,8 @@ func (d *Dumper) bufferer(buf *bytes.Buffer, rowChan chan []*database.Cell, done
 				if c.Type == "string" {
 					buf.WriteString(fmt.Sprintf("\"%s\"", c.Value))
 				} else {
-					buf.WriteString(fmt.Sprintf("%s", c.Value))
+					buf.WriteString(fmt.Sprintf("%v", c.Value))
 				}
-
 				if i == len-1 {
 					buf.WriteString("),")
 				} else {

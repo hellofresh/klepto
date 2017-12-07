@@ -7,9 +7,10 @@ import (
 )
 
 type seedsTestPair struct {
-	column     string
-	value, typ interface{}
-	cell       *database.Cell
+	column string
+	value  interface{}
+	typ    string
+	cell   *database.Cell
 }
 
 var seedTests = []seedsTestPair{

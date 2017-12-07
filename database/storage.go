@@ -45,16 +45,11 @@ SET NAMES utf8;
 SET FOREIGN_KEY_CHECKS = 0;
 
 `
-	var hostname string
-	row := s.conn.QueryRow("SELECT @@hostname")
-	err := row.Scan(&hostname)
+	hostname, err := s.hostname()
 	if err != nil {
 		return "", err
 	}
-
-	var db string
-	row = s.conn.QueryRow("SELECT DATABASE()")
-	err = row.Scan(&db)
+	db, err := s.database()
 	if err != nil {
 		return "", err
 	}
@@ -137,9 +132,54 @@ func (s *Storage) rows(table string) (*sql.Rows, error) {
 }
 
 func (s *Storage) nRows(table string, n string) (*sql.Rows, error) {
-	nRows, err := s.conn.Query(fmt.Sprintf("SELECT * FROM `%s` LIMIT %s", table, n))
+	column, err := s.primaryColumn(table)
+	if err != nil {
+		return nil, err
+	}
+	nRows, err := s.conn.Query(fmt.Sprintf("SELECT * FROM %s ORDER BY %s DESC LIMIT ?", table, column), n)
 	if err != nil {
 		return nRows, err
 	}
 	return nRows, nil
+}
+
+// database returns the name of the database.
+func (s *Storage) database() (string, error) {
+	row := s.conn.QueryRow("SELECT DATABASE()")
+	var db string
+	err := row.Scan(&db)
+	if err != nil {
+		return "", err
+	}
+	return db, nil
+}
+
+// hostname returns the hostname
+func (s *Storage) hostname() (string, error) {
+	row := s.conn.QueryRow("SELECT @@hostname")
+	var hostname string
+	err := row.Scan(&hostname)
+	if err != nil {
+		return "", err
+	}
+	return hostname, nil
+}
+
+func (s *Storage) primaryColumn(table string) (string, error) {
+	q := `SELECT COLUMN_NAME
+FROM information_schema.COLUMNS
+WHERE (TABLE_SCHEMA = ?)
+AND (TABLE_NAME = ?)
+AND (COLUMN_KEY = "PRI")`
+	dbName, err := s.database()
+	if err != nil {
+		return "", fmt.Errorf("Could not get database name")
+	}
+	row := s.conn.QueryRow(q, dbName, table)
+	var priKeyColName string
+	serr := row.Scan(&priKeyColName)
+	if serr != nil {
+		return "", fmt.Errorf("Could not get the primary key column name: %v", serr)
+	}
+	return priKeyColName, nil
 }

@@ -11,15 +11,11 @@ Vision:
 
 By default it just downloads and dumps everything, but you can use the config to define fields to anonymise in yaml, toml, or any other [viper](https://github.com/spf13/viper)-supported format:
 
-```yml
----
-anonymise:
-    customer:
-        email: EmailAddress
-        first_name: FirstName
-        last_name: LastName
-        password: literal:1234
-```
+## Anonymisation
+
+Each column can be set to anonymise. Anonymisation is performed by running a Faker against the specified column.
+
+By specifying anonymisation config in your `.klepto.toml` file, you can define which tables' fields require anonymisation. This is done with the format `"table.column" = "DataType"`, as follows:
 
 ```toml
 [anonymise]
@@ -31,9 +27,14 @@ anonymise:
 
 This would delete these 3 columns from the `customer` table and run `faker.Email`, `faker.FirstName`, and `faker.LastName` against them respectively. We can use `literal:[some-constant-value]` to specify a constant we want to write for a column. In this case, `password: literal:1234` would write `1234` for every row in the password column of the customer table.
 
-You can configure how many records you want. With this option set, klepto will limit your dump to only the specified `primary_record_type` and its related tables (coming soon to a database thief near you). If you do not set this option, klepto will dump everything in the database.
+### Available data types for anonymisation
 
-```toml
-[primary_record_type]
-"users" = 1000
+Available data types can be found in `fake.go`. This file is generated from https://github.com/icrowley/fake (it must be generated because it is written in such a way that Go cannot reflect upon it).
+
+We generate the file with the following:
+
+```sh
+$ go get github.com/ungerik/pkgreflect
+$ fake master pkgreflect -notypes -novars -norecurs vendor/github.com/icrowley/fake/
 ```
+

@@ -6,32 +6,19 @@ import (
 	"time"
 )
 
-// Store provides an interface to access database stores.
-type Store interface {
-	GetTables() ([]string, error)
-	GetTableStructure(string) (string, error)
-	GetColumns(string) ([]string, error)
-	GetPreamble() (string, error)
-	GetRows(string) (*sql.Rows, error)
-}
-
 // Storage ...
-type Storage struct {
-	conn   *sql.DB
-	config ConfigReader
+type storage struct {
+	conn *sql.DB
 }
 
 // NewStorage ...
-func NewStorage(conn *sql.DB, c ConfigReader) *Storage {
-	return &Storage{
-		conn:   conn,
-		config: c,
-	}
+func NewStorage(conn *sql.DB) Store {
+	return &storage{conn: conn}
 }
 
 // GetPreamble puts a big old comment at the top of the database dump.
 // Also acts as first query to check for errors.
-func (s *Storage) GetPreamble() (string, error) {
+func (s *storage) GetPreamble() (string, error) {
 	preamble := `# *******************************
 # This database was nicked by Klepto™.
 #
@@ -58,7 +45,7 @@ SET FOREIGN_KEY_CHECKS = 0;
 }
 
 // GetTables gets a list of all tables in the database
-func (s *Storage) GetTables() (tables []string, err error) {
+func (s *storage) GetTables() (tables []string, err error) {
 	tables = make([]string, 0)
 	var rows *sql.Rows
 	if rows, err = s.conn.Query("SHOW FULL TABLES"); err != nil {
@@ -79,7 +66,7 @@ func (s *Storage) GetTables() (tables []string, err error) {
 }
 
 // GetColumns returns the columns in the specified database table
-func (s *Storage) GetColumns(table string) (columns []string, err error) {
+func (s *storage) GetColumns(table string) (columns []string, err error) {
 	var rows *sql.Rows
 	if rows, err = s.conn.Query(fmt.Sprintf("SELECT * FROM `%s` LIMIT 1", table)); err != nil {
 		return
@@ -97,7 +84,7 @@ func (s *Storage) GetColumns(table string) (columns []string, err error) {
 }
 
 // GetTableStructure gets the CREATE TABLE statement of the specified database table
-func (s *Storage) GetTableStructure(table string) (stmt string, err error) {
+func (s *storage) GetTableStructure(table string) (stmt string, err error) {
 	// We don't really care about this value but nevermind
 	var tableName string
 	err = s.conn.
@@ -123,7 +110,7 @@ func (s *Storage) GetRows(table string) (*sql.Rows, error) {
 }
 
 // Rows returns a list of all rows in a table
-func (s *Storage) rows(table string) (*sql.Rows, error) {
+func (s *storage) Rows(table string) (*sql.Rows, error) {
 	rows, err := s.conn.Query(fmt.Sprintf("SELECT * FROM `%s`", table))
 	if err != nil {
 		return rows, err

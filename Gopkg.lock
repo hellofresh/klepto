@@ -16,7 +16,14 @@
 [[projects]]
   branch = "master"
   name = "github.com/dsnet/compress"
-  packages = [".","bzip2","bzip2/internal/sais","internal","internal/errors","internal/prefix"]
+  packages = [
+    ".",
+    "bzip2",
+    "bzip2/internal/sais",
+    "internal",
+    "internal/errors",
+    "internal/prefix"
+  ]
   revision = "cc9eb1d7ad760af14e8f918698f745e80377af4f"
 
 [[projects]]
@@ -64,7 +71,17 @@
 [[projects]]
   branch = "master"
   name = "github.com/hashicorp/hcl"
-  packages = [".","hcl/ast","hcl/parser","hcl/scanner","hcl/strconv","hcl/token","json/parser","json/scanner","json/token"]
+  packages = [
+    ".",
+    "hcl/ast",
+    "hcl/parser",
+    "hcl/scanner",
+    "hcl/strconv",
+    "hcl/token",
+    "json/parser",
+    "json/scanner",
+    "json/token"
+  ]
   revision = "23c074d0eceb2b8a5bfdbb271ab780cde70f05a8"
 
 [[projects]]
@@ -81,7 +98,10 @@
 
 [[projects]]
   name = "github.com/italolelis/goupdater"
-  packages = [".","updater"]
+  packages = [
+    ".",
+    "updater"
+  ]
   revision = "3eb77ff85e74323ffce7e4e9dce9617862628687"
   version = "v0.0.1"
 
@@ -90,6 +110,15 @@
   name = "github.com/kardianos/osext"
   packages = ["."]
   revision = "ae77be60afb1dcacde03767a8c37337fad28ac14"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/lib/pq"
+  packages = [
+    ".",
+    "oid"
+  ]
+  revision = "83612a56d3dd153a94a629cd64925371c9adad78"
 
 [[projects]]
   name = "github.com/magiconair/properties"
@@ -159,7 +188,10 @@
 
 [[projects]]
   name = "github.com/spf13/afero"
-  packages = [".","mem"]
+  packages = [
+    ".",
+    "mem"
+  ]
   revision = "8d919cbe7e2627e417f3e45c3c0e489a5b7e2536"
   version = "v1.0.0"
 
@@ -195,7 +227,12 @@
 
 [[projects]]
   name = "github.com/ulikunitz/xz"
-  packages = [".","internal/hash","internal/xlog","lzma"]
+  packages = [
+    ".",
+    "internal/hash",
+    "internal/xlog",
+    "lzma"
+  ]
   revision = "0c6b41e72360850ca4f98dc341fd999726ea007f"
   version = "v0.5.4"
 
@@ -208,30 +245,54 @@
 [[projects]]
   branch = "master"
   name = "golang.org/x/net"
-  packages = ["context","context/ctxhttp"]
+  packages = [
+    "context",
+    "context/ctxhttp"
+  ]
   revision = "d866cfc389cec985d6fda2859936a575a55a3ab6"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/oauth2"
-  packages = [".","internal"]
+  packages = [
+    ".",
+    "internal"
+  ]
   revision = "0448841f0cbe9d174c6c1cedd177f583337b8e2c"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/sys"
-  packages = ["unix","windows"]
-  revision = "d818ba11af4465e00c1998bd3f8a55603b422290"
+  packages = [
+    "unix",
+    "windows"
+  ]
+  revision = "83801418e1b59fb1880e363299581ee543af32ca"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/text"
-  packages = ["internal/gen","internal/triegen","internal/ucd","transform","unicode/cldr","unicode/norm"]
+  packages = [
+    "internal/gen",
+    "internal/triegen",
+    "internal/ucd",
+    "transform",
+    "unicode/cldr",
+    "unicode/norm"
+  ]
   revision = "eb22672bea55af56d225d4e35405f4d2e9f062a0"
 
 [[projects]]
   name = "google.golang.org/appengine"
-  packages = ["internal","internal/base","internal/datastore","internal/log","internal/remote_api","internal/urlfetch","urlfetch"]
+  packages = [
+    "internal",
+    "internal/base",
+    "internal/datastore",
+    "internal/log",
+    "internal/remote_api",
+    "internal/urlfetch",
+    "urlfetch"
+  ]
   revision = "150dc57a1b433e64154302bdc40b6bb8aefa313a"
   version = "v1.0.0"
 
@@ -244,6 +305,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "072cb0f493bab415c3fd725c9790188a4ac9af6d517ae2ca43e755f4ddf9c4a8"
+  inputs-digest = "f72679925ff13632d21f9a9a008f6c1158c48e2af130f8d51ea9b56c3d40b452"
   solver-name = "gps-cdcl"
   solver-version = 1

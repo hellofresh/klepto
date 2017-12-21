@@ -9,6 +9,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"os"
 )
 
 var (
@@ -54,7 +55,7 @@ func initConfig(c *cobra.Command, args []string) error {
 		viper.SetConfigFile(configFile)
 	} else {
 		viper.SetConfigName(".klepto")
-		viper.AddConfigPath(homeDir())
+		viper.AddConfigPath(workingDir())
 		viper.AddConfigPath(".")
 	}
 
@@ -70,11 +71,11 @@ func initConfig(c *cobra.Command, args []string) error {
 
 	return nil
 }
-func homeDir() string {
-	usr, err := user.Current()
-	failOnError(err, "Failed to retrieve user home dir")
+func workingDir() string {
+	cwd, err := os.Getwd()
+	failOnError(err, "Can't find the working directory")
 
-	return usr.HomeDir
+	return cwd
 }
 
 func failOnError(err error, message string) {

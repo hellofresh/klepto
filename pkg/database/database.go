@@ -5,7 +5,10 @@ import (
 	"io"
 
 	// Required plugin for database/sql
+	"strings"
+
 	_ "github.com/go-sql-driver/mysql"
+	_ "github.com/lib/pq"
 )
 
 // A Dumper writes a database's stucture to the provided stream.
@@ -27,9 +30,12 @@ type Cell struct {
 
 // Connect to a (for now) MySQL database with the provided DSN
 func Connect(dsn string) (*sql.DB, error) {
-	conn, err := sql.Open("mysql", dsn+"?parseTime=true")
-	if err != nil {
-		return nil, err
+	var connType string
+	if strings.HasPrefix(strings.ToLower(dsn), "postgres://") {
+		connType = "postgres"
+	} else {
+		connType = "mysql"
 	}
-	return conn, err
+
+	return sql.Open(connType, dsn)
 }

@@ -1,4 +1,4 @@
-package mysql
+package database
 
 import (
 	"bytes"
@@ -36,7 +36,7 @@ func TestReadPrimaryRecord(t *testing.T) {
 	expectedRecordType := "users"
 
 	// Check expectation
-	recordType, err := f.readPrimaryRecord()
+	recordType, err := f.ReadPrimaryRecord()
 
 	// Check that readPrimaryRecord() reads the given configuration
 	if err != nil {

@@ -32,7 +32,7 @@ func NewAnonymiser(s database.Store) *Anonymiser {
 // AnonymiseRows grabs the data from the provided database table and runs Faker against
 // columns specified in config file.
 func (a *Anonymiser) AnonymiseRows(table string, rowChan chan<- []*database.Cell, endChan chan<- bool) error {
-	rows, err := a.store.Rows(table)
+	rows, err := a.store.GetRows(table)
 	if err != nil {
 		return err
 	}
@@ -61,8 +61,13 @@ func (a *Anonymiser) AnonymiseRows(table string, rowChan chan<- []*database.Cell
 				if err := rows.Scan(nFields...); err != nil {
 					return err
 				}
-				seed := reflect.ValueOf(nFields[idx]).Elem()
-				cell, err := KeepSeedValueUnchanged(column, seed, reflect.TypeOf(seed).Kind())
+				// Perform type conversions before internal scan
+				vPtr := nFields[idx]
+				v := vPtr.(*interface{})
+				scanner := new(utils.TypeScanner)
+				scanner.Scan(*v)
+
+				cell, err := KeepSeedValueUnchanged(column, scanner.Value, scanner.Detected)
 				if err != nil {
 					return err
 				}

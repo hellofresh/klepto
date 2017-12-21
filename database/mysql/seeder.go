@@ -2,7 +2,6 @@ package mysql
 
 import (
 	"fmt"
-	"reflect"
 
 	"github.com/hellofresh/klepto/database"
 )
@@ -12,9 +11,8 @@ type Seeder struct {
 }
 
 // KeepSeedValueUnchanged leaves primary key or any other non-anonymous fields unchanged.
-func KeepSeedValueUnchanged(column string, value, typ interface{}) (*database.Cell, error) {
-	kind := fmt.Sprintf("%s", reflect.TypeOf(value).Kind())
-	cell := &database.Cell{Column: column, Value: value, Type: kind}
+func KeepSeedValueUnchanged(column string, value interface{}, typ string) (*database.Cell, error) {
+	cell := &database.Cell{Column: column, Value: value, Type: typ}
 	if cell.Type != "" {
 		return cell, nil
 	}

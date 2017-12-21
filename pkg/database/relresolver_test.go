@@ -36,7 +36,7 @@ func TestReadPrimaryRecord(t *testing.T) {
 	expectedRecordType := "users"
 
 	// Check expectation
-	recordType, err := f.ReadPrimaryRecord()
+	recordType, err := f.readPrimaryRecord()
 
 	// Check that readPrimaryRecord() reads the given configuration
 	if err != nil {

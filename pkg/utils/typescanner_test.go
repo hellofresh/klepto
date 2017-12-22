@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hellofresh/klepto/utils"
+	"github.com/hellofresh/klepto/pkg/utils"
 )
 
 var ts = &utils.TypeScanner{}

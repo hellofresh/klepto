@@ -35,7 +35,7 @@ func NewUpdateCmd() *cobra.Command {
 
 // RunUpdate runs the update command
 func RunUpdate(opts *UpdateOptions) {
-	resolver, err := goupdater.NewGithub("", githubOwner, githubRepo)
+	resolver, err := goupdater.NewGithub(opts.token, githubOwner, githubRepo)
 	failOnError(err, "could not create the updater client")
 
 	updated, err := goupdater.Update(resolver, version)

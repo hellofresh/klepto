@@ -1,13 +1,8 @@
 sudo: required
 language: go
-#services:
-#  - docker
 
 go:
   - 1.x
-
-#before_install:
-#  - docker-compose -f assets/docker-compose.yml up -d
 
 install:
   - mkdir -p $GOPATH/bin
@@ -19,12 +14,5 @@ script:
   - $GOPATH/bin/overalls -project=github.com/hellofresh/klepto -covermode=count
   - if [ "$TRAVIS_SECURE_ENV_VARS" == "true" ]; then bash <(curl -s https://codecov.io/bash) -f overalls.coverprofile; fi
 
-deploy:
-  - provider: releases
-    api_key: ${GITHUB_TOKEN}
-    file: out/klepto
-    skip_cleanup: true
-    file_glob: true
-    on:
-      repo: hellofresh/klepto
-      tags: true
+after_success:
+  - test -n "$TRAVIS_TAG" && curl -sL https://git.io/goreleaser | bash

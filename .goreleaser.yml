@@ -1,0 +1,13 @@
+builds:
+  - main: main.go
+    goos:
+      - windows
+      - darwin
+      - linux
+    goarch:
+      - amd64
+
+    env:
+      - CGO_ENABLED=0
+
+    ldflags: -s -w -X github.com/hellofresh/klepto/cmd.version={{.Version}}

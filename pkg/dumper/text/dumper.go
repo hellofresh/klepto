@@ -1,8 +1,6 @@
 package text
 
 import (
-	"fmt"
-
 	"github.com/hellofresh/klepto/pkg/database"
 	"github.com/hellofresh/klepto/pkg/dumper"
 	"github.com/hellofresh/klepto/pkg/reader"
@@ -35,11 +33,9 @@ func (d *textDumper) Dump() error {
 		for {
 			row := <-rowChan
 			if row == nil {
-				rowChan <- nil
 				break
 			}
 
-			fmt.Sprintf("%v", row)
 		}
 	}
 

@@ -7,6 +7,7 @@ import (
 
 	"github.com/hellofresh/klepto/pkg/database"
 	"github.com/hellofresh/klepto/pkg/reader"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 )
 
@@ -24,19 +25,26 @@ func NewAnonymiser(source reader.Reader) reader.Reader {
 }
 
 func (a *anonymiser) ReadTable(table string, rowChan chan<- *database.Row) error {
+	logger := log.WithField("table", table)
+	logger.Info("Loading anonymiser config")
 	// Find all columns that need to be anonimized
 	columnFakers, err := a.fetchColumnToAnonimise(table)
 	if err != nil {
+		close(rowChan)
+		logger.WithError(err).Error("Failed to load anonymiser config")
 		return err
 	}
+	logger.WithField("config", columnFakers).Debug("Loaded anonymiser config")
 
 	// If there is nothing to fake don't even try
 	if len(columnFakers) == 0 {
+		logger.Info("Skipping anonymiser")
 		return a.Reader.ReadTable(table, rowChan)
 	}
 
 	// Create read/write chanel
 	rawChan := make(chan *database.Row)
+	defer close(rowChan)
 
 	// Read from the reader
 	go a.Reader.ReadTable(table, rawChan)
@@ -45,7 +53,6 @@ func (a *anonymiser) ReadTable(table string, rowChan chan<- *database.Row) error
 	for {
 		row := <-rawChan
 		if row == nil {
-			rowChan <- nil
 			break
 		}
 

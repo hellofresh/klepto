@@ -37,6 +37,7 @@ func init() {
 	RootCmd.AddCommand(NewStealCmd())
 	RootCmd.AddCommand(NewVersionCmd())
 	RootCmd.AddCommand(NewUpdateCmd())
+	RootCmd.AddCommand(NewInitCmd())
 
 	log.SetFormatter(&formatter.CliFormatter{})
 }

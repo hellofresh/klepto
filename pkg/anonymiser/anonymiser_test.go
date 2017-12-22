@@ -1,11 +1,10 @@
-package mysql
+package anonymiser
 
 import (
 	"strings"
 	"testing"
 
 	"github.com/hellofresh/klepto/pkg/database"
-	"github.com/hellofresh/klepto/pkg/utils"
 )
 
 var v interface{}

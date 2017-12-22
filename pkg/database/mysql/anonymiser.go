@@ -5,8 +5,8 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/hellofresh/klepto/database"
-	"github.com/hellofresh/klepto/utils"
+	"github.com/hellofresh/klepto/pkg/database"
+	"github.com/hellofresh/klepto/pkg/utils"
 	"github.com/spf13/viper"
 )
 

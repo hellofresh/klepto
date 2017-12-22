@@ -3,7 +3,7 @@ package mysql
 import (
 	"fmt"
 
-	"github.com/hellofresh/klepto/database"
+	"github.com/hellofresh/klepto/pkg/database"
 )
 
 // Seeder describes values (seeds) that we do not change.

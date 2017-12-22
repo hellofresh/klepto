@@ -1,55 +1,39 @@
-# Config for the binaries you want to build
-NAME=klepto
-REPO=github.com/hellofresh/${NAME}
-VERSION ?= "dev"
-
-BINARY=${NAME}
-BINARY_SRC=$(REPO)
-
-# Build configuration
-BUILD_DIR ?= $(CURDIR)/out
-GOOS ?= $(shell go env GOOS)
-GOARCH ?= $(shell go env GOARCH)
-GO_LINKER_FLAGS=-ldflags="-s -w"
-
-# Other config
 NO_COLOR=\033[0m
 OK_COLOR=\033[32;01m
 ERROR_COLOR=\033[31;01m
 WARN_COLOR=\033[33;01m
 
-.PHONY: all clean deps install
+# Space separated patterns of packages to skip in list, test, format.
+IGNORED_PACKAGES := /vendor/
 
-all: clean deps test-unit install
+.PHONY: all clean deps build
 
-test: test-unit
+all: clean deps build
 
-# Install dependencies
 deps:
-	git config --global http.https://gopkg.in.followRedirects true
-	@go get -u github.com/golang/dep/cmd/dep
-	@go get -u github.com/golang/lint/golint
 	@echo "$(OK_COLOR)==> Installing dependencies$(NO_COLOR)"
+	@go get github.com/goreleaser/goreleaser
+	@go get -u github.com/golang/dep/cmd/dep
 	@dep ensure
 
 # Builds the project
 build:
-	@mkdir -p ${BUILD_DIR}
+	@echo "$(OK_COLOR)==> Building... $(NO_COLOR)"
+	@goreleaser --snapshot --rm-dist --skip-validate
 
-	@printf "$(OK_COLOR)==> Building for ${GOOS}/${GOARCH} $(NO_COLOR)\n"
-	@GOARCH=${GOARCH} GOOS=${GOOS} go build -o ${BUILD_DIR}/${BINARY} ${GO_LINKER_FLAGS} ${BINARY_SRC}
-
-# Installs our project: copies binaries
-install:
-	@echo "$(OK_COLOR)==> Installing project$(NO_COLOR)"
-	go install -v
-
-# Test our project
-test-unit:
-	@printf "$(OK_COLOR)==> Running tests$(NO_COLOR)\n"
-	@go test -v ./...
-
+test:
+	@/bin/sh -c "./build/test.sh $(allpackages)"
+	
 # Cleans our project: deletes binaries
 clean:
-	@printf "$(OK_COLOR)==> Cleaning project$(NO_COLOR)\n"
-	if [ -d ${BUILD_DIR} ] ; then rm -rf ${BUILD_DIR}/* ; fi
+	@echo "$(OK_COLOR)==> Cleaning project$(NO_COLOR)"
+	@go clean
+	@rm -rf dist
+
+# cd into the GOPATH to workaround ./... not following symlinks
+_allpackages = $(shell ( go list ./... 2>&1 1>&3 | \
+    grep -v -e "^$$" $(addprefix -e ,$(IGNORED_PACKAGES)) 1>&2 ) 3>&1 | \
+    grep -v -e "^$$" $(addprefix -e ,$(IGNORED_PACKAGES)))
+
+# memoize allpackages, so that it's executed only once and only if used
+allpackages = $(if $(__allpackages),,$(eval __allpackages := $$(_allpackages)))$(__allpackages)

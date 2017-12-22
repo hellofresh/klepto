@@ -7,7 +7,7 @@ import (
 	"sync"
 
 	"github.com/fatih/color"
-	"github.com/hellofresh/klepto/database"
+	"github.com/hellofresh/klepto/pkg/database"
 )
 
 // Dumper dumps a database's structure to a stream

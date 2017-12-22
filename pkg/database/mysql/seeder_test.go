@@ -3,7 +3,7 @@ package mysql
 import (
 	"testing"
 
-	"github.com/hellofresh/klepto/database"
+	"github.com/hellofresh/klepto/pkg/database"
 )
 
 type seedsTestPair struct {

@@ -2,7 +2,6 @@ package postgres
 
 import (
 	"database/sql"
-	"errors"
 	"strings"
 
 	"github.com/hellofresh/klepto/pkg/reader"
@@ -16,12 +15,12 @@ func (m *driver) IsSupported(dsn string) bool {
 }
 
 func (m *driver) NewConnection(dsn string) (reader.Reader, error) {
-	_, err := sql.Open("postgres", dsn)
+	conn, err := sql.Open("postgres", dsn)
 	if err != nil {
 		return nil, err
 	}
 
-	return nil, errors.New("TODO")
+	return NewStorage(conn), nil
 }
 
 func init() {

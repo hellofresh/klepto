@@ -5,19 +5,20 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/hellofresh/klepto/pkg/database"
 	"github.com/hellofresh/klepto/pkg/reader"
 	"github.com/hellofresh/klepto/pkg/reader/generic"
 )
 
 // Storage ...
 type storage struct {
-	conn *sql.DB
+	generic.SqlReader
 }
 
 // NewStorage ...
 func NewStorage(conn *sql.DB) reader.Reader {
-	return &storage{conn: conn}
+	return &storage{
+		SqlReader: generic.SqlReader{Connection: conn},
+	}
 }
 
 // GetPreamble puts a big old comment at the top of the database dump.
@@ -37,14 +38,14 @@ SET FOREIGN_KEY_CHECKS = 0;
 
 `
 	var hostname string
-	row := s.conn.QueryRow("SELECT @@hostname")
+	row := s.Connection.QueryRow("SELECT @@hostname")
 	err := row.Scan(&hostname)
 	if err != nil {
 		return "", err
 	}
 
 	var db string
-	row = s.conn.QueryRow("SELECT DATABASE()")
+	row = s.Connection.QueryRow("SELECT DATABASE()")
 	err = row.Scan(&db)
 	if err != nil {
 		return "", err
@@ -54,61 +55,34 @@ SET FOREIGN_KEY_CHECKS = 0;
 }
 
 // GetTables gets a list of all tables in the database
-func (s *storage) GetTables() (tables []string, err error) {
-	tables = make([]string, 0)
-	var rows *sql.Rows
-	if rows, err = s.conn.Query("SHOW FULL TABLES"); err != nil {
-		return
+func (s *storage) GetTables() ([]string, error) {
+	rows, err := s.Connection.Query("SHOW FULL TABLES")
+	if err != nil {
+		return nil, err
 	}
 	defer rows.Close()
 
+	tables := make([]string, 0)
 	for rows.Next() {
 		var tableName, tableType string
-		if err = rows.Scan(&tableName, &tableType); err != nil {
-			return
+		if err := rows.Scan(&tableName, &tableType); err != nil {
+			return nil, err
 		}
 		if tableType == "BASE TABLE" {
 			tables = append(tables, tableName)
 		}
 	}
-	return
-}
 
-// GetColumns returns the columns in the specified database table
-func (s *storage) GetColumns(table string) (columns []string, err error) {
-	var rows *sql.Rows
-	if rows, err = s.conn.Query(fmt.Sprintf("SELECT * FROM `%s` LIMIT 1", table)); err != nil {
-		return
-	}
-	defer rows.Close()
-
-	if columns, err = rows.Columns(); err != nil {
-		return
-	}
-
-	for k, column := range columns {
-		columns[k] = fmt.Sprintf("`%s`", column)
-	}
-	return
+	return tables, nil
 }
 
 // GetTableStructure gets the CREATE TABLE statement of the specified database table
 func (s *storage) GetTableStructure(table string) (stmt string, err error) {
 	// We don't really care about this value but nevermind
 	var tableName string
-	err = s.conn.
+	err = s.Connection.
 		QueryRow(fmt.Sprintf("SHOW CREATE TABLE `%s`", table)).
 		Scan(&tableName, &stmt)
 
 	return
-}
-
-// Rows returns a list of all rows in a table
-func (s *storage) ReadTable(table string, rowChan chan<- *database.Row) error {
-	rows, err := s.conn.Query(fmt.Sprintf("SELECT * FROM `%s`", table))
-	if err != nil {
-		return err
-	}
-
-	return generic.PublishRows(rows, rowChan)
 }

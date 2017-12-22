@@ -1,6 +1,12 @@
 package text
 
 import (
+	"fmt"
+	"os"
+	"strconv"
+	"strings"
+	"time"
+
 	"github.com/hellofresh/klepto/pkg/database"
 	"github.com/hellofresh/klepto/pkg/dumper"
 	"github.com/hellofresh/klepto/pkg/reader"
@@ -24,117 +30,90 @@ func (d *textDumper) Dump() error {
 		return err
 	}
 
+	buf := os.Stdout
 	for _, tbl := range tables {
+		structure, err := d.reader.GetTableStructure(tbl)
+		if err != nil {
+			return err
+		}
+		buf.WriteString(structure)
+
+		columns, err := d.reader.GetColumns(tbl)
+		if err != nil {
+			return err
+		}
+
+		insert := fmt.Sprintf("\nINSERT INTO `%s` (%s) VALUES ", tbl, strings.Join(columns, ", "))
+
 		// Create read/write chanel
 		rowChan := make(chan *database.Row)
 
 		go d.reader.ReadTable(tbl, rowChan)
 
 		for {
-			row := <-rowChan
-			if row == nil {
+			rowFromChan := <-rowChan
+			if rowFromChan == nil {
 				break
 			}
+			row := *rowFromChan
 
+			buf.WriteString(insert)
+			buf.WriteString("(")
+			for i, column := range columns {
+				data := row[column]
+
+				if i > 0 {
+					buf.WriteString(",")
+				}
+
+				buf.WriteString(d.toSqlStringValue(data.Value))
+			}
+			buf.WriteString(")")
+			buf.WriteString(";")
 		}
 	}
 
 	return nil
 }
 
-//// DumpStructure writes the database's structure to the provided stream
-//func (d *textDumper) dumpStructure() (structure string, err error) {
-//	preamble, err := d.reader.GetPreamble()
-//	if err != nil {
-//		return
-//	}
-//
-//	tables, err := d.reader.GetTables()
-//	if err != nil {
-//		return
-//	}
-//
-//	var tableStructure string
-//	for _, table := range tables {
-//		tableStructure, err = d.reader.GetTableStructure(table)
-//		if err != nil {
-//			return
-//		}
-//	}
-//
-//	structure = fmt.Sprintf("%s\n%s;\n\n", preamble, tableStructure)
-//	return
-//}
-//
-//// WaitGroupBufferer buffers table contents for each wait group.
-//func (d *textDumper) WaitGroupBufferer() []*bytes.Buffer {
-//	anonymiser := d.anon
-//	tables, err := d.store.GetTables()
-//	if err != nil {
-//		color.Red("Error getting tables: %s", err.Error())
-//	}
-//
-//	var (
-//		wg           sync.WaitGroup
-//		tableBuffers []*bytes.Buffer
-//	)
-//
-//	wg.Add(len(tables))
-//
-//	for _, table := range tables {
-//		columns, err := d.store.GetColumns(table)
-//		buf := bytes.NewBufferString(fmt.Sprintf("\nINSERT INTO `%s` (%s) VALUES", table, strings.Join(columns, ", ")))
-//
-//		go d.bufferer(buf, d.out, d.done, &wg)
-//
-//		err = anonymiser.AnonymiseRows(table, d.out, d.done)
-//		if err != nil {
-//			color.Red("Error stealing data: %s", err.Error())
-//			return tableBuffers
-//		}
-//
-//		b := buf.Bytes()
-//		b = b[:len(b)-1]
-//		b = append(b, []byte(";")...)
-//		tableBuffers = append(tableBuffers, buf)
-//	}
-//
-//	close(d.out)
-//	wg.Wait()
-//
-//	return tableBuffers
-//}
-//
-//func (d *textDumper) bufferer(buf *bytes.Buffer, rowChan chan []*database.Cell, done chan bool, wg *sync.WaitGroup) {
-//	for {
-//		select {
-//		case cells, more := <-rowChan:
-//			if !more {
-//				done <- true
-//				return
-//			}
-//
-//			length := len(cells)
-//			for i, c := range cells {
-//				if i == 0 {
-//					buf.WriteString("\n(")
-//				}
-//
-//				if c.Type == "string" {
-//					buf.WriteString(fmt.Sprintf("\"%s\"", c.Value))
-//				} else {
-//					buf.WriteString(fmt.Sprintf("%s", c.Value))
-//				}
-//
-//				if i == length-1 {
-//					buf.WriteString("),")
-//				} else {
-//					buf.WriteString(", ")
-//				}
-//			}
-//		case <-done:
-//			wg.Done()
-//			return
-//		}
-//	}
-//}
+// ResolveType accepts a value and attempts to determine its type
+func (d *textDumper) toSqlStringValue(src interface{}) string {
+	switch src.(type) {
+	case int64:
+		if value, ok := src.(int64); ok {
+			return strconv.FormatInt(value, 10)
+		}
+	case float64:
+		if value, ok := src.(float64); ok {
+			return fmt.Sprintf("%v", value)
+		}
+	case bool:
+		if value, ok := src.(bool); ok {
+			return strconv.FormatBool(value)
+		}
+	case string:
+		if value, ok := src.(string); ok {
+			return strconv.Quote(string(value))
+		}
+	case []byte:
+		// TODO handle blobs?
+		if value, ok := src.([]uint8); ok {
+			return strconv.Quote(string(value))
+		}
+	case time.Time:
+		if value, ok := src.(time.Time); ok {
+			return strconv.Quote(value.String())
+		}
+	case nil:
+		return "NULL"
+	case *interface{}:
+		if src == nil {
+			return "NULL"
+		}
+		return d.toSqlStringValue(*(src.(*interface{})))
+	default:
+		panic(src)
+	}
+
+	return ""
+}

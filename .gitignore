@@ -11,7 +11,7 @@ klepto
 *.out
 /dist
 debug
-ahoy.toml
+.klepto.toml
 
 # Vendor stuff
 .glide/

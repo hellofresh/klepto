@@ -2,6 +2,12 @@
 
 
 [[projects]]
+  name = "github.com/BurntSushi/toml"
+  packages = ["."]
+  revision = "b26d9c308763d68093482582cea63d69be07a0f0"
+  version = "v0.3.0"
+
+[[projects]]
   branch = "master"
   name = "github.com/corpix/uarand"
   packages = ["."]
@@ -238,6 +244,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "3db8fabd1db204c264631632f215e3d6c2e46442e6d2c39a94afab019e6576e2"
+  inputs-digest = "072cb0f493bab415c3fd725c9790188a4ac9af6d517ae2ca43e755f4ddf9c4a8"
   solver-name = "gps-cdcl"
   solver-version = 1

@@ -1,7 +1,0 @@
-[anonymise]
-"users.name" = "FirstName"
-"users.username" = "EmailAddress"
-"users.password" = "literal:1234"
-
-[primary_record_type]
-"users" = 1000

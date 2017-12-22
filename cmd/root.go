@@ -33,6 +33,7 @@ var (
 
 func init() {
 	RootCmd.PersistentFlags().StringVarP(&configFile, "config", "c", "", "Path to config file (default is $HOME/.klepto.toml)")
+	RootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Make the operation more talkative")
 
 	RootCmd.AddCommand(NewStealCmd())
 	RootCmd.AddCommand(NewVersionCmd())

@@ -7,11 +7,14 @@ import (
 
 	"github.com/hellofresh/klepto/pkg/reader"
 	"github.com/hellofresh/klepto/pkg/reader/generic"
+	log "github.com/sirupsen/logrus"
 )
 
 // Storage ...
 type storage struct {
 	generic.SqlReader
+
+	tables []string
 }
 
 // NewStorage ...
@@ -56,24 +59,31 @@ SET FOREIGN_KEY_CHECKS = 0;
 
 // GetTables gets a list of all tables in the database
 func (s *storage) GetTables() ([]string, error) {
-	rows, err := s.Connection.Query("SHOW FULL TABLES")
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
+	if s.tables == nil {
+		log.Info("Fetching table list")
 
-	tables := make([]string, 0)
-	for rows.Next() {
-		var tableName, tableType string
-		if err := rows.Scan(&tableName, &tableType); err != nil {
+		rows, err := s.Connection.Query("SHOW FULL TABLES")
+		if err != nil {
 			return nil, err
 		}
-		if tableType == "BASE TABLE" {
-			tables = append(tables, tableName)
+		defer rows.Close()
+
+		tables := make([]string, 0)
+		for rows.Next() {
+			var tableName, tableType string
+			if err := rows.Scan(&tableName, &tableType); err != nil {
+				return nil, err
+			}
+			if tableType == "BASE TABLE" {
+				tables = append(tables, tableName)
+			}
 		}
+
+		s.tables = tables
+		log.WithField("tables", tables).Debug("Fetched table list")
 	}
 
-	return tables, nil
+	return s.tables, nil
 }
 
 // GetTableStructure gets the CREATE TABLE statement of the specified database table

@@ -8,7 +8,6 @@ import (
 	"github.com/hellofresh/klepto/pkg/config"
 	"github.com/hellofresh/klepto/pkg/database"
 	"github.com/hellofresh/klepto/pkg/reader"
-	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -32,7 +31,8 @@ func (a *anonymiser) ReadTable(tableName string, rowChan chan<- *database.Row) e
 	logger.Info("Loading anonymiser config")
 	table, err := a.tables.FindByName(tableName)
 	if err != nil {
-		return errors.Wrap(err, "the table is not configured to be anonymised")
+		logger.WithError(err).Warn("the table is not configured to be anonymised")
+		return nil
 	}
 
 	if len(table.Anonymise) == 0 {

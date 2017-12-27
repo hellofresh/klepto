@@ -81,7 +81,7 @@ func testWhenTableIsNotSetInConfig(t *testing.T, tables config.Tables) {
 	defer close(rowChan)
 
 	err := anonymiser.ReadTable("other_table", rowChan)
-	require.Error(t, err)
+	require.NoError(t, err)
 }
 
 func testWhenColumnIsAnonymised(t *testing.T, tables config.Tables) {

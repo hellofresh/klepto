@@ -55,7 +55,7 @@ func initConfig(c *cobra.Command, args []string) error {
 		// Use config file from the flag.
 		viper.SetConfigFile(configFile)
 	} else {
-		viper.SetConfigName(".klepto")
+		viper.SetConfigName(".klepto.toml")
 		viper.AddConfigPath(workingDir())
 		viper.AddConfigPath(".")
 	}

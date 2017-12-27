@@ -40,6 +40,7 @@ func init() {
 	RootCmd.AddCommand(NewUpdateCmd())
 	RootCmd.AddCommand(NewInitCmd())
 
+	log.SetOutput(os.Stderr)
 	log.SetFormatter(&formatter.CliFormatter{})
 }
 

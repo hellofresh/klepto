@@ -1,17 +1,15 @@
 package cmd
 
 import (
-	"bytes"
-	"fmt"
-	"io"
-	"os"
-
-	"github.com/hellofresh/klepto/pkg/database"
-	"github.com/hellofresh/klepto/pkg/database/mysql"
-	"github.com/pkg/errors"
+	"github.com/hellofresh/klepto/pkg/anonymiser"
+	"github.com/hellofresh/klepto/pkg/dumper"
+	"github.com/hellofresh/klepto/pkg/reader"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
+
+	_ "github.com/hellofresh/klepto/pkg/dumper/text"
+	_ "github.com/hellofresh/klepto/pkg/reader/mysql"
+	_ "github.com/hellofresh/klepto/pkg/reader/postgres"
 )
 
 // StealOptions represents the command options
@@ -42,39 +40,23 @@ func NewStealCmd() *cobra.Command {
 }
 
 // RunSteal is the handler for the rootCmd.
-func RunSteal(opts *StealOptions) error {
+func RunSteal(opts *StealOptions) (err error) {
+	source, err := reader.Connect(opts.from)
+	failOnError(err, "Error connecting to reader")
 
-	inputConn, err := database.Connect(opts.from)
-	if err != nil {
-		log.WithError(err).Fatal("Error connecting to input database")
-	}
+	source = anonymiser.NewAnonymiser(source)
 
-	defer inputConn.Close()
+	target, err := dumper.NewDumper(opts.to, source)
+	failOnError(err, "Error creating dumper")
 
 	log.Info("Stealing...")
 
-	configReader := database.NewConfigReader(viper.GetViper())
-	store := database.NewStorage(inputConn, *configReader)
-	anonyimiser := mysql.NewAnonymiser(store)
-	dumper := mysql.NewDumper(store, anonyimiser, *configReader)
-	structure, err := dumper.DumpStructure()
-	if err != nil {
-		return errors.Wrap(err, "Error dumping database structure")
-	}
-
-	var tableBuffers []*bytes.Buffer
-	tableBuffers = dumper.WaitGroupBufferer()
-
-	// Output everything
-	fmt.Print(structure)
-	for _, tbl := range tableBuffers {
-		io.Copy(os.Stdout, tbl)
-	}
-	// outputConn, err := dbConnect(*toDSN)
-	// if err != nil {
-	// 	return err
-	// }
+	failOnError(
+		target.Dump(),
+		"Error while dumping",
+	)
 
 	log.Info("Done!")
+
 	return nil
 }

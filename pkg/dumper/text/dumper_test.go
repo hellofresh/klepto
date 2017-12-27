@@ -1,6 +1,6 @@
-package mysql
+package text
 
-// storeStub's methods implements database.Store() interface
+// storeStub's methods implements database.Reader() interface
 type storeStub struct{}
 
 func (st *storeStub) getTables() (tables []string, err error) {

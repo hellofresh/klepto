@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"os/user"
+	"os"
 
 	"github.com/hellofresh/klepto/pkg/config"
 	"github.com/hellofresh/klepto/pkg/formatter"
@@ -33,6 +33,7 @@ var (
 
 func init() {
 	RootCmd.PersistentFlags().StringVarP(&configFile, "config", "c", "", "Path to config file (default is $HOME/.klepto.toml)")
+	RootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Make the operation more talkative")
 
 	RootCmd.AddCommand(NewStealCmd())
 	RootCmd.AddCommand(NewVersionCmd())
@@ -54,7 +55,7 @@ func initConfig(c *cobra.Command, args []string) error {
 		viper.SetConfigFile(configFile)
 	} else {
 		viper.SetConfigName(".klepto")
-		viper.AddConfigPath(homeDir())
+		viper.AddConfigPath(workingDir())
 		viper.AddConfigPath(".")
 	}
 
@@ -70,11 +71,11 @@ func initConfig(c *cobra.Command, args []string) error {
 
 	return nil
 }
-func homeDir() string {
-	usr, err := user.Current()
-	failOnError(err, "Failed to retrieve user home dir")
+func workingDir() string {
+	cwd, err := os.Getwd()
+	failOnError(err, "Can't find the working directory")
 
-	return usr.HomeDir
+	return cwd
 }
 
 func failOnError(err error, message string) {

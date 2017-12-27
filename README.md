@@ -3,13 +3,56 @@ Klepto
 
 [![](https://travis-ci.org/hellofresh/klepto.svg?branch=master)](https://travis-ci.org/hellofresh/klepto)
 
-Steal data from a live (mysql) database, anonymise it where defined, and put it in a new database
+> Klepto is a tool for copying and anonymising data
 
-Vision:
+Klepto helps you keep the data in your enviroment as consistent as it can by copying it form another enviroment's database. The reason for this is that you might have production data that you'd like to use for testing but you don't want to use the real customer information for your testing or local debuging. That's when Klepto comes very handy and will deal with that for you!
 
-`klepto --from 'root:root@tcp(localhost:3306)/fromDB' --to 'root:root@tcp(localhost:3306)/toDB' --config example.toml`
+## Getting Started
 
-By default it just downloads and dumps everything, but you can use the config to define fields to anonymise in yaml, toml, or any other [viper](https://github.com/spf13/viper)-supported format:
+All you need to have is a simple configuration file where you're going to define your table definition. Klepto can also try to figure that out for you (as long as your database is normalized properly).
+
+Here is an example of how the config file should look like:
+
+```toml
+[[Tables]]
+  Name = "orders"
+  [Tables.Filter]
+    Limit = 100
+    [Tables.Filter.Sorts]
+      orderNr = "asc"
+  [Tables.Anonymise]
+    email = "EmailAddress"
+    firstName = "FirstName"
+
+  [[Tables.Relationships]]
+    ReferencedTable = "customers"
+    ReferencedKey = "id"
+    ForeignKey = "customer_id"
+```
+
+After you have this, just run:
+
+```sh
+klepto steal --from 'root:root@tcp(localhost:3306)/fromDB' --to 'root:root@tcp(localhost:3306)/toDB'
+```
+
+## Prerequisites
+
+Klepto tries to keep external dependencies to a minimum, but some functionalities requires some dependencies. Here is a list:
+
+- Postgres: If you are using klepto to steal data from postgres databases you will need `pg_dump` installed
+
+## Installing 
+
+Klepto is written in Go with support for multiple platforms. Pre-built binaries are provided for the following:
+
+- macOS (Darwin) for x64, i386, and ARM architectures
+- Windows
+- Linux
+
+You can download the binary for your platform of choice from the [releases page](https://github.com/hellofresh/klepto/releases).
+
+Once downloaded, the binary can be run from anywhere. Ideally, though, you should move it into your $PATH for easy use. `/usr/local/bin` is a popular location for this.
 
 ## Anonymisation
 
@@ -38,3 +81,10 @@ $ go get github.com/ungerik/pkgreflect
 $ fake master pkgreflect -notypes -novars -norecurs vendor/github.com/icrowley/fake/
 ```
 
+## Contributing
+
+Please read [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduct, and the process for submitting pull requests to us.
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details

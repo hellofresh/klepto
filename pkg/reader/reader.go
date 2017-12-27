@@ -27,17 +27,21 @@ type (
 	}
 )
 
-func Connect(dsn string) (Reader, error) {
-	driversMu.RLock()
-	defer driversMu.RUnlock()
+func Connect(dsn string) (reader Reader, err error) {
+	drivers.Range(func(key, value interface{}) bool {
+		driver, _ := value.(Driver)
 
-	for _, driver := range drivers {
 		if !driver.IsSupported(dsn) {
-			continue
+			return true
 		}
 
-		return driver.NewConnection(dsn)
+		reader, err = driver.NewConnection(dsn)
+		return false
+	})
+
+	if reader == nil {
+		err = ErrUnsupportedDsn
 	}
 
-	return nil, ErrUnsupportedDsn
+	return
 }

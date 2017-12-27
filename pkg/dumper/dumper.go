@@ -23,17 +23,21 @@ type (
 	}
 )
 
-func NewDumper(dsn string, rdr reader.Reader) (Dumper, error) {
-	driversMu.RLock()
-	defer driversMu.RUnlock()
+func NewDumper(dsn string, rdr reader.Reader) (dumper Dumper, err error) {
+	drivers.Range(func(key, value interface{}) bool {
+		driver, _ := value.(Driver)
 
-	for _, driver := range drivers {
 		if !driver.IsSupported(dsn) {
-			continue
+			return true
 		}
 
-		return driver.NewConnection(dsn, rdr)
+		dumper, err = driver.NewConnection(dsn, rdr)
+		return false
+	})
+
+	if dumper == nil {
+		err = ErrUnsupportedDsn
 	}
 
-	return nil, ErrUnsupportedDsn
+	return
 }

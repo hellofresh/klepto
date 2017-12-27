@@ -31,7 +31,12 @@ func (a *anonymiser) ReadTable(tableName string, rowChan chan<- *database.Row) e
 
 	table, err := a.tables.FindByName(tableName)
 	if err != nil {
-		return err
+		logger.Debug("The table is not configured to be anonymised")
+	}
+
+	if len(table.Anonymise) == 0 {
+		logger.Debug("Skipping anonymiser")
+		return a.Reader.ReadTable(tableName, rowChan)
 	}
 
 	// Create read/write chanel

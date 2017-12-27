@@ -20,7 +20,12 @@ func (m *driver) NewConnection(dsn string) (reader.Reader, error) {
 		return nil, err
 	}
 
-	return NewStorage(conn), nil
+	dump, err := NewPgDump(dsn)
+	if err != nil {
+		return nil, err
+	}
+
+	return NewStorage(conn, dump), nil
 }
 
 func init() {

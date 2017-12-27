@@ -27,12 +27,12 @@ var (
 		and inserts that data into another mysql database (--to).
 	
 		Perfect for bringing your live data to staging!`,
-		Example: "klepto steal -c klepto.toml --from root:root@localhost:3306/example --to root:root@localhost:3306/klepto",
+		Example: "klepto steal -c .klepto --from root:root@localhost:3306/example --to root:root@localhost:3306/klepto",
 	}
 )
 
 func init() {
-	RootCmd.PersistentFlags().StringVarP(&configFile, "config", "c", "", "Path to config file (default is $HOME/.klepto.toml)")
+	RootCmd.PersistentFlags().StringVarP(&configFile, "config", "c", "", "Path to config file (default is ./.klepto)")
 	RootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Make the operation more talkative")
 
 	RootCmd.AddCommand(NewStealCmd())
@@ -40,6 +40,7 @@ func init() {
 	RootCmd.AddCommand(NewUpdateCmd())
 	RootCmd.AddCommand(NewInitCmd())
 
+	log.SetOutput(os.Stderr)
 	log.SetFormatter(&formatter.CliFormatter{})
 }
 

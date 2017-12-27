@@ -12,12 +12,16 @@ import (
 type storage struct {
 	generic.SqlReader
 
+	PgDump
+
+	// tables is a cache variable for all tables in the db
 	tables []string
 }
 
 // NewStorage ...
-func NewStorage(conn *sql.DB) reader.Reader {
+func NewStorage(conn *sql.DB, dumper PgDump) reader.Reader {
 	return &storage{
+		PgDump:    dumper,
 		SqlReader: generic.SqlReader{Connection: conn},
 	}
 }
@@ -37,11 +41,6 @@ func (s *storage) GetPreamble() (string, error) {
 SET NAMES utf8;
 SET FOREIGN_KEY_CHECKS = 0;
 `, nil
-}
-
-// GetTableStructure gets the CREATE TABLE statement of the specified database table
-func (s *storage) GetTableStructure(table string) (stmt string, err error) {
-	return
 }
 
 // GetTables gets a list of all tables in the database

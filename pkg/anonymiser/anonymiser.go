@@ -5,10 +5,10 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/hellofresh/klepto/pkg/config"
 	"github.com/hellofresh/klepto/pkg/database"
 	"github.com/hellofresh/klepto/pkg/reader"
 	log "github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
 )
 
 // literalPrefix defines the constant we use to prefix literals
@@ -17,29 +17,21 @@ const literalPrefix = "literal:"
 // anonymiser anonymises MySQL tables
 type anonymiser struct {
 	reader.Reader
+	tables config.Tables
 }
 
 // NewAnonymiser returns an initialised instance of MySQLAnonymiser
-func NewAnonymiser(source reader.Reader) reader.Reader {
-	return &anonymiser{source}
+func NewAnonymiser(source reader.Reader, tables config.Tables) reader.Reader {
+	return &anonymiser{source, tables}
 }
 
-func (a *anonymiser) ReadTable(table string, rowChan chan<- *database.Row) error {
-	logger := log.WithField("table", table)
+func (a *anonymiser) ReadTable(tableName string, rowChan chan<- *database.Row) error {
+	logger := log.WithField("table", tableName)
 	logger.Info("Loading anonymiser config")
-	// Find all columns that need to be anonimized
-	columnFakers, err := a.fetchColumnToAnonimise(table)
-	if err != nil {
-		close(rowChan)
-		logger.WithError(err).Error("Failed to load anonymiser config")
-		return err
-	}
-	logger.WithField("config", columnFakers).Debug("Loaded anonymiser config")
 
-	// If there is nothing to fake don't even try
-	if len(columnFakers) == 0 {
-		logger.Info("Skipping anonymiser")
-		return a.Reader.ReadTable(table, rowChan)
+	table, err := a.tables.FindByName(tableName)
+	if err != nil {
+		return err
 	}
 
 	// Create read/write chanel
@@ -47,7 +39,7 @@ func (a *anonymiser) ReadTable(table string, rowChan chan<- *database.Row) error
 	defer close(rowChan)
 
 	// Read from the reader
-	go a.Reader.ReadTable(table, rawChan)
+	go a.Reader.ReadTable(tableName, rawChan)
 
 	// Anonimise the rows
 	for {
@@ -57,8 +49,7 @@ func (a *anonymiser) ReadTable(table string, rowChan chan<- *database.Row) error
 		}
 
 		actualRow := *row
-		for column, fakerType := range columnFakers {
-			// TODO how do we handle errors?
+		for column, fakerType := range table.Anonymise {
 			a.anonymiseCell(actualRow[column], fakerType)
 		}
 
@@ -66,24 +57,6 @@ func (a *anonymiser) ReadTable(table string, rowChan chan<- *database.Row) error
 	}
 
 	return nil
-}
-
-func (a *anonymiser) fetchColumnToAnonimise(table string) (map[string]string, error) {
-	columns, err := a.GetColumns(table)
-	if err != nil {
-		return nil, err
-	}
-	columnFakers := make(map[string]string, len(columns))
-	for _, column := range columns {
-		columnFakeType := readAnonymised(column, table)
-		if columnFakeType == "" {
-			continue
-		}
-
-		columnFakers[column] = columnFakeType
-	}
-
-	return columnFakers, nil
 }
 
 func (a *anonymiser) anonymiseCell(cell *database.Cell, fakerType string) error {
@@ -104,8 +77,4 @@ func (a *anonymiser) anonymiseCell(cell *database.Cell, fakerType string) error 
 	}
 
 	return fmt.Errorf("couldn't find that faker: %v", fakerType)
-}
-
-func readAnonymised(column, table string) string {
-	return viper.GetString(fmt.Sprintf("anonymise.%s.%s", table, column))
 }

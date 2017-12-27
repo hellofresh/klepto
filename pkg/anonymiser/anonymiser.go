@@ -8,6 +8,7 @@ import (
 	"github.com/hellofresh/klepto/pkg/config"
 	"github.com/hellofresh/klepto/pkg/database"
 	"github.com/hellofresh/klepto/pkg/reader"
+	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -27,11 +28,11 @@ func NewAnonymiser(source reader.Reader, tables config.Tables) reader.Reader {
 
 func (a *anonymiser) ReadTable(tableName string, rowChan chan<- *database.Row) error {
 	logger := log.WithField("table", tableName)
-	logger.Info("Loading anonymiser config")
 
+	logger.Info("Loading anonymiser config")
 	table, err := a.tables.FindByName(tableName)
 	if err != nil {
-		logger.Debug("The table is not configured to be anonymised")
+		return errors.Wrap(err, "the table is not configured to be anonymised")
 	}
 
 	if len(table.Anonymise) == 0 {
@@ -41,25 +42,26 @@ func (a *anonymiser) ReadTable(tableName string, rowChan chan<- *database.Row) e
 
 	// Create read/write chanel
 	rawChan := make(chan *database.Row)
-	defer close(rowChan)
 
 	// Read from the reader
 	go a.Reader.ReadTable(tableName, rawChan)
 
 	// Anonimise the rows
-	for {
-		row := <-rawChan
-		if row == nil {
-			break
-		}
+	go func() {
+		for {
+			row := <-rawChan
+			if row == nil {
+				break
+			}
 
-		actualRow := *row
-		for column, fakerType := range table.Anonymise {
-			a.anonymiseCell(actualRow[column], fakerType)
-		}
+			actualRow := *row
+			for column, fakerType := range table.Anonymise {
+				a.anonymiseCell(actualRow[column], fakerType)
+			}
 
-		rowChan <- row
-	}
+			rowChan <- row
+		}
+	}()
 
 	return nil
 }

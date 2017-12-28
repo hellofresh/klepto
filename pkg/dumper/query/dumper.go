@@ -27,7 +27,7 @@ func NewDumper(output io.Writer, rdr reader.Reader) dumper.Dumper {
 	}
 }
 
-func (d *textDumper) Dump(done chan<- bool) error {
+func (d *textDumper) Dump(done chan<- struct{}) error {
 	tables, err := d.reader.GetTables()
 	if err != nil {
 		return err
@@ -54,26 +54,26 @@ func (d *textDumper) Dump(done chan<- bool) error {
 		go func() {
 			for {
 				rowFromChan, more := <-rowChan
-				if more {
-					row := *rowFromChan
-
-					io.WriteString(d.output, insert)
-					io.WriteString(d.output, "(")
-					for i, column := range columns {
-						data := row[column]
-
-						if i > 0 {
-							io.WriteString(d.output, ",")
-						}
-
-						io.WriteString(d.output, d.toSQLStringValue(data.Value))
-					}
-					io.WriteString(d.output, ")")
-					io.WriteString(d.output, ";")
-				} else {
-					done <- true
+				if !more {
+					done <- struct{}{}
 					return
 				}
+
+				row := *rowFromChan
+
+				io.WriteString(d.output, insert)
+				io.WriteString(d.output, "(")
+				for i, column := range columns {
+					data := row[column]
+
+					if i > 0 {
+						io.WriteString(d.output, ",")
+					}
+
+					io.WriteString(d.output, d.toSQLStringValue(data.Value))
+				}
+				io.WriteString(d.output, ")")
+				io.WriteString(d.output, ";")
 			}
 		}()
 	}

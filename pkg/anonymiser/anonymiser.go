@@ -50,17 +50,17 @@ func (a *anonymiser) ReadTable(tableName string, rowChan chan<- *database.Row) e
 	go func() {
 		for {
 			row, more := <-rawChan
-			if more {
-				actualRow := *row
-				for column, fakerType := range table.Anonymise {
-					a.anonymiseCell(actualRow[column], fakerType)
-				}
-
-				rowChan <- row
-			} else {
+			if !more {
 				close(rowChan)
 				return
 			}
+
+			actualRow := *row
+			for column, fakerType := range table.Anonymise {
+				a.anonymiseCell(actualRow[column], fakerType)
+			}
+
+			rowChan <- row
 		}
 	}()
 

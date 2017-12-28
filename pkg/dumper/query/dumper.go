@@ -68,7 +68,7 @@ func (d *textDumper) Dump(done chan<- bool) error {
 							buf.WriteString(",")
 						}
 
-						buf.WriteString(d.toSqlStringValue(data.Value))
+						buf.WriteString(d.toSQLStringValue(data.Value))
 					}
 					buf.WriteString(")")
 					buf.WriteString(";")
@@ -84,7 +84,7 @@ func (d *textDumper) Dump(done chan<- bool) error {
 }
 
 // ResolveType accepts a value and attempts to determine its type
-func (d *textDumper) toSqlStringValue(src interface{}) string {
+func (d *textDumper) toSQLStringValue(src interface{}) string {
 	switch src.(type) {
 	case int64:
 		if value, ok := src.(int64); ok {

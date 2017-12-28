@@ -27,7 +27,18 @@ type (
 		GetStructure() (string, error)
 		GetPreamble() (string, error)
 		// ReadTable returns a channel with all database rows
-		ReadTable(string, chan<- database.Row) error
+		ReadTable(string, chan<- *database.Row, ReadTableOpt) error
+	}
+
+	ReadTableOpt struct {
+		Limit         uint64
+		Relationships []*RelationshipOpt
+	}
+
+	RelationshipOpt struct {
+		ReferencedTable string
+		ReferencedKey   string
+		ForeignKey      string
 	}
 )
 

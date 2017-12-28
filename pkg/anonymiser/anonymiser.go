@@ -32,7 +32,7 @@ func (a *anonymiser) ReadTable(tableName string, rowChan chan<- *database.Row) e
 	table, err := a.tables.FindByName(tableName)
 	if err != nil {
 		logger.WithError(err).Warn("the table is not configured to be anonymised")
-		return nil
+		return a.Reader.ReadTable(tableName, rowChan)
 	}
 
 	if len(table.Anonymise) == 0 {

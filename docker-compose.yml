@@ -1,0 +1,12 @@
+version: '3'
+services:
+  # Postgres Database
+  # --------------------------------------------------------------------------------------------------------------------
+  postgres:
+    image: postgres:9.6
+    ports:
+      - '8050:5432'
+    environment:
+      LC_ALL: C.UTF-8
+      POSTGRES_USER: hello
+      POSTGRES_PASSWORD: fresh

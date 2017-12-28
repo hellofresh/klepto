@@ -49,17 +49,18 @@ func (a *anonymiser) ReadTable(tableName string, rowChan chan<- *database.Row) e
 	// Anonimise the rows
 	go func() {
 		for {
-			row := <-rawChan
-			if row == nil {
-				break
-			}
+			row, more := <-rawChan
+			if more {
+				actualRow := *row
+				for column, fakerType := range table.Anonymise {
+					a.anonymiseCell(actualRow[column], fakerType)
+				}
 
-			actualRow := *row
-			for column, fakerType := range table.Anonymise {
-				a.anonymiseCell(actualRow[column], fakerType)
+				rowChan <- row
+			} else {
+				close(rowChan)
+				return
 			}
-
-			rowChan <- row
 		}
 	}()
 

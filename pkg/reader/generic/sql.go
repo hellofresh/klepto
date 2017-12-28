@@ -32,7 +32,7 @@ func (s *SqlReader) GetColumns(table string) (columns []string, err error) {
 	return
 }
 
-// Rows returns a list of all rows in a table
+// ReadTable returns a list of all rows in a table
 func (s *SqlReader) ReadTable(table string, rowChan chan<- *database.Row) error {
 	log.WithField("table", table).Info("Fetching rows")
 	rows, err := s.Connection.Query(fmt.Sprintf("SELECT * FROM %s", table))
@@ -44,8 +44,9 @@ func (s *SqlReader) ReadTable(table string, rowChan chan<- *database.Row) error 
 }
 
 func (s *SqlReader) PublishRows(rows *sql.Rows, rowChan chan<- *database.Row) error {
-	defer rows.Close()
+	// this ensures that there is no more jobs to be done
 	defer close(rowChan)
+	defer rows.Close()
 
 	columns, err := rows.ColumnTypes()
 	if err != nil {

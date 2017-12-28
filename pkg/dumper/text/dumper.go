@@ -24,14 +24,13 @@ func NewDumper(rdr reader.Reader) dumper.Dumper {
 	}
 }
 
-func (d *textDumper) Dump() error {
+func (d *textDumper) Dump(done chan<- bool) error {
 	tables, err := d.reader.GetTables()
 	if err != nil {
 		return err
 	}
 
 	buf := os.Stdout
-
 	structure, err := d.reader.GetStructure()
 	if err != nil {
 		return err
@@ -39,7 +38,6 @@ func (d *textDumper) Dump() error {
 	buf.WriteString(structure)
 
 	for _, tbl := range tables {
-
 		columns, err := d.reader.GetColumns(tbl)
 		if err != nil {
 			return err
@@ -49,30 +47,33 @@ func (d *textDumper) Dump() error {
 
 		// Create read/write chanel
 		rowChan := make(chan *database.Row)
-
 		go d.reader.ReadTable(tbl, rowChan)
 
-		for {
-			rowFromChan := <-rowChan
-			if rowFromChan == nil {
-				break
-			}
-			row := *rowFromChan
+		go func() {
+			for {
+				rowFromChan, more := <-rowChan
+				if more {
+					row := *rowFromChan
 
-			buf.WriteString(insert)
-			buf.WriteString("(")
-			for i, column := range columns {
-				data := row[column]
+					buf.WriteString(insert)
+					buf.WriteString("(")
+					for i, column := range columns {
+						data := row[column]
 
-				if i > 0 {
-					buf.WriteString(",")
+						if i > 0 {
+							buf.WriteString(",")
+						}
+
+						buf.WriteString(d.toSqlStringValue(data.Value))
+					}
+					buf.WriteString(")")
+					buf.WriteString(";")
+				} else {
+					done <- true
+					return
 				}
-
-				buf.WriteString(d.toSqlStringValue(data.Value))
 			}
-			buf.WriteString(")")
-			buf.WriteString(";")
-		}
+		}()
 	}
 
 	return nil

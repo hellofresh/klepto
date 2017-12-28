@@ -48,18 +48,16 @@ func (d *textDumper) Dump(done chan<- struct{}) error {
 		insert := fmt.Sprintf("\nINSERT INTO `%s` (%s) VALUES ", tbl, strings.Join(columns, ", "))
 
 		// Create read/write chanel
-		rowChan := make(chan *database.Row)
+		rowChan := make(chan database.Row)
 		go d.reader.ReadTable(tbl, rowChan)
 
 		go func() {
 			for {
-				rowFromChan, more := <-rowChan
+				row, more := <-rowChan
 				if !more {
 					done <- struct{}{}
 					return
 				}
-
-				row := *rowFromChan
 
 				io.WriteString(d.output, insert)
 				io.WriteString(d.output, "(")

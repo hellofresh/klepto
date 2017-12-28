@@ -25,7 +25,7 @@ func NewAnonymiser(source reader.Reader, tables config.Tables) reader.Reader {
 	return &anonymiser{source, tables}
 }
 
-func (a *anonymiser) ReadTable(tableName string, rowChan chan<- *database.Row) error {
+func (a *anonymiser) ReadTable(tableName string, rowChan chan<- database.Row) error {
 	logger := log.WithField("table", tableName)
 
 	logger.Info("Loading anonymiser config")
@@ -41,7 +41,7 @@ func (a *anonymiser) ReadTable(tableName string, rowChan chan<- *database.Row) e
 	}
 
 	// Create read/write chanel
-	rawChan := make(chan *database.Row)
+	rawChan := make(chan database.Row)
 
 	// Read from the reader
 	go a.Reader.ReadTable(tableName, rawChan)
@@ -55,9 +55,8 @@ func (a *anonymiser) ReadTable(tableName string, rowChan chan<- *database.Row) e
 				return
 			}
 
-			actualRow := *row
 			for column, fakerType := range table.Anonymise {
-				a.anonymiseCell(actualRow[column], fakerType)
+				a.anonymiseCell(row[column], fakerType)
 			}
 
 			rowChan <- row

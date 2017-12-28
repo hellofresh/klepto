@@ -18,11 +18,11 @@ func (m *mockReader) GetTables() ([]string, error)        { return []string{"tab
 func (m *mockReader) GetStructure() (string, error)       { return "", nil }
 func (m *mockReader) GetColumns(string) ([]string, error) { return []string{"column_test"}, nil }
 func (m *mockReader) GetPreamble() (string, error)        { return "", nil }
-func (m *mockReader) ReadTable(tableName string, rowChan chan<- *database.Row) error {
+func (m *mockReader) ReadTable(tableName string, rowChan chan<- database.Row) error {
 	row := make(database.Row)
 	row["column_test"] = &database.Cell{Type: "string", Value: "to_be_anonimised"}
 
-	rowChan <- &row
+	rowChan <- row
 
 	return nil
 }
@@ -67,7 +67,7 @@ func TestReadTable(t *testing.T) {
 func testWhenAnonymiserIsNotInitialized(t *testing.T, tables config.Tables) {
 	anonymiser := NewAnonymiser(&mockReader{}, tables)
 
-	rowChan := make(chan *database.Row, 1)
+	rowChan := make(chan database.Row, 1)
 	defer close(rowChan)
 
 	err := anonymiser.ReadTable("test", rowChan)
@@ -77,7 +77,7 @@ func testWhenAnonymiserIsNotInitialized(t *testing.T, tables config.Tables) {
 func testWhenTableIsNotSetInConfig(t *testing.T, tables config.Tables) {
 	anonymiser := NewAnonymiser(&mockReader{}, tables)
 
-	rowChan := make(chan *database.Row, 1)
+	rowChan := make(chan database.Row, 1)
 	defer close(rowChan)
 
 	err := anonymiser.ReadTable("other_table", rowChan)
@@ -87,7 +87,7 @@ func testWhenTableIsNotSetInConfig(t *testing.T, tables config.Tables) {
 func testWhenColumnIsAnonymised(t *testing.T, tables config.Tables) {
 	anonymiser := NewAnonymiser(&mockReader{}, tables)
 
-	rowChan := make(chan *database.Row)
+	rowChan := make(chan database.Row)
 	defer close(rowChan)
 
 	err := anonymiser.ReadTable("test", rowChan)
@@ -95,9 +95,7 @@ func testWhenColumnIsAnonymised(t *testing.T, tables config.Tables) {
 
 	for {
 		row := <-rowChan
-		actualRow := *row
-
-		value := actualRow["column_test"].Value.(reflect.Value)
+		value := row["column_test"].Value.(reflect.Value)
 		assert.NotEqual(t, "to_be_anonimised", value.String())
 		break
 	}
@@ -106,7 +104,7 @@ func testWhenColumnIsAnonymised(t *testing.T, tables config.Tables) {
 func testWhenColumnIsAnonymisedWithLiteral(t *testing.T, tables config.Tables) {
 	anonymiser := NewAnonymiser(&mockReader{}, tables)
 
-	rowChan := make(chan *database.Row)
+	rowChan := make(chan database.Row)
 	defer close(rowChan)
 
 	err := anonymiser.ReadTable("test", rowChan)
@@ -114,9 +112,8 @@ func testWhenColumnIsAnonymisedWithLiteral(t *testing.T, tables config.Tables) {
 
 	for {
 		row := <-rowChan
-		actualRow := *row
 
-		assert.Equal(t, "Hello", actualRow["column_test"].Value)
+		assert.Equal(t, "Hello", row["column_test"].Value)
 		break
 	}
 }

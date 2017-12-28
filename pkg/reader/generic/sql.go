@@ -33,7 +33,7 @@ func (s *SqlReader) GetColumns(table string) (columns []string, err error) {
 }
 
 // ReadTable returns a list of all rows in a table
-func (s *SqlReader) ReadTable(table string, rowChan chan<- *database.Row) error {
+func (s *SqlReader) ReadTable(table string, rowChan chan<- database.Row) error {
 	log.WithField("table", table).Info("Fetching rows")
 	rows, err := s.Connection.Query(fmt.Sprintf("SELECT * FROM %s", table))
 	if err != nil {
@@ -43,7 +43,7 @@ func (s *SqlReader) ReadTable(table string, rowChan chan<- *database.Row) error 
 	return s.PublishRows(rows, rowChan)
 }
 
-func (s *SqlReader) PublishRows(rows *sql.Rows, rowChan chan<- *database.Row) error {
+func (s *SqlReader) PublishRows(rows *sql.Rows, rowChan chan<- database.Row) error {
 	// this ensures that there is no more jobs to be done
 	defer close(rowChan)
 	defer rows.Close()
@@ -70,7 +70,7 @@ func (s *SqlReader) PublishRows(rows *sql.Rows, rowChan chan<- *database.Row) er
 			}
 		}
 
-		rowChan <- &row
+		rowChan <- row
 	}
 
 	return nil

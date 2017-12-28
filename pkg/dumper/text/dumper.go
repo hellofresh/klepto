@@ -31,12 +31,14 @@ func (d *textDumper) Dump() error {
 	}
 
 	buf := os.Stdout
+
+	structure, err := d.reader.GetStructure()
+	if err != nil {
+		return err
+	}
+	buf.WriteString(structure)
+
 	for _, tbl := range tables {
-		structure, err := d.reader.GetTableStructure(tbl)
-		if err != nil {
-			return err
-		}
-		buf.WriteString(structure)
 
 		columns, err := d.reader.GetColumns(tbl)
 		if err != nil {

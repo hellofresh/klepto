@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	"bytes"
+
 	"github.com/hellofresh/klepto/pkg/reader"
 	"github.com/hellofresh/klepto/pkg/reader/generic"
 	log "github.com/sirupsen/logrus"
@@ -86,13 +88,23 @@ func (s *storage) GetTables() ([]string, error) {
 	return s.tables, nil
 }
 
-// GetTableStructure gets the CREATE TABLE statement of the specified database table
-func (s *storage) GetTableStructure(table string) (stmt string, err error) {
-	// We don't really care about this value but nevermind
-	var tableName string
-	err = s.Connection.
-		QueryRow(fmt.Sprintf("SHOW CREATE TABLE `%s`", table)).
-		Scan(&tableName, &stmt)
+// GetStructure returns the SQL used to create the database tables structure
+func (s *storage) GetStructure() (string, error) {
+	tables, err := s.GetTables()
+	if err != nil {
+		return "", err
+	}
 
-	return
+	buf := bytes.NewBufferString("")
+	for _, tableName := range tables {
+		var stmtTableName, tableStmt string
+		err := s.Connection.QueryRow(fmt.Sprintf("SHOW CREATE TABLE `%s`", tableName)).Scan(&stmtTableName, &tableStmt)
+		if err != nil {
+			return "", err
+		}
+
+		buf.WriteString(tableStmt)
+	}
+
+	return buf.String(), nil
 }

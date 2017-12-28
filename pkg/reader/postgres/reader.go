@@ -2,7 +2,10 @@ package postgres
 
 import (
 	"database/sql"
+	"fmt"
+	"strconv"
 
+	"github.com/hellofresh/klepto/pkg/database"
 	"github.com/hellofresh/klepto/pkg/reader"
 	"github.com/hellofresh/klepto/pkg/reader/generic"
 	log "github.com/sirupsen/logrus"
@@ -16,6 +19,8 @@ type storage struct {
 
 	// tables is a cache variable for all tables in the db
 	tables []string
+	// columns is a cache variable for tables and there columns in the db
+	columns map[string][]string
 }
 
 // NewStorage ...
@@ -47,7 +52,9 @@ SET FOREIGN_KEY_CHECKS = 0;
 func (s *storage) GetTables() ([]string, error) {
 	if s.tables == nil {
 		log.Info("Fetching table list")
-		rows, err := s.Connection.Query("SELECT table_name FROM information_schema.tables WHERE table_schema='public'")
+		rows, err := s.Connection.Query(
+			"SELECT table_name FROM information_schema.tables WHERE table_schema='public'",
+		)
 		if err != nil {
 			return nil, err
 		}
@@ -68,4 +75,53 @@ func (s *storage) GetTables() ([]string, error) {
 	}
 
 	return s.tables, nil
+}
+
+// GetColumns returns the columns in the specified database table
+func (s *storage) GetColumns(table string) ([]string, error) {
+	columns, ok := s.columns[table]
+	if ok {
+		return columns, nil
+	}
+
+	log.WithField("table", table).Info("Fetching table columns")
+	rows, err := s.Connection.Query(
+		"select column_name from information_schema.columns where table_name=$1",
+		table,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	columns = []string{}
+	for rows.Next() {
+		var column string
+		if err := rows.Scan(&column); err != nil {
+			return nil, err
+		}
+		columns = append(columns, column)
+	}
+
+	return columns, nil
+}
+
+// ReadTable returns a list of all rows in a table
+func (s *storage) ReadTable(table string, rowChan chan<- database.Row) error {
+	query := fmt.Sprintf("SELECT * FROM %s", s.quoteIdentifier(table))
+
+	log.WithFields(log.Fields{
+		"table": table,
+		"query": query,
+	}).Info("Fetching rows")
+	rows, err := s.Connection.Query(query)
+	if err != nil {
+		return err
+	}
+
+	return s.PublishRows(rows, rowChan)
+}
+
+func (s *storage) quoteIdentifier(name string) string {
+	return strconv.Quote(name)
 }

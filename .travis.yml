@@ -4,6 +4,12 @@ language: go
 go:
   - 1.x
 
+services:
+  - postgresql
+
+env:
+  - TEST_POSTGRES="postgres://postgres@localhost"
+
 install:
   - mkdir -p $GOPATH/bin
   - go get github.com/go-playground/overalls

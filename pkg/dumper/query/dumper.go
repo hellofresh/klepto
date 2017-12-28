@@ -79,6 +79,15 @@ func (d *textDumper) Dump(done chan<- struct{}) error {
 	return nil
 }
 
+func (d *textDumper) Close() error {
+	closer, ok := d.output.(io.WriteCloser)
+	if ok {
+		closer.Close()
+	}
+
+	return nil
+}
+
 // ResolveType accepts a value and attempts to determine its type
 func (d *textDumper) toSQLStringValue(src interface{}) string {
 	switch src.(type) {

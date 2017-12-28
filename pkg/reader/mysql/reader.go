@@ -1,12 +1,13 @@
 package mysql
 
 import (
+	"bytes"
 	"database/sql"
 	"fmt"
+	"strings"
 	"time"
 
-	"bytes"
-
+	"github.com/hellofresh/klepto/pkg/database"
 	"github.com/hellofresh/klepto/pkg/reader"
 	"github.com/hellofresh/klepto/pkg/reader/generic"
 	log "github.com/sirupsen/logrus"
@@ -59,6 +60,27 @@ SET FOREIGN_KEY_CHECKS = 0;
 	return fmt.Sprintf(preamble, hostname, db, time.Now().Format(time.RFC1123Z)), nil
 }
 
+// GetStructure returns the SQL used to create the database tables structure
+func (s *storage) GetStructure() (string, error) {
+	tables, err := s.GetTables()
+	if err != nil {
+		return "", err
+	}
+
+	buf := bytes.NewBufferString("")
+	for _, tableName := range tables {
+		var stmtTableName, tableStmt string
+		err := s.Connection.QueryRow(fmt.Sprintf("SHOW CREATE TABLE `%s`", tableName)).Scan(&stmtTableName, &tableStmt)
+		if err != nil {
+			return "", err
+		}
+
+		buf.WriteString(tableStmt)
+	}
+
+	return buf.String(), nil
+}
+
 // GetTables gets a list of all tables in the database
 func (s *storage) GetTables() ([]string, error) {
 	if s.tables == nil {
@@ -88,23 +110,42 @@ func (s *storage) GetTables() ([]string, error) {
 	return s.tables, nil
 }
 
-// GetStructure returns the SQL used to create the database tables structure
-func (s *storage) GetStructure() (string, error) {
-	tables, err := s.GetTables()
+// GetColumns returns the columns in the specified database table
+func (s *storage) GetColumns(table string) ([]string, error) {
+	// TODO fix since it fails for empty tables
+	rows, err := s.Connection.Query(fmt.Sprintf("SELECT * FROM %s LIMIT 1", s.quoteIdentifier(table)))
 	if err != nil {
-		return "", err
+		return nil, err
+	}
+	defer rows.Close()
+
+	columns, err := rows.Columns()
+	if err != nil {
+		return nil, err
 	}
 
-	buf := bytes.NewBufferString("")
-	for _, tableName := range tables {
-		var stmtTableName, tableStmt string
-		err := s.Connection.QueryRow(fmt.Sprintf("SHOW CREATE TABLE `%s`", tableName)).Scan(&stmtTableName, &tableStmt)
-		if err != nil {
-			return "", err
-		}
+	for k, column := range columns {
+		columns[k] = fmt.Sprintf("%s", column)
+	}
+	return columns, nil
+}
 
-		buf.WriteString(tableStmt)
+// ReadTable returns a list of all rows in a table
+func (s *storage) ReadTable(table string, rowChan chan<- database.Row) error {
+	query := fmt.Sprintf("SELECT * FROM %s", s.quoteIdentifier(table))
+
+	log.WithFields(log.Fields{
+		"table": table,
+		"query": query,
+	}).Info("Fetching rows")
+	rows, err := s.Connection.Query(query)
+	if err != nil {
+		return err
 	}
 
-	return buf.String(), nil
+	return s.PublishRows(rows, rowChan)
+}
+
+func (s *storage) quoteIdentifier(name string) string {
+	return "`" + strings.Replace(name, "`", "``", -1) + "`"
 }

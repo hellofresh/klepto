@@ -27,7 +27,7 @@ func NewDumper(output io.Writer, rdr reader.Reader) dumper.Dumper {
 	}
 }
 
-func (d *textDumper) Dump() error {
+func (d *textDumper) Dump(done chan<- struct{}) error {
 	tables, err := d.reader.GetTables()
 	if err != nil {
 		return err
@@ -40,7 +40,6 @@ func (d *textDumper) Dump() error {
 	io.WriteString(d.output, structure)
 
 	for _, tbl := range tables {
-
 		columns, err := d.reader.GetColumns(tbl)
 		if err != nil {
 			return err
@@ -50,37 +49,40 @@ func (d *textDumper) Dump() error {
 
 		// Create read/write chanel
 		rowChan := make(chan *database.Row)
-
 		go d.reader.ReadTable(tbl, rowChan)
 
-		for {
-			rowFromChan := <-rowChan
-			if rowFromChan == nil {
-				break
-			}
-			row := *rowFromChan
-
-			io.WriteString(d.output, insert)
-			io.WriteString(d.output, "(")
-			for i, column := range columns {
-				data := row[column]
-
-				if i > 0 {
-					io.WriteString(d.output, ",")
+		go func() {
+			for {
+				rowFromChan, more := <-rowChan
+				if !more {
+					done <- struct{}{}
+					return
 				}
 
-				io.WriteString(d.output, d.toSqlStringValue(data.Value))
+				row := *rowFromChan
+
+				io.WriteString(d.output, insert)
+				io.WriteString(d.output, "(")
+				for i, column := range columns {
+					data := row[column]
+
+					if i > 0 {
+						io.WriteString(d.output, ",")
+					}
+
+					io.WriteString(d.output, d.toSQLStringValue(data.Value))
+				}
+				io.WriteString(d.output, ")")
+				io.WriteString(d.output, ";")
 			}
-			io.WriteString(d.output, ")")
-			io.WriteString(d.output, ";")
-		}
+		}()
 	}
 
 	return nil
 }
 
 // ResolveType accepts a value and attempts to determine its type
-func (d *textDumper) toSqlStringValue(src interface{}) string {
+func (d *textDumper) toSQLStringValue(src interface{}) string {
 	switch src.(type) {
 	case int64:
 		if value, ok := src.(int64); ok {
@@ -113,7 +115,7 @@ func (d *textDumper) toSqlStringValue(src interface{}) string {
 		if src == nil {
 			return "NULL"
 		}
-		return d.toSqlStringValue(*(src.(*interface{})))
+		return d.toSQLStringValue(*(src.(*interface{})))
 	default:
 		panic(src)
 	}

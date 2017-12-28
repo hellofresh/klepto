@@ -1,4 +1,4 @@
-package text
+package query
 
 // storeStub's methods implements database.Reader() interface
 type storeStub struct{}

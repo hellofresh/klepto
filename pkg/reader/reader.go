@@ -19,10 +19,14 @@ type (
 
 	// Reader provides an interface to access database stores.
 	Reader interface {
+		// GetTables returns a list of all databases tables
 		GetTables() ([]string, error)
-		GetTableStructure(string) (string, error)
+		// GetColumns return a list of all columns for a given table
 		GetColumns(string) ([]string, error)
+		// GetStructure returns the SQL used to create the database tables
+		GetStructure() (string, error)
 		GetPreamble() (string, error)
+		// ReadTable returns a channel with all database rows
 		ReadTable(string, chan<- *database.Row) error
 	}
 )

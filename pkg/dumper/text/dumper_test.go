@@ -7,7 +7,7 @@ func (st *storeStub) getTables() (tables []string, err error) {
 	return
 }
 
-func (st *storeStub) getTableStructure(table string) (structure string, err error) {
+func (st *storeStub) getStructure() (structure string, err error) {
 	return
 }
 

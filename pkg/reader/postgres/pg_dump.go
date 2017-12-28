@@ -9,7 +9,7 @@ import (
 
 type (
 	PgDump interface {
-		GetTableStructure(table string) (stmt string, err error)
+		GetStructure() (stmt string, err error)
 	}
 
 	pgDump struct {
@@ -30,16 +30,14 @@ func NewPgDump(dsn string) (PgDump, error) {
 	}, nil
 }
 
-func (p *pgDump) GetTableStructure(table string) (stmt string, err error) {
+func (p *pgDump) GetStructure() (string, error) {
 	logger := log.WithFields(log.Fields{
 		"command": p.command,
-		"table":   table,
 	})
 
 	cmd := exec.Command(
 		p.command,
 		"--dbname", p.dsn,
-		"--table", table,
 		"--schema-only",
 	)
 

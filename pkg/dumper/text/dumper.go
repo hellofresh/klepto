@@ -7,6 +7,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/apex/log"
+	"github.com/hellofresh/klepto/pkg/config"
 	"github.com/hellofresh/klepto/pkg/database"
 	"github.com/hellofresh/klepto/pkg/dumper"
 	"github.com/hellofresh/klepto/pkg/reader"
@@ -14,13 +16,15 @@ import (
 
 // textDumper dumps a database's structure to a stream
 type textDumper struct {
-	reader reader.Reader
+	reader       reader.Reader
+	configTables config.Tables
 }
 
 // NewDumper is the constructor for MySQLDumper
-func NewDumper(rdr reader.Reader) dumper.Dumper {
+func NewDumper(rdr reader.Reader, configTables config.Tables) dumper.Dumper {
 	return &textDumper{
-		reader: rdr,
+		reader:       rdr,
+		configTables: configTables,
 	}
 }
 
@@ -39,6 +43,10 @@ func (d *textDumper) Dump() error {
 	buf.WriteString(structure)
 
 	for _, tbl := range tables {
+		table, err := d.configTables.FindByName(tbl)
+		if err != nil {
+			log.WithError(err).WithField("table", tbl).Debug("no configuration found for table")
+		}
 
 		columns, err := d.reader.GetColumns(tbl)
 		if err != nil {
@@ -46,11 +54,18 @@ func (d *textDumper) Dump() error {
 		}
 
 		insert := fmt.Sprintf("\nINSERT INTO `%s` (%s) VALUES ", tbl, strings.Join(columns, ", "))
-
 		// Create read/write chanel
 		rowChan := make(chan *database.Row)
 
-		go d.reader.ReadTable(tbl, rowChan)
+		if table != nil {
+			opts := reader.ReadTableOpt{
+				Limit:         table.Filter.Limit,
+				Relationships: d.relationshipConfigToOptions(table.Relationships),
+			}
+			go d.reader.ReadTable(tbl, rowChan, opts)
+		} else {
+			go d.reader.ReadTable(tbl, rowChan, reader.ReadTableOpt{})
+		}
 
 		for {
 			rowFromChan := <-rowChan
@@ -118,4 +133,18 @@ func (d *textDumper) toSqlStringValue(src interface{}) string {
 	}
 
 	return ""
+}
+
+func (d *textDumper) relationshipConfigToOptions(relationshipsConfig []*config.Relationship) []*reader.RelationshipOpt {
+	var opts []*reader.RelationshipOpt
+
+	for _, r := range relationshipsConfig {
+		opts = append(opts, &reader.RelationshipOpt{
+			ReferencedTable: r.ReferencedTable,
+			ReferencedKey:   r.ReferencedKey,
+			ForeignKey:      r.ForeignKey,
+		})
+	}
+
+	return opts
 }

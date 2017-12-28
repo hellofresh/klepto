@@ -117,7 +117,7 @@ func (d *textDumper) toSQLStringValue(src interface{}) string {
 		if src == nil {
 			return "NULL"
 		}
-		return d.toSqlStringValue(*(src.(*interface{})))
+		return d.toSQLStringValue(*(src.(*interface{})))
 	default:
 		panic(src)
 	}

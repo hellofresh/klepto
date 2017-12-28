@@ -27,7 +27,7 @@ var (
 		and inserts that data into another mysql database (--to).
 	
 		Perfect for bringing your live data to staging!`,
-		Example: "klepto steal -c .klepto --from root:root@localhost:3306/example --to root:root@localhost:3306/klepto",
+		Example: "klepto steal -c .klepto.toml|yaml|json --from root:root@localhost:3306/fromDb --to root:root@localhost:3306/toDb",
 	}
 )
 

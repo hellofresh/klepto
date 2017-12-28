@@ -7,7 +7,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 
-	_ "github.com/hellofresh/klepto/pkg/dumper/text"
+	_ "github.com/hellofresh/klepto/pkg/dumper/query"
 	_ "github.com/hellofresh/klepto/pkg/reader/mysql"
 	_ "github.com/hellofresh/klepto/pkg/reader/postgres"
 )

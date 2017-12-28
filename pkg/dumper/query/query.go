@@ -1,6 +1,8 @@
-package text
+package query
 
 import (
+	"os"
+
 	"github.com/hellofresh/klepto/pkg/dumper"
 	"github.com/hellofresh/klepto/pkg/reader"
 )
@@ -12,9 +14,9 @@ func (m *driver) IsSupported(dsn string) bool {
 }
 
 func (m *driver) NewConnection(dsn string, rdr reader.Reader) (dumper.Dumper, error) {
-	return NewDumper(rdr), nil
+	return NewDumper(os.Stdout, rdr), nil
 }
 
 func init() {
-	dumper.Register("text", &driver{})
+	dumper.Register("query", &driver{})
 }

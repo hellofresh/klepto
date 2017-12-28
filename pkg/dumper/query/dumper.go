@@ -1,4 +1,4 @@
-package text
+package query
 
 import (
 	"fmt"
@@ -6,6 +6,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"io"
 
 	"github.com/hellofresh/klepto/pkg/database"
 	"github.com/hellofresh/klepto/pkg/dumper"
@@ -15,12 +17,14 @@ import (
 // textDumper dumps a database's structure to a stream
 type textDumper struct {
 	reader reader.Reader
+	output io.Writer
 }
 
 // NewDumper is the constructor for MySQLDumper
-func NewDumper(rdr reader.Reader) dumper.Dumper {
+func NewDumper(output io.Writer, rdr reader.Reader) dumper.Dumper {
 	return &textDumper{
 		reader: rdr,
+		output: output,
 	}
 }
 
@@ -35,7 +39,7 @@ func (d *textDumper) Dump(done chan<- bool) error {
 	if err != nil {
 		return err
 	}
-	buf.WriteString(structure)
+	io.WriteString(d.output, structure)
 
 	for _, tbl := range tables {
 		columns, err := d.reader.GetColumns(tbl)

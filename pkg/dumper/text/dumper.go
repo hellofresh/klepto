@@ -7,11 +7,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/apex/log"
 	"github.com/hellofresh/klepto/pkg/config"
 	"github.com/hellofresh/klepto/pkg/database"
 	"github.com/hellofresh/klepto/pkg/dumper"
 	"github.com/hellofresh/klepto/pkg/reader"
+	log "github.com/sirupsen/logrus"
 )
 
 // textDumper dumps a database's structure to a stream

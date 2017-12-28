@@ -2,7 +2,6 @@ package query
 
 import (
 	"fmt"
-	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -34,7 +33,6 @@ func (d *textDumper) Dump(done chan<- bool) error {
 		return err
 	}
 
-	buf := os.Stdout
 	structure, err := d.reader.GetStructure()
 	if err != nil {
 		return err
@@ -59,19 +57,19 @@ func (d *textDumper) Dump(done chan<- bool) error {
 				if more {
 					row := *rowFromChan
 
-					buf.WriteString(insert)
-					buf.WriteString("(")
+					io.WriteString(d.output, insert)
+					io.WriteString(d.output, "(")
 					for i, column := range columns {
 						data := row[column]
 
 						if i > 0 {
-							buf.WriteString(",")
+							io.WriteString(d.output, ",")
 						}
 
-						buf.WriteString(d.toSQLStringValue(data.Value))
+						io.WriteString(d.output, d.toSQLStringValue(data.Value))
 					}
-					buf.WriteString(")")
-					buf.WriteString(";")
+					io.WriteString(d.output, ")")
+					io.WriteString(d.output, ";")
 				} else {
 					done <- true
 					return

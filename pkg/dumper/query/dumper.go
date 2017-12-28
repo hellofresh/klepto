@@ -1,11 +1,12 @@
-package text
+package query
 
 import (
 	"fmt"
-	"os"
 	"strconv"
 	"strings"
 	"time"
+
+	"io"
 
 	"github.com/hellofresh/klepto/pkg/database"
 	"github.com/hellofresh/klepto/pkg/dumper"
@@ -15,12 +16,14 @@ import (
 // textDumper dumps a database's structure to a stream
 type textDumper struct {
 	reader reader.Reader
+	output io.Writer
 }
 
 // NewDumper is the constructor for MySQLDumper
-func NewDumper(rdr reader.Reader) dumper.Dumper {
+func NewDumper(output io.Writer, rdr reader.Reader) dumper.Dumper {
 	return &textDumper{
 		reader: rdr,
+		output: output,
 	}
 }
 
@@ -30,13 +33,11 @@ func (d *textDumper) Dump() error {
 		return err
 	}
 
-	buf := os.Stdout
-
 	structure, err := d.reader.GetStructure()
 	if err != nil {
 		return err
 	}
-	buf.WriteString(structure)
+	io.WriteString(d.output, structure)
 
 	for _, tbl := range tables {
 
@@ -59,19 +60,19 @@ func (d *textDumper) Dump() error {
 			}
 			row := *rowFromChan
 
-			buf.WriteString(insert)
-			buf.WriteString("(")
+			io.WriteString(d.output, insert)
+			io.WriteString(d.output, "(")
 			for i, column := range columns {
 				data := row[column]
 
 				if i > 0 {
-					buf.WriteString(",")
+					io.WriteString(d.output, ",")
 				}
 
-				buf.WriteString(d.toSqlStringValue(data.Value))
+				io.WriteString(d.output, d.toSqlStringValue(data.Value))
 			}
-			buf.WriteString(")")
-			buf.WriteString(";")
+			io.WriteString(d.output, ")")
+			io.WriteString(d.output, ";")
 		}
 	}
 

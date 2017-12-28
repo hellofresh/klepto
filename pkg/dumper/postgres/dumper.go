@@ -115,6 +115,12 @@ func (p *pgDumper) insertIntoTable(txn *sql.Tx, tableName string, rowChan <-chan
 		return 0, err
 	}
 
+	logger := log.WithFields(log.Fields{
+		"table":   tableName,
+		"columns": columns,
+	})
+	logger.Debug("Preparing copy in")
+
 	stmt, err := txn.Prepare(pq.CopyIn(tableName, columns...))
 	if err != nil {
 		return 0, err
@@ -130,7 +136,12 @@ func (p *pgDumper) insertIntoTable(txn *sql.Tx, tableName string, rowChan <-chan
 		// Put the data in the correct order
 		rowValues := make([]interface{}, len(columns))
 		for i, col := range columns {
-			rowValues[i] = row[col].Value
+			val := *(row[col].Value.(*interface{}))
+			switch val.(type) {
+			case []byte:
+				val = string(val.([]byte))
+			}
+			rowValues[i] = val
 		}
 
 		// Insert
@@ -142,6 +153,7 @@ func (p *pgDumper) insertIntoTable(txn *sql.Tx, tableName string, rowChan <-chan
 		inserted++
 	}
 
+	logger.Debug("Executing copy in")
 	if _, err := stmt.Exec(); err != nil {
 		return 0, err
 	}

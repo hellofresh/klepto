@@ -51,11 +51,10 @@ func RunSteal(opts *StealOptions) (err error) {
 
 	log.Info("Stealing...")
 
-	failOnError(
-		target.Dump(),
-		"Error while dumping",
-	)
+	done := make(chan bool)
+	failOnError(target.Dump(done), "Error while dumping")
 
+	<-done
 	log.Info("Done!")
 
 	return nil

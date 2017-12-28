@@ -9,7 +9,6 @@ import (
 	"github.com/hellofresh/klepto/pkg/reader"
 	"github.com/lib/pq"
 	log "github.com/sirupsen/logrus"
-	"golang.org/x/tools/go/gcimporter15/testdata"
 )
 
 // pgDumper dumps a database into a postgres db
@@ -31,6 +30,10 @@ func (p *pgDumper) Dump(done chan<- struct{}) error {
 	}
 
 	return p.dumpTables(done)
+}
+
+func (p *pgDumper) Close() error {
+	return p.conn.Close()
 }
 
 func (p *pgDumper) dumpStructure() error {
@@ -71,7 +74,7 @@ func (p *pgDumper) dumpTables(done chan<- struct{}) error {
 		}(tableName)
 	}
 
-	go func () {
+	go func() {
 		// Wait for all table to be dumped
 		wg.Wait()
 

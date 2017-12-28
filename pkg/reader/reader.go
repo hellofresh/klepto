@@ -28,6 +28,8 @@ type (
 		GetPreamble() (string, error)
 		// ReadTable returns a channel with all database rows
 		ReadTable(string, chan<- database.Row) error
+		// Close will close any connection/file etc.
+		Close() error
 	}
 )
 

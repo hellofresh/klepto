@@ -18,6 +18,7 @@ func (m *mockReader) GetTables() ([]string, error)        { return []string{"tab
 func (m *mockReader) GetStructure() (string, error)       { return "", nil }
 func (m *mockReader) GetColumns(string) ([]string, error) { return []string{"column_test"}, nil }
 func (m *mockReader) GetPreamble() (string, error)        { return "", nil }
+func (m *mockReader) Close() error                        { return nil }
 func (m *mockReader) ReadTable(tableName string, rowChan chan<- database.Row) error {
 	row := make(database.Row)
 	row["column_test"] = &database.Cell{Type: "string", Value: "to_be_anonimised"}

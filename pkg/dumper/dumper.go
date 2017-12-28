@@ -20,6 +20,7 @@ type (
 	// A Dumper writes a database's stucture to the provided stream.
 	Dumper interface {
 		Dump(chan<- struct{}) error
+		Close() error
 	}
 )
 

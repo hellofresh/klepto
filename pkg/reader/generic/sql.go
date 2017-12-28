@@ -85,3 +85,7 @@ func (s *SqlReader) createFieldsSlice(size int) []interface{} {
 
 	return fields
 }
+
+func (s *SqlReader) Close() error {
+	return s.Connection.Close()
+}

@@ -20,7 +20,7 @@ type (
 
 	// Filter represents the way you want to filter the results
 	Filter struct {
-		Limit int
+		Limit uint64
 		Sorts map[string]string
 	}
 

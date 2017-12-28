@@ -44,7 +44,7 @@ func RunSteal(opts *StealOptions) (err error) {
 	source, err := reader.Connect(opts.from)
 	failOnError(err, "Error connecting to reader")
 
-	source = anonymiser.NewAnonymiser(source)
+	source = anonymiser.NewAnonymiser(source, globalConfig.Tables)
 
 	target, err := dumper.NewDumper(opts.to, source)
 	failOnError(err, "Error creating dumper")

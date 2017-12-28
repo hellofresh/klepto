@@ -1,10 +1,14 @@
 package config
 
+import "errors"
+
 type (
 	// Spec represents the global app configuration
 	Spec struct {
-		Tables []*Table
+		Tables Tables
 	}
+	// Tables are an array of table
+	Tables []*Table
 
 	// Table represents a klepto table definition
 	Table struct {
@@ -27,3 +31,14 @@ type (
 		ForeignKey      string
 	}
 )
+
+// FindByName filter a table by its name
+func (t Tables) FindByName(name string) (*Table, error) {
+	for _, table := range t {
+		if table.Name == name {
+			return table, nil
+		}
+	}
+
+	return nil, errors.New("table not found")
+}

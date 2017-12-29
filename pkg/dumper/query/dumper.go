@@ -67,7 +67,14 @@ func (d *textDumper) Dump(done chan<- struct{}, configTables config.Tables) erro
 					return
 				}
 
-				insert := sq.Insert(tableName).SetMap(d.toSQLColumnMap(row))
+				columnMap, err := d.toSQLColumnMap(row)
+				if err != nil {
+					log.WithError(err).Debug("could not convert value to string")
+					done <- struct{}{}
+					return
+				}
+
+				insert := sq.Insert(tableName).SetMap(columnMap)
 				io.WriteString(d.output, sq.DebugSqlizer(insert))
 				io.WriteString(d.output, "\n")
 			}
@@ -79,19 +86,19 @@ func (d *textDumper) Dump(done chan<- struct{}, configTables config.Tables) erro
 	return nil
 }
 
-func (d *textDumper) toSQLColumnMap(row database.Row) map[string]interface{} {
+func (d *textDumper) toSQLColumnMap(row database.Row) (map[string]interface{}, error) {
 	sqlColumnMap := make(map[string]interface{})
 
 	for column, value := range row {
 		strValue, err := d.toSQLStringValue(value)
 		if err != nil {
-			log.WithError(err).Debug("could not convert value to string")
+			return sqlColumnMap, err
 		}
 
 		sqlColumnMap[column] = fmt.Sprintf("%v", strValue)
 	}
 
-	return sqlColumnMap
+	return sqlColumnMap, nil
 }
 
 // ResolveType accepts a value and attempts to determine its type

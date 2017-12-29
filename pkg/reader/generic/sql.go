@@ -76,10 +76,7 @@ func (s *SqlReader) PublishRows(rows *sql.Rows, rowChan chan<- database.Row) err
 		}
 
 		for idx, column := range columns {
-			row[column.Name()] = &database.Cell{
-				Value: fields[idx],
-				Type:  column.ScanType().Kind().String(),
-			}
+			row[column.Name()] = fields[idx]
 		}
 
 		rowChan <- row

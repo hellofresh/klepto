@@ -49,9 +49,6 @@ func (d *textDumper) Dump(done chan<- struct{}, configTables config.Tables) erro
 			log.WithError(err).WithField("table", tbl).Debug("no configuration found for table")
 		}
 
-		// Create read/write chanel
-		rowChan := make(chan database.Row)
-
 		if table != nil {
 			opts = reader.ReadTableOpt{
 				Limit:         table.Filter.Limit,
@@ -59,7 +56,8 @@ func (d *textDumper) Dump(done chan<- struct{}, configTables config.Tables) erro
 			}
 		}
 
-		go d.reader.ReadTable(tbl, rowChan, opts)
+		// Create read/write chanel
+		rowChan := make(chan database.Row)
 
 		go func(tableName string) {
 			for {
@@ -74,9 +72,26 @@ func (d *textDumper) Dump(done chan<- struct{}, configTables config.Tables) erro
 				io.WriteString(d.output, "\n")
 			}
 		}(tbl)
+
+		d.reader.ReadTable(tbl, rowChan, opts)
 	}
 
 	return nil
+}
+
+func (d *textDumper) removeConfiguredRelationships(tables []string, configTables config.Tables) []string {
+	var filteredTables []string
+	relationships := configTables.FlatRelationships()
+
+	for _, table := range tables {
+		for _, r := range relationships {
+			if table != r.ReferencedTable {
+				filteredTables = append(filteredTables, table)
+			}
+		}
+	}
+
+	return filteredTables
 }
 
 func (d *textDumper) toSQLColumnMap(row database.Row) map[string]interface{} {

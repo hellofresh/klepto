@@ -1,7 +1,6 @@
 package anonymiser
 
 import (
-	"reflect"
 	"testing"
 
 	"github.com/hellofresh/klepto/pkg/reader"
@@ -22,7 +21,7 @@ func (m *mockReader) GetColumns(string) ([]string, error) { return []string{"col
 func (m *mockReader) GetPreamble() (string, error)        { return "", nil }
 func (m *mockReader) ReadTable(tableName string, rowChan chan<- database.Row, opts reader.ReadTableOpt) error {
 	row := make(database.Row)
-	row["column_test"] = &database.Cell{Type: "string", Value: "to_be_anonimised"}
+	row["column_test"] = "to_be_anonimised"
 
 	rowChan <- row
 
@@ -97,8 +96,7 @@ func testWhenColumnIsAnonymised(t *testing.T, tables config.Tables) {
 
 	for {
 		row := <-rowChan
-		value := row["column_test"].Value.(reflect.Value)
-		assert.NotEqual(t, "to_be_anonimised", value.String())
+		assert.NotEqual(t, "to_be_anonimised", row["column_test"])
 		break
 	}
 }
@@ -115,7 +113,7 @@ func testWhenColumnIsAnonymisedWithLiteral(t *testing.T, tables config.Tables) {
 	for {
 		row := <-rowChan
 
-		assert.Equal(t, "Hello", row["column_test"].Value)
+		assert.Equal(t, "Hello", row["column_test"])
 		break
 	}
 }

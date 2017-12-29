@@ -1,7 +1,6 @@
 package anonymiser
 
 import (
-	"fmt"
 	"reflect"
 	"strings"
 
@@ -56,7 +55,18 @@ func (a *anonymiser) ReadTable(tableName string, rowChan chan<- database.Row, op
 			}
 
 			for column, fakerType := range table.Anonymise {
-				a.anonymiseCell(row[column], fakerType)
+				if strings.HasPrefix(fakerType, literalPrefix) {
+					row[column] = strings.TrimPrefix(fakerType, literalPrefix)
+					continue
+				}
+
+				for name, faker := range Functions {
+					if fakerType != name {
+						continue
+					}
+
+					row[column] = faker.Call([]reflect.Value{})[0]
+				}
 			}
 
 			rowChan <- row
@@ -64,24 +74,4 @@ func (a *anonymiser) ReadTable(tableName string, rowChan chan<- database.Row, op
 	}()
 
 	return nil
-}
-
-func (a *anonymiser) anonymiseCell(cell *database.Cell, fakerType string) error {
-	// If we have a literal replacement then use it
-	if strings.HasPrefix(fakerType, literalPrefix) {
-		cell.Value = strings.TrimPrefix(fakerType, literalPrefix)
-		return nil
-	}
-
-	// Find the faker type
-	for name, faker := range Functions {
-		if fakerType != name {
-			continue
-		}
-
-		cell.Value = faker.Call([]reflect.Value{})[0]
-		return nil
-	}
-
-	return fmt.Errorf("couldn't find that faker: %v", fakerType)
 }

@@ -27,7 +27,7 @@ type (
 		GetStructure() (string, error)
 		GetPreamble() (string, error)
 		// ReadTable returns a channel with all database rows
-		ReadTable(string, chan<- *database.Row, ReadTableOpt) error
+		ReadTable(string, chan<- database.Row, ReadTableOpt) error
 	}
 
 	ReadTableOpt struct {

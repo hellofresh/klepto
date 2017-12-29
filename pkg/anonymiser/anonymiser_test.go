@@ -4,6 +4,8 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/hellofresh/klepto/pkg/reader"
+
 	"github.com/stretchr/testify/assert"
 
 	"github.com/stretchr/testify/require"
@@ -18,7 +20,7 @@ func (m *mockReader) GetTables() ([]string, error)        { return []string{"tab
 func (m *mockReader) GetStructure() (string, error)       { return "", nil }
 func (m *mockReader) GetColumns(string) ([]string, error) { return []string{"column_test"}, nil }
 func (m *mockReader) GetPreamble() (string, error)        { return "", nil }
-func (m *mockReader) ReadTable(tableName string, rowChan chan<- database.Row) error {
+func (m *mockReader) ReadTable(tableName string, rowChan chan<- database.Row, opts reader.ReadTableOpt) error {
 	row := make(database.Row)
 	row["column_test"] = &database.Cell{Type: "string", Value: "to_be_anonimised"}
 
@@ -70,7 +72,7 @@ func testWhenAnonymiserIsNotInitialized(t *testing.T, tables config.Tables) {
 	rowChan := make(chan database.Row, 1)
 	defer close(rowChan)
 
-	err := anonymiser.ReadTable("test", rowChan)
+	err := anonymiser.ReadTable("test", rowChan, reader.ReadTableOpt{})
 	require.NoError(t, err)
 }
 
@@ -80,7 +82,7 @@ func testWhenTableIsNotSetInConfig(t *testing.T, tables config.Tables) {
 	rowChan := make(chan database.Row, 1)
 	defer close(rowChan)
 
-	err := anonymiser.ReadTable("other_table", rowChan)
+	err := anonymiser.ReadTable("other_table", rowChan, reader.ReadTableOpt{})
 	require.NoError(t, err)
 }
 
@@ -90,7 +92,7 @@ func testWhenColumnIsAnonymised(t *testing.T, tables config.Tables) {
 	rowChan := make(chan database.Row)
 	defer close(rowChan)
 
-	err := anonymiser.ReadTable("test", rowChan)
+	err := anonymiser.ReadTable("test", rowChan, reader.ReadTableOpt{})
 	require.NoError(t, err)
 
 	for {
@@ -107,7 +109,7 @@ func testWhenColumnIsAnonymisedWithLiteral(t *testing.T, tables config.Tables) {
 	rowChan := make(chan database.Row)
 	defer close(rowChan)
 
-	err := anonymiser.ReadTable("test", rowChan)
+	err := anonymiser.ReadTable("test", rowChan, reader.ReadTableOpt{})
 	require.NoError(t, err)
 
 	for {

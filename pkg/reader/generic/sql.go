@@ -29,7 +29,7 @@ func (s *SqlReader) GetColumns(table string) (columns []string, err error) {
 	}
 
 	for k, column := range columns {
-		columns[k] = fmt.Sprintf("%s", column)
+		columns[k] = fmt.Sprintf("%s.%s", table, column)
 	}
 	return
 }
@@ -37,7 +37,12 @@ func (s *SqlReader) GetColumns(table string) (columns []string, err error) {
 // ReadTable returns a list of all rows in a table
 func (s *SqlReader) ReadTable(table string, rowChan chan<- database.Row, opts reader.ReadTableOpt) error {
 	log.WithField("table", table).Info("Fetching rows")
-	sql := sq.Select("*").From(table)
+	columns, err := s.GetColumns(table)
+	if err != nil {
+		return err
+	}
+
+	sql := sq.Select(columns...).From(table)
 
 	for _, r := range opts.Relationships {
 		sql = sql.Join(fmt.Sprintf("%s ON %s = %s", r.ReferencedTable, r.ForeignKey, r.ReferencedKey))

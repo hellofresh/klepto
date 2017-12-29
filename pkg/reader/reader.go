@@ -1,13 +1,7 @@
 package reader
 
 import (
-	"errors"
-
 	"github.com/hellofresh/klepto/pkg/database"
-)
-
-var (
-	ErrUnsupportedDsn = errors.New("Unsupported dsn")
 )
 
 type (
@@ -53,10 +47,6 @@ func Connect(dsn string) (reader Reader, err error) {
 		reader, err = driver.NewConnection(dsn)
 		return false
 	})
-
-	if reader == nil {
-		err = ErrUnsupportedDsn
-	}
 
 	return
 }

@@ -3,14 +3,11 @@ package anonymiser
 import (
 	"testing"
 
-	"github.com/hellofresh/klepto/pkg/reader"
-
-	"github.com/stretchr/testify/assert"
-
-	"github.com/stretchr/testify/require"
-
 	"github.com/hellofresh/klepto/pkg/config"
 	"github.com/hellofresh/klepto/pkg/database"
+	"github.com/hellofresh/klepto/pkg/reader"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 type mockReader struct{}

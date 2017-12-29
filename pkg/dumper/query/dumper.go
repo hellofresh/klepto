@@ -79,21 +79,6 @@ func (d *textDumper) Dump(done chan<- struct{}, configTables config.Tables) erro
 	return nil
 }
 
-func (d *textDumper) removeConfiguredRelationships(tables []string, configTables config.Tables) []string {
-	var filteredTables []string
-	relationships := configTables.FlatRelationships()
-
-	for _, table := range tables {
-		for _, r := range relationships {
-			if table != r.ReferencedTable {
-				filteredTables = append(filteredTables, table)
-			}
-		}
-	}
-
-	return filteredTables
-}
-
 func (d *textDumper) toSQLColumnMap(row database.Row) map[string]interface{} {
 	sqlColumnMap := make(map[string]interface{})
 

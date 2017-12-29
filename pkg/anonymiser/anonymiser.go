@@ -42,9 +42,6 @@ func (a *anonymiser) ReadTable(tableName string, rowChan chan<- database.Row, op
 	// Create read/write chanel
 	rawChan := make(chan database.Row)
 
-	// Read from the reader
-	go a.Reader.ReadTable(tableName, rawChan, opts)
-
 	// Anonimise the rows
 	go func() {
 		for {
@@ -65,13 +62,16 @@ func (a *anonymiser) ReadTable(tableName string, rowChan chan<- database.Row, op
 						continue
 					}
 
-					row[column] = faker.Call([]reflect.Value{})[0]
+					row[column] = faker.Call([]reflect.Value{})[0].String()
 				}
 			}
 
 			rowChan <- row
 		}
 	}()
+
+	// Read from the reader
+	a.Reader.ReadTable(tableName, rawChan, opts)
 
 	return nil
 }

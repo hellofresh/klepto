@@ -3,6 +3,7 @@ package dumper
 import (
 	"errors"
 
+	"github.com/hellofresh/klepto/pkg/config"
 	"github.com/hellofresh/klepto/pkg/reader"
 )
 
@@ -19,7 +20,7 @@ type (
 
 	// A Dumper writes a database's stucture to the provided stream.
 	Dumper interface {
-		Dump(chan<- struct{}) error
+		Dump(chan<- struct{}, config.Tables) error
 	}
 )
 

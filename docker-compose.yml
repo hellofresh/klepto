@@ -1,0 +1,19 @@
+version: "3"
+
+services:
+
+  postgres_source:
+    image: postgres:9.6-alpine
+    ports:
+      - '8050:5432'
+    environment:
+      LC_ALL: C.UTF-8
+      POSTGRES_USER: hello
+      POSTGRES_PASSWORD: fresh
+      POSTGRES_DB: klepto
+    volumes:
+      - database:/var/lib/postgresql/data
+      - ./fixtures/pg_simple.sql:/docker-entrypoint-initdb.d/init.sql
+
+volumes:
+  database:

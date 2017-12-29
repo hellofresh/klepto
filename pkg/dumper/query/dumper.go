@@ -69,9 +69,7 @@ func (d *textDumper) Dump(done chan<- struct{}, configTables config.Tables) erro
 
 				columnMap, err := d.toSQLColumnMap(row)
 				if err != nil {
-					log.WithError(err).Debug("could not convert value to string")
-					done <- struct{}{}
-					return
+					log.WithError(err).Fatal("could not convert value to string")
 				}
 
 				insert := sq.Insert(tableName).SetMap(columnMap)

@@ -52,7 +52,7 @@ func RunSteal(opts *StealOptions) (err error) {
 	log.Info("Stealing...")
 
 	done := make(chan struct{})
-	failOnError(target.Dump(done), "Error while dumping")
+	failOnError(target.Dump(done, globalConfig.Tables), "Error while dumping")
 
 	<-done
 	log.Info("Done!")

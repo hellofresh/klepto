@@ -1,15 +1,13 @@
 package anonymiser
 
 import (
-	"reflect"
 	"testing"
-
-	"github.com/stretchr/testify/assert"
-
-	"github.com/stretchr/testify/require"
 
 	"github.com/hellofresh/klepto/pkg/config"
 	"github.com/hellofresh/klepto/pkg/database"
+	"github.com/hellofresh/klepto/pkg/reader"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 type mockReader struct{}
@@ -18,9 +16,9 @@ func (m *mockReader) GetTables() ([]string, error)        { return []string{"tab
 func (m *mockReader) GetStructure() (string, error)       { return "", nil }
 func (m *mockReader) GetColumns(string) ([]string, error) { return []string{"column_test"}, nil }
 func (m *mockReader) GetPreamble() (string, error)        { return "", nil }
-func (m *mockReader) ReadTable(tableName string, rowChan chan<- database.Row) error {
+func (m *mockReader) ReadTable(tableName string, rowChan chan<- database.Row, opts reader.ReadTableOpt) error {
 	row := make(database.Row)
-	row["column_test"] = &database.Cell{Type: "string", Value: "to_be_anonimised"}
+	row["column_test"] = "to_be_anonimised"
 
 	rowChan <- row
 
@@ -70,7 +68,7 @@ func testWhenAnonymiserIsNotInitialized(t *testing.T, tables config.Tables) {
 	rowChan := make(chan database.Row, 1)
 	defer close(rowChan)
 
-	err := anonymiser.ReadTable("test", rowChan)
+	err := anonymiser.ReadTable("test", rowChan, reader.ReadTableOpt{})
 	require.NoError(t, err)
 }
 
@@ -80,7 +78,7 @@ func testWhenTableIsNotSetInConfig(t *testing.T, tables config.Tables) {
 	rowChan := make(chan database.Row, 1)
 	defer close(rowChan)
 
-	err := anonymiser.ReadTable("other_table", rowChan)
+	err := anonymiser.ReadTable("other_table", rowChan, reader.ReadTableOpt{})
 	require.NoError(t, err)
 }
 
@@ -90,13 +88,12 @@ func testWhenColumnIsAnonymised(t *testing.T, tables config.Tables) {
 	rowChan := make(chan database.Row)
 	defer close(rowChan)
 
-	err := anonymiser.ReadTable("test", rowChan)
+	err := anonymiser.ReadTable("test", rowChan, reader.ReadTableOpt{})
 	require.NoError(t, err)
 
 	for {
 		row := <-rowChan
-		value := row["column_test"].Value.(reflect.Value)
-		assert.NotEqual(t, "to_be_anonimised", value.String())
+		assert.NotEqual(t, "to_be_anonimised", row["column_test"])
 		break
 	}
 }
@@ -107,13 +104,13 @@ func testWhenColumnIsAnonymisedWithLiteral(t *testing.T, tables config.Tables) {
 	rowChan := make(chan database.Row)
 	defer close(rowChan)
 
-	err := anonymiser.ReadTable("test", rowChan)
+	err := anonymiser.ReadTable("test", rowChan, reader.ReadTableOpt{})
 	require.NoError(t, err)
 
 	for {
 		row := <-rowChan
 
-		assert.Equal(t, "Hello", row["column_test"].Value)
+		assert.Equal(t, "Hello", row["column_test"])
 		break
 	}
 }

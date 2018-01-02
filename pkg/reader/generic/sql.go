@@ -4,7 +4,9 @@ import (
 	"database/sql"
 	"fmt"
 
+	sq "github.com/Masterminds/squirrel"
 	"github.com/hellofresh/klepto/pkg/database"
+	"github.com/hellofresh/klepto/pkg/reader"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -17,7 +19,7 @@ type SqlReader struct {
 func (s *SqlReader) GetColumns(table string) (columns []string, err error) {
 	// TODO fix since it fails for empty tables
 	var rows *sql.Rows
-	if rows, err = s.Connection.Query(fmt.Sprintf("SELECT * FROM %s LIMIT 1", table)); err != nil {
+	if rows, err = sq.Select("*").From(table).Limit(1).RunWith(s.Connection).Query(); err != nil {
 		return
 	}
 	defer rows.Close()
@@ -27,15 +29,30 @@ func (s *SqlReader) GetColumns(table string) (columns []string, err error) {
 	}
 
 	for k, column := range columns {
-		columns[k] = fmt.Sprintf("%s", column)
+		columns[k] = fmt.Sprintf("%s.%s", table, column)
 	}
 	return
 }
 
 // ReadTable returns a list of all rows in a table
-func (s *SqlReader) ReadTable(table string, rowChan chan<- database.Row) error {
+func (s *SqlReader) ReadTable(table string, rowChan chan<- database.Row, opts reader.ReadTableOpt) error {
 	log.WithField("table", table).Info("Fetching rows")
-	rows, err := s.Connection.Query(fmt.Sprintf("SELECT * FROM %s", table))
+	columns, err := s.GetColumns(table)
+	if err != nil {
+		return err
+	}
+
+	sql := sq.Select(columns...).From(table)
+
+	for _, r := range opts.Relationships {
+		sql = sql.Join(fmt.Sprintf("%s ON %s = %s", r.ReferencedTable, r.ForeignKey, r.ReferencedKey))
+	}
+
+	if opts.Limit > 0 {
+		sql = sql.Limit(opts.Limit)
+	}
+
+	rows, err := sql.RunWith(s.Connection).Query()
 	if err != nil {
 		return err
 	}
@@ -64,10 +81,7 @@ func (s *SqlReader) PublishRows(rows *sql.Rows, rowChan chan<- database.Row) err
 		}
 
 		for idx, column := range columns {
-			row[column.Name()] = &database.Cell{
-				Value: fields[idx],
-				Type:  column.ScanType().Kind().String(),
-			}
+			row[column.Name()] = fields[idx]
 		}
 
 		rowChan <- row

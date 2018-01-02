@@ -1,13 +1,7 @@
 package reader
 
 import (
-	"errors"
-
 	"github.com/hellofresh/klepto/pkg/database"
-)
-
-var (
-	ErrUnsupportedDsn = errors.New("Unsupported dsn")
 )
 
 type (
@@ -27,7 +21,18 @@ type (
 		GetStructure() (string, error)
 		GetPreamble() (string, error)
 		// ReadTable returns a channel with all database rows
-		ReadTable(string, chan<- database.Row) error
+		ReadTable(string, chan<- database.Row, ReadTableOpt) error
+	}
+
+	ReadTableOpt struct {
+		Limit         uint64
+		Relationships []*RelationshipOpt
+	}
+
+	RelationshipOpt struct {
+		ReferencedTable string
+		ReferencedKey   string
+		ForeignKey      string
 	}
 )
 
@@ -42,10 +47,6 @@ func Connect(dsn string) (reader Reader, err error) {
 		reader, err = driver.NewConnection(dsn)
 		return false
 	})
-
-	if reader == nil {
-		err = ErrUnsupportedDsn
-	}
 
 	return
 }

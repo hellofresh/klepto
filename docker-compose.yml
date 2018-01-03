@@ -15,5 +15,15 @@ services:
       - database:/var/lib/postgresql/data
       - ./fixtures/pg_simple.sql:/docker-entrypoint-initdb.d/init.sql
 
+  postgres_dest:
+    image: postgres:9.6-alpine
+    ports:
+      - '8051:5432'
+    environment:
+      LC_ALL: C.UTF-8
+      POSTGRES_USER: hello
+      POSTGRES_PASSWORD: fresh
+      POSTGRES_DB: klepto
+
 volumes:
   database:

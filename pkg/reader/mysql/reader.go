@@ -100,7 +100,7 @@ func (s *storage) GetStructure() (string, error) {
 		return "", err
 	}
 
-	buf := bytes.NewBufferString("")
+	buf := bytes.NewBufferString("SET FOREIGN_KEY_CHECKS=0;")
 	for _, tableName := range tables {
 		var stmtTableName, tableStmt string
 		err := s.Connection.QueryRow(fmt.Sprintf("SHOW CREATE TABLE %s", s.QuoteIdentifier(tableName))).Scan(&stmtTableName, &tableStmt)
@@ -111,6 +111,8 @@ func (s *storage) GetStructure() (string, error) {
 		buf.WriteString(tableStmt)
 		buf.WriteString(";\n")
 	}
+
+	buf.WriteString("SET FOREIGN_KEY_CHECKS=1;")
 
 	return buf.String(), nil
 }

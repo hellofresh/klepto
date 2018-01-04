@@ -83,9 +83,14 @@ func (s *SqlReader) PublishRows(rows *sql.Rows, rowChan chan<- database.Row) err
 
 	for rows.Next() {
 		row := make(database.Row, len(columns))
-		fields := s.createFieldsSlice(len(columns))
 
-		err := rows.Scan(fields...)
+		fields := make([]interface{}, len(columns))
+		fieldPointers := make([]interface{}, len(columns))
+		for i := 0; i < len(columns); i++ {
+			fieldPointers[i] = &fields[i]
+		}
+
+		err := rows.Scan(fieldPointers...)
 		if err != nil {
 			log.WithError(err).Warning("Failed to fetch row")
 			continue
@@ -99,16 +104,6 @@ func (s *SqlReader) PublishRows(rows *sql.Rows, rowChan chan<- database.Row) err
 	}
 
 	return nil
-}
-
-func (s *SqlReader) createFieldsSlice(size int) []interface{} {
-	fields := make([]interface{}, size)
-	for i := 0; i < size; i++ {
-		var v interface{}
-		fields[i] = &v
-	}
-
-	return fields
 }
 
 // FormatColumn returns a escaped table+column string

@@ -84,6 +84,15 @@ func (d *textDumper) Dump(done chan<- struct{}, configTables config.Tables) erro
 	return nil
 }
 
+func (d *textDumper) Close() error {
+	closer, ok := d.output.(io.WriteCloser)
+	if ok {
+		closer.Close()
+	}
+
+	return nil
+}
+
 func (d *textDumper) toSQLColumnMap(row database.Row) (map[string]interface{}, error) {
 	sqlColumnMap := make(map[string]interface{})
 

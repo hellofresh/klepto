@@ -60,6 +60,10 @@ func (s *SqlReader) ReadTable(table string, rowChan chan<- database.Row, opts re
 	return s.PublishRows(rows, rowChan)
 }
 
+func (s *SqlReader) Close() error {
+	return s.Connection.Close()
+}
+
 func (s *SqlReader) PublishRows(rows *sql.Rows, rowChan chan<- database.Row) error {
 	// this ensures that there is no more jobs to be done
 	defer close(rowChan)

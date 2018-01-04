@@ -22,6 +22,8 @@ type (
 		GetPreamble() (string, error)
 		// ReadTable returns a channel with all database rows
 		ReadTable(string, chan<- database.Row, ReadTableOpt) error
+		// Close closes the reader resources and releases them.
+		Close() error
 	}
 
 	ReadTableOpt struct {

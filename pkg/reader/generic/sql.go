@@ -12,11 +12,14 @@ import (
 
 // SqlReader is a base class for sql related readers
 type SqlReader struct {
-	Connection *sql.DB
+	Connection      *sql.DB
+	QuoteIdentifier func(string) string
 }
 
 // GetColumns returns the columns in the specified database table
 func (s *SqlReader) GetColumns(table string) (columns []string, err error) {
+	table = s.QuoteIdentifier(table)
+
 	// TODO fix since it fails for empty tables
 	var rows *sql.Rows
 	if rows, err = sq.Select("*").From(table).Limit(1).RunWith(s.Connection).Query(); err != nil {
@@ -29,7 +32,7 @@ func (s *SqlReader) GetColumns(table string) (columns []string, err error) {
 	}
 
 	for k, column := range columns {
-		columns[k] = fmt.Sprintf("%s.%s", table, column)
+		columns[k] = column
 	}
 	return
 }
@@ -42,17 +45,22 @@ func (s *SqlReader) ReadTable(table string, rowChan chan<- database.Row, opts re
 		return err
 	}
 
-	sql := sq.Select(columns...).From(table)
+	query := sq.Select(columns...).From(table)
 
 	for _, r := range opts.Relationships {
-		sql = sql.Join(fmt.Sprintf("%s ON %s = %s", r.ReferencedTable, r.ForeignKey, r.ReferencedKey))
+		query = query.Join(fmt.Sprintf(
+			"%s ON %s = %s",
+			s.QuoteIdentifier(r.ReferencedTable),
+			s.QuoteIdentifier(r.ForeignKey),
+			s.QuoteIdentifier(r.ReferencedKey),
+		))
 	}
 
 	if opts.Limit > 0 {
-		sql = sql.Limit(opts.Limit)
+		query = query.Limit(opts.Limit)
 	}
 
-	rows, err := sql.RunWith(s.Connection).Query()
+	rows, err := query.RunWith(s.Connection).Query()
 	if err != nil {
 		return err
 	}

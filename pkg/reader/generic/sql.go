@@ -7,6 +7,7 @@ import (
 	sq "github.com/Masterminds/squirrel"
 	"github.com/hellofresh/klepto/pkg/database"
 	"github.com/hellofresh/klepto/pkg/reader"
+	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -38,10 +39,13 @@ func (s *SqlReader) GetColumns(tableName string) (columns []string, err error) {
 
 // ReadTable returns a list of all rows in a table
 func (s *SqlReader) ReadTable(tableName string, rowChan chan<- database.Row, opts reader.ReadTableOpt) error {
-	log.WithField("table", tableName).Info("Fetching rows")
+	logger := log.WithField("table", tableName)
+	logger.Info("Fetching rows")
+
 	columns, err := s.GetColumns(tableName)
 	if err != nil {
-		return err
+		close(rowChan)
+		return errors.Wrap(err, "failed to get columns")
 	}
 
 	query := sq.Select(columns...).From(s.QuoteIdentifier(tableName))
@@ -61,9 +65,18 @@ func (s *SqlReader) ReadTable(tableName string, rowChan chan<- database.Row, opt
 
 	rows, err := query.RunWith(s.Connection).Query()
 	if err != nil {
-		return err
+		close(rowChan)
+
+		querySQL, queryParams, _ := query.ToSql()
+		logger.WithFields(log.Fields{
+			"query":  querySQL,
+			"params": queryParams,
+		}).Debug("failed to query rows")
+
+		return errors.Wrap(err, "failed to query rows")
 	}
 
+	logger.Debug("Publishing rows")
 	return s.PublishRows(rows, rowChan)
 }
 

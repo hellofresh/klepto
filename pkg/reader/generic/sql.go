@@ -31,7 +31,7 @@ func (s *SqlReader) GetColumns(tableName string) (columns []string, err error) {
 	}
 
 	for k, column := range columns {
-		columns[k] = s.formatColumn(tableName, column)
+		columns[k] = s.FormatColumn(tableName, column)
 	}
 	return
 }
@@ -92,7 +92,7 @@ func (s *SqlReader) PublishRows(tableName string, rows *sql.Rows, rowChan chan<-
 		}
 
 		for idx, column := range columns {
-			row[s.formatColumn(tableName, column.Name())] = fields[idx]
+			row[s.FormatColumn(tableName, column.Name())] = fields[idx]
 		}
 
 		rowChan <- row
@@ -111,7 +111,7 @@ func (s *SqlReader) createFieldsSlice(size int) []interface{} {
 	return fields
 }
 
-// formatColumn returns a escaped table+column string
-func (s *SqlReader) formatColumn(tableName string, columnName string) string {
+// FormatColumn returns a escaped table+column string
+func (s *SqlReader) FormatColumn(tableName string, columnName string) string {
 	return fmt.Sprintf("%s.%s", s.QuoteIdentifier(tableName), s.QuoteIdentifier(columnName))
 }

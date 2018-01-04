@@ -100,7 +100,7 @@ func (s *storage) GetColumns(table string) ([]string, error) {
 			return nil, err
 		}
 
-		columns = append(columns, column)
+		columns = append(columns, s.FormatColumn(table, column))
 	}
 
 	s.columns[table] = columns

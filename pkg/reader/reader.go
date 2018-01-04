@@ -29,6 +29,7 @@ type (
 	}
 
 	ReadTableOpt struct {
+		Columns       []string
 		Limit         uint64
 		Relationships []*RelationshipOpt
 	}

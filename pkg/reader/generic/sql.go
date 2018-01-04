@@ -42,25 +42,43 @@ func (s *SqlReader) ReadTable(tableName string, rowChan chan<- database.Row, opt
 	logger := log.WithField("table", tableName)
 	logger.Info("Fetching rows")
 
-	columns, err := s.GetColumns(tableName)
+	if len(opts.Columns) == 0 {
+		columns, err := s.GetColumns(tableName)
+		if err != nil {
+			return errors.Wrap(err, "failed to get columns")
+		}
+		opts.Columns = s.formatColumns(tableName, columns)
+	}
+
+	query, err := s.BuildQuery(tableName, opts)
 	if err != nil {
 		close(rowChan)
-		return errors.Wrap(err, "failed to get columns")
+		return errors.Wrapf(err, "failed to build query for %s", tableName)
 	}
-
-	query := sq.Select(columns...).From(s.QuoteIdentifier(tableName))
 
 	for _, r := range opts.Relationships {
-		query = query.Join(fmt.Sprintf(
-			"%s ON %s = %s",
-			s.QuoteIdentifier(r.ReferencedTable),
-			s.QuoteIdentifier(r.ForeignKey),
-			s.QuoteIdentifier(r.ReferencedKey),
-		))
-	}
+		subselectJoin, err := s.BuildQuery(r.ReferencedTable, reader.ReadTableOpt{
+			Columns: []string{r.ReferencedKey},
+			Limit:   opts.Limit,
+		})
+		if err != nil {
+			return errors.Wrapf(err, "could not build query for relationship %s", r.ReferencedTable)
+		}
 
-	if opts.Limit > 0 {
-		query = query.Limit(opts.Limit)
+		subselectJoinStr, _, err := subselectJoin.ToSql()
+		if err != nil {
+			return errors.Wrapf(err, "could create SQL string for relationship %s", r.ReferencedTable)
+		}
+
+		subselectAlias := fmt.Sprintf("%s_%s", tableName, r.ReferencedTable)
+
+		query = query.Join(fmt.Sprintf(
+			"(%s) AS %s ON %s = %s",
+			subselectJoinStr,
+			subselectAlias,
+			fmt.Sprintf("%s.%s", s.QuoteIdentifier(tableName), s.QuoteIdentifier(r.ForeignKey)),
+			fmt.Sprintf("%s.%s", s.QuoteIdentifier(subselectAlias), s.QuoteIdentifier(r.ReferencedKey)),
+		))
 	}
 
 	rows, err := query.RunWith(s.Connection).Query()
@@ -78,6 +96,19 @@ func (s *SqlReader) ReadTable(tableName string, rowChan chan<- database.Row, opt
 
 	logger.Debug("Publishing rows")
 	return s.PublishRows(rows, rowChan)
+}
+
+// BuildQuery builds the query that will be used to read the table
+func (s *SqlReader) BuildQuery(tableName string, opts reader.ReadTableOpt) (sq.SelectBuilder, error) {
+	var query sq.SelectBuilder
+
+	query = sq.Select(opts.Columns...).From(s.QuoteIdentifier(tableName))
+
+	if opts.Limit > 0 {
+		query = query.Limit(opts.Limit)
+	}
+
+	return query, nil
 }
 
 func (s *SqlReader) Close() error {
@@ -122,4 +153,12 @@ func (s *SqlReader) PublishRows(rows *sql.Rows, rowChan chan<- database.Row) err
 // FormatColumn returns a escaped table+column string
 func (s *SqlReader) FormatColumn(tableName string, columnName string) string {
 	return fmt.Sprintf("%s.%s", s.QuoteIdentifier(tableName), s.QuoteIdentifier(columnName))
+}
+
+func (s *SqlReader) formatColumns(tableName string, columns []string) []string {
+	for i, c := range columns {
+		columns[i] = s.FormatColumn(tableName, c)
+	}
+
+	return columns
 }

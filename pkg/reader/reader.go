@@ -7,7 +7,7 @@ import (
 type (
 	// Driver is a driver interface used to support multiple drivers
 	Driver interface {
-		IsSupported(dsn string) bool
+		IsSupported(dsn string) (bool, error)
 		NewConnection(dsn string) (Reader, error)
 	}
 
@@ -40,14 +40,17 @@ type (
 	}
 )
 
+// Connect uses a driver to create a connection
 func Connect(dsn string) (reader Reader, err error) {
 	drivers.Range(func(key, value interface{}) bool {
 		driver, _ := value.(Driver)
-
-		if !driver.IsSupported(dsn) {
+		supported, err := driver.IsSupported(dsn)
+		if err != nil {
 			return true
 		}
-
+		if !supported {
+			return true
+		}
 		reader, err = driver.NewConnection(dsn)
 		return false
 	})

@@ -2,16 +2,20 @@ package postgres
 
 import (
 	"database/sql"
-	"strings"
 
+	parser "github.com/hellofresh/klepto/pkg/dsn"
 	"github.com/hellofresh/klepto/pkg/dumper"
 	"github.com/hellofresh/klepto/pkg/reader"
 )
 
 type driver struct{}
 
-func (m *driver) IsSupported(dsn string) bool {
-	return strings.HasPrefix(strings.ToLower(dsn), "postgres://")
+func (m *driver) IsSupported(dsn string) (bool, error) {
+	d, err := parser.Parse(dsn)
+	if err != nil {
+		return false, err
+	}
+	return d.Type == "postgres", nil
 }
 
 func (m *driver) NewConnection(dsn string, rdr reader.Reader) (dumper.Dumper, error) {

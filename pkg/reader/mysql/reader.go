@@ -67,7 +67,7 @@ SET FOREIGN_KEY_CHECKS = 0;
 // GetTables gets a list of all tables in the database
 func (s *storage) GetTables() ([]string, error) {
 	if s.tables == nil {
-		log.Info("Fetching table list")
+		log.Info("mysql: Fetching table list")
 
 		rows, err := s.Connection.Query("SHOW FULL TABLES")
 		if err != nil {
@@ -87,7 +87,7 @@ func (s *storage) GetTables() ([]string, error) {
 		}
 
 		s.tables = tables
-		log.WithField("tables", tables).Debug("Fetched table list")
+		log.WithField("tables", tables).Debug("mysql: Fetched table list")
 	}
 
 	return s.tables, nil

@@ -53,7 +53,7 @@ SET FOREIGN_KEY_CHECKS = 0;
 // GetTables gets a list of all tables in the database
 func (s *storage) GetTables() ([]string, error) {
 	if s.tables == nil {
-		log.Info("Fetching table list")
+		log.Info("postgres: Fetching table list")
 		rows, err := s.Connection.Query("SELECT table_name FROM information_schema.tables WHERE table_schema='public'")
 		if err != nil {
 			return nil, err
@@ -71,7 +71,7 @@ func (s *storage) GetTables() ([]string, error) {
 		}
 
 		s.tables = tables
-		log.WithField("tables", tables).Debug("Fetched table list")
+		log.WithField("tables", tables).Debug("postgres: Fetched table list")
 	}
 
 	return s.tables, nil

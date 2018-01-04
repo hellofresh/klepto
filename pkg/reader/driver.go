@@ -3,6 +3,8 @@ package reader
 import (
 	"sort"
 	"sync"
+
+	log "github.com/sirupsen/logrus"
 )
 
 var drivers sync.Map
@@ -12,10 +14,10 @@ var drivers sync.Map
 // it panics.
 func Register(name string, driver Driver) {
 	if driver == nil {
-		panic("reader: Register driver is nil")
+		log.Fatal("reader: Register driver is nil")
 	}
 	if _, dup := drivers.Load(name); dup {
-		panic("reader: Register called twice for driver " + name)
+		log.Fatalf("reader: Register called twice for driver %s", name)
 	}
 	drivers.Store(name, driver)
 }

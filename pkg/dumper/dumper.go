@@ -1,14 +1,8 @@
 package dumper
 
 import (
-	"errors"
-
 	"github.com/hellofresh/klepto/pkg/config"
 	"github.com/hellofresh/klepto/pkg/reader"
-)
-
-var (
-	ErrUnsupportedDsn = errors.New("Unsupported dsn")
 )
 
 type (
@@ -26,6 +20,7 @@ type (
 	}
 )
 
+// NewDumper is a factory method that will create a dumper based on the provided DSN
 func NewDumper(dsn string, rdr reader.Reader) (dumper Dumper, err error) {
 	drivers.Range(func(key, value interface{}) bool {
 		driver, _ := value.(Driver)
@@ -37,10 +32,6 @@ func NewDumper(dsn string, rdr reader.Reader) (dumper Dumper, err error) {
 		dumper, err = driver.NewConnection(dsn, rdr)
 		return false
 	})
-
-	if dumper == nil {
-		err = ErrUnsupportedDsn
-	}
 
 	return
 }

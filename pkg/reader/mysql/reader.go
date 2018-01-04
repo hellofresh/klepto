@@ -1,11 +1,11 @@
 package mysql
 
 import (
+	"bytes"
 	"database/sql"
 	"fmt"
+	"strings"
 	"time"
-
-	"bytes"
 
 	"github.com/hellofresh/klepto/pkg/reader"
 	"github.com/hellofresh/klepto/pkg/reader/generic"
@@ -22,7 +22,12 @@ type storage struct {
 // NewStorage ...
 func NewStorage(conn *sql.DB) reader.Reader {
 	return &storage{
-		SqlReader: generic.SqlReader{Connection: conn},
+		SqlReader: generic.SqlReader{
+			Connection: conn,
+			QuoteIdentifier: func(name string) string {
+				return "`" + strings.Replace(name, "`", "``", -1) + "`"
+			},
+		},
 	}
 }
 
@@ -98,7 +103,7 @@ func (s *storage) GetStructure() (string, error) {
 	buf := bytes.NewBufferString("")
 	for _, tableName := range tables {
 		var stmtTableName, tableStmt string
-		err := s.Connection.QueryRow(fmt.Sprintf("SHOW CREATE TABLE `%s`", tableName)).Scan(&stmtTableName, &tableStmt)
+		err := s.Connection.QueryRow(fmt.Sprintf("SHOW CREATE TABLE `%s`", s.QuoteIdentifier(tableName))).Scan(&stmtTableName, &tableStmt)
 		if err != nil {
 			return "", err
 		}

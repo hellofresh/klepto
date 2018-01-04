@@ -12,14 +12,16 @@ import (
 
 // SqlReader is a base class for sql related readers
 type SqlReader struct {
-	Connection *sql.DB
+	Connection      *sql.DB
+	QuoteIdentifier func(string) string
 }
 
 // GetColumns returns the columns in the specified database table
-func (s *SqlReader) GetColumns(table string) (columns []string, err error) {
+func (s *SqlReader) GetColumns(tableName string) (columns []string, err error) {
 	// TODO fix since it fails for empty tables
+	tableNameQuoted := s.QuoteIdentifier(tableName)
 	var rows *sql.Rows
-	if rows, err = sq.Select("*").From(table).Limit(1).RunWith(s.Connection).Query(); err != nil {
+	if rows, err = sq.Select("*").From(tableNameQuoted).Limit(1).RunWith(s.Connection).Query(); err != nil {
 		return
 	}
 	defer rows.Close()
@@ -29,42 +31,47 @@ func (s *SqlReader) GetColumns(table string) (columns []string, err error) {
 	}
 
 	for k, column := range columns {
-		columns[k] = fmt.Sprintf("%s.%s", table, column)
+		columns[k] = s.FormatColumn(tableName, column)
 	}
 	return
 }
 
 // ReadTable returns a list of all rows in a table
-func (s *SqlReader) ReadTable(table string, rowChan chan<- database.Row, opts reader.ReadTableOpt) error {
-	log.WithField("table", table).Info("Fetching rows")
-	columns, err := s.GetColumns(table)
+func (s *SqlReader) ReadTable(tableName string, rowChan chan<- database.Row, opts reader.ReadTableOpt) error {
+	log.WithField("table", tableName).Info("Fetching rows")
+	columns, err := s.GetColumns(tableName)
 	if err != nil {
 		return err
 	}
 
-	sql := sq.Select(columns...).From(table)
+	query := sq.Select(columns...).From(s.QuoteIdentifier(tableName))
 
 	for _, r := range opts.Relationships {
-		sql = sql.Join(fmt.Sprintf("%s ON %s = %s", r.ReferencedTable, r.ForeignKey, r.ReferencedKey))
+		query = query.Join(fmt.Sprintf(
+			"%s ON %s = %s",
+			s.QuoteIdentifier(r.ReferencedTable),
+			s.QuoteIdentifier(r.ForeignKey),
+			s.QuoteIdentifier(r.ReferencedKey),
+		))
 	}
 
 	if opts.Limit > 0 {
-		sql = sql.Limit(opts.Limit)
+		query = query.Limit(opts.Limit)
 	}
 
-	rows, err := sql.RunWith(s.Connection).Query()
+	rows, err := query.RunWith(s.Connection).Query()
 	if err != nil {
 		return err
 	}
 
-	return s.PublishRows(rows, rowChan)
+	return s.PublishRows(tableName, rows, rowChan)
 }
 
 func (s *SqlReader) Close() error {
 	return s.Connection.Close()
 }
 
-func (s *SqlReader) PublishRows(rows *sql.Rows, rowChan chan<- database.Row) error {
+func (s *SqlReader) PublishRows(tableName string, rows *sql.Rows, rowChan chan<- database.Row) error {
 	// this ensures that there is no more jobs to be done
 	defer close(rowChan)
 	defer rows.Close()
@@ -85,7 +92,7 @@ func (s *SqlReader) PublishRows(rows *sql.Rows, rowChan chan<- database.Row) err
 		}
 
 		for idx, column := range columns {
-			row[column.Name()] = fields[idx]
+			row[s.FormatColumn(tableName, column.Name())] = fields[idx]
 		}
 
 		rowChan <- row
@@ -102,4 +109,9 @@ func (s *SqlReader) createFieldsSlice(size int) []interface{} {
 	}
 
 	return fields
+}
+
+// FormatColumn returns a escaped table+column string
+func (s *SqlReader) FormatColumn(tableName string, columnName string) string {
+	return fmt.Sprintf("%s.%s", s.QuoteIdentifier(tableName), s.QuoteIdentifier(columnName))
 }

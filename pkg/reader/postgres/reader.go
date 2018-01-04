@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"database/sql"
+	"strconv"
 
 	"github.com/hellofresh/klepto/pkg/reader"
 	"github.com/hellofresh/klepto/pkg/reader/generic"
@@ -16,13 +17,18 @@ type storage struct {
 
 	// tables is a cache variable for all tables in the db
 	tables []string
+	// columns is a cache variable for tables and there columns in the db
+	columns map[string][]string
 }
 
 // NewStorage ...
 func NewStorage(conn *sql.DB, dumper PgDump) reader.Reader {
 	return &storage{
-		PgDump:    dumper,
-		SqlReader: generic.SqlReader{Connection: conn},
+		PgDump: dumper,
+		SqlReader: generic.SqlReader{
+			Connection:      conn,
+			QuoteIdentifier: strconv.Quote,
+		},
 	}
 }
 
@@ -68,4 +74,35 @@ func (s *storage) GetTables() ([]string, error) {
 	}
 
 	return s.tables, nil
+}
+
+// GetColumns returns the columns in the specified database table
+func (s *storage) GetColumns(table string) ([]string, error) {
+	columns, ok := s.columns[table]
+	if ok {
+		return columns, nil
+	}
+
+	log.WithField("table", table).Info("Fetching table columns")
+	rows, err := s.Connection.Query(
+		"select column_name from information_schema.columns where table_name=$1",
+		table,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	columns = []string{}
+	for rows.Next() {
+		var column string
+		if err := rows.Scan(&column); err != nil {
+			return nil, err
+		}
+
+		columns = append(columns, s.FormatColumn(table, column))
+	}
+
+	s.columns[table] = columns
+	return columns, nil
 }

@@ -4,6 +4,15 @@ language: go
 go:
   - 1.x
 
+services:
+  - docker
+
+env:
+  - TEST_POSTGRES="postgres://hello:fresh@localhost:8050/klepto?sslmode=disable"
+
+before_install:
+  - docker-compose up -d
+
 install:
   - mkdir -p $GOPATH/bin
   - go get github.com/go-playground/overalls

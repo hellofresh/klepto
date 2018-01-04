@@ -29,6 +29,7 @@ func NewStorage(conn *sql.DB, dumper PgDump) reader.Reader {
 			Connection:      conn,
 			QuoteIdentifier: strconv.Quote,
 		},
+		columns: map[string][]string{},
 	}
 }
 
@@ -100,7 +101,7 @@ func (s *storage) GetColumns(table string) ([]string, error) {
 			return nil, err
 		}
 
-		columns = append(columns, s.FormatColumn(table, column))
+		columns = append(columns, column)
 	}
 
 	s.columns[table] = columns

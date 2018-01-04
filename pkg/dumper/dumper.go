@@ -21,6 +21,8 @@ type (
 	// A Dumper writes a database's stucture to the provided stream.
 	Dumper interface {
 		Dump(chan<- struct{}, config.Tables) error
+		// Close closes the dumper resources and releases them.
+		Close() error
 	}
 )
 

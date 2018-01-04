@@ -86,7 +86,9 @@ func (p *pgDumper) dumpTables(done chan<- struct{}, configTables config.Tables) 
 			wg.Done()
 		}(tbl, rowChan)
 
-		p.reader.ReadTable(tbl, rowChan, opts)
+		if err := p.reader.ReadTable(tbl, rowChan, opts); err != nil {
+			log.WithError(err).WithField("table", tbl).Error("error while reading table")
+		}
 	}
 
 	go func() {
@@ -139,6 +141,7 @@ func (p *pgDumper) insertIntoTable(txn *sql.Tx, tableName string, rowChan <-chan
 	for {
 		row, more := <-rowChan
 		if !more {
+			logger.Debug("rowChan was closed")
 			break
 		}
 

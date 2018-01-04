@@ -31,7 +31,7 @@ func (s *SqlReader) GetColumns(tableName string) (columns []string, err error) {
 	}
 
 	for k, column := range columns {
-		columns[k] = s.FormatColumn(tableName, column)
+		columns[k] = column
 	}
 	return
 }
@@ -64,14 +64,14 @@ func (s *SqlReader) ReadTable(tableName string, rowChan chan<- database.Row, opt
 		return err
 	}
 
-	return s.PublishRows(tableName, rows, rowChan)
+	return s.PublishRows(rows, rowChan)
 }
 
 func (s *SqlReader) Close() error {
 	return s.Connection.Close()
 }
 
-func (s *SqlReader) PublishRows(tableName string, rows *sql.Rows, rowChan chan<- database.Row) error {
+func (s *SqlReader) PublishRows(rows *sql.Rows, rowChan chan<- database.Row) error {
 	// this ensures that there is no more jobs to be done
 	defer close(rowChan)
 	defer rows.Close()
@@ -92,7 +92,7 @@ func (s *SqlReader) PublishRows(tableName string, rows *sql.Rows, rowChan chan<-
 		}
 
 		for idx, column := range columns {
-			row[s.FormatColumn(tableName, column.Name())] = fields[idx]
+			row[column.Name()] = fields[idx]
 		}
 
 		rowChan <- row

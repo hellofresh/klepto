@@ -1,6 +1,8 @@
 package anonymiser
 
 import (
+	"fmt"
+	"strconv"
 	"testing"
 
 	"github.com/hellofresh/klepto/pkg/config"
@@ -17,6 +19,9 @@ func (m *mockReader) GetStructure() (string, error)       { return "", nil }
 func (m *mockReader) GetColumns(string) ([]string, error) { return []string{"column_test"}, nil }
 func (m *mockReader) GetPreamble() (string, error)        { return "", nil }
 func (m *mockReader) Close() error                        { return nil }
+func (m *mockReader) FormatColumn(tbl string, col string) string {
+	return fmt.Sprintf("%s.%s", strconv.Quote(tbl), strconv.Quote(col))
+}
 func (m *mockReader) ReadTable(tableName string, rowChan chan<- database.Row, opts reader.ReadTableOpt) error {
 	row := make(database.Row)
 	row["column_test"] = "to_be_anonimised"

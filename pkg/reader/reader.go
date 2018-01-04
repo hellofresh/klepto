@@ -20,6 +20,8 @@ type (
 		// GetStructure returns the SQL used to create the database tables
 		GetStructure() (string, error)
 		GetPreamble() (string, error)
+		// FormatColumn returns a escaped table.column string
+		FormatColumn(tableName string, columnName string) string
 		// ReadTable returns a channel with all database rows
 		ReadTable(string, chan<- database.Row, ReadTableOpt) error
 		// Close closes the reader resources and releases them.

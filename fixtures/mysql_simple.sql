@@ -1,6 +1,6 @@
 CREATE TABLE users
 (
-  id binary(16) PRIMARY KEY NOT NULL,
+  id varchar(36) PRIMARY KEY NOT NULL,
   username varchar(50) NOT NULL,
   email varchar(255) NOT NULL,
   active tinyint(1) NOT NULL,
@@ -9,20 +9,20 @@ CREATE TABLE users
 
 CREATE TABLE orders
 (
-  id binary(16) PRIMARY KEY NOT NULL,
-  user_id binary(16) NOT NULL,
+  id varchar(36) PRIMARY KEY NOT NULL,
+  user_id varchar(36) NOT NULL,
   CONSTRAINT orders_ibfk_1 FOREIGN KEY (user_id) REFERENCES users (id)
 );
 
-INSERT INTO users (id, username, email, active, gender) VALUES (0x0D60A85E0B904482A14C108AEA2557AA, 'wbo', 'wbo@hellofresh.com', 1, 'm');
-INSERT INTO users (id, username, email, active, gender) VALUES (0x39240E9FAE094E959FD0A712035C8AD7, 'kp', 'kp@hellofresh.com', 1, null);
-INSERT INTO users (id, username, email, active, gender) VALUES (0x66A45C1B19AF4AB587471B0E2D79339D, 'il', 'il@hellofresh.com', 1, 'm');
-INSERT INTO users (id, username, email, active, gender) VALUES (0x9E4DE779D6A044BCA53120CDB97178D2, 'lp', 'lp@hellofresh.com', 0, 'f');
+INSERT INTO `users` VALUES ('0d60a85e-0b90-4482-a14c-108aea2557aa', 'wbo', 'wbo@hellofresh.com', true, 'm');
+INSERT INTO `users` VALUES ('39240e9f-ae09-4e95-9fd0-a712035c8ad7', 'kp', 'kp@hellofresh.com', true, NULL);
+INSERT INTO `users` VALUES ('9e4de779-d6a0-44bc-a531-20cdb97178d2', 'lp', 'lp@hellofresh.com', false, 'f');
+INSERT INTO `users` VALUES ('66a45c1b-19af-4ab5-8747-1b0e2d79339d', 'il', 'il@hellofresh.com', true, 'm');
 
-INSERT INTO orders (id, user_id) VALUES (0xE650AD64F1E44F91ABEAEC1A70992926, 0x39240E9FAE094E959FD0A712035C8AD7);
-INSERT INTO orders (id, user_id) VALUES (0xF1F7C9C7BDB74626A5C944D8942E52DD, 0x39240E9FAE094E959FD0A712035C8AD7);
-INSERT INTO orders (id, user_id) VALUES (0x7EE31A7F5140483B8BA1FA8F116219C0, 0x66A45C1B19AF4AB587471B0E2D79339D);
-INSERT INTO orders (id, user_id) VALUES (0xB9BCD5E175E6412DBE87278003519717, 0x66A45C1B19AF4AB587471B0E2D79339D);
-INSERT INTO orders (id, user_id) VALUES (0xDDA290FF624346D983CBACBAD41E936E, 0x66A45C1B19AF4AB587471B0E2D79339D);
-INSERT INTO orders (id, user_id) VALUES (0x453F4498B4E0485F94FA72F233BB7958, 0x9E4DE779D6A044BCA53120CDB97178D2);
-INSERT INTO orders (id, user_id) VALUES (0x8BDF39D8616C45D4826FBAD30CB4E1A3, 0x9E4DE779D6A044BCA53120CDB97178D2);
+INSERT INTO `orders` VALUES ('b9bcd5e1-75e6-412d-be87-278003519717', '66a45c1b-19af-4ab5-8747-1b0e2d79339d');
+INSERT INTO `orders` VALUES ('7ee31a7f-5140-483b-8ba1-fa8f116219c0', '66a45c1b-19af-4ab5-8747-1b0e2d79339d');
+INSERT INTO `orders` VALUES ('dda290ff-6243-46d9-83cb-acbad41e936e', '66a45c1b-19af-4ab5-8747-1b0e2d79339d');
+INSERT INTO `orders` VALUES ('453f4498-b4e0-485f-94fa-72f233bb7958', '9e4de779-d6a0-44bc-a531-20cdb97178d2');
+INSERT INTO `orders` VALUES ('8bdf39d8-616c-45d4-826f-bad30cb4e1a3', '9e4de779-d6a0-44bc-a531-20cdb97178d2');
+INSERT INTO `orders` VALUES ('f1f7c9c7-bdb7-4626-a5c9-44d8942e52dd', '39240e9f-ae09-4e95-9fd0-a712035c8ad7');
+INSERT INTO `orders` VALUES ('e650ad64-f1e4-4f91-abea-ec1a70992926', '39240e9f-ae09-4e95-9fd0-a712035c8ad7');

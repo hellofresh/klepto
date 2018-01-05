@@ -9,6 +9,7 @@ services:
 
 env:
   - TEST_POSTGRES="postgres://hello:fresh@localhost:8050/klepto?sslmode=disable"
+  - TEST_MYSQL="root:hellofresh@tcp(localhost:8052)/"
 
 before_install:
   - docker-compose up -d

@@ -34,7 +34,8 @@ func (s *storage) GetConnection() *sql.DB {
 func (s *storage) GetTables() ([]string, error) {
 	log.Info("Fetching table list")
 	rows, err := s.connection.Query(
-		"SELECT table_name FROM information_schema.tables WHERE table_catalog=current_database()",
+		`SELECT table_name FROM information_schema.tables
+		 WHERE table_catalog=current_database() AND table_schema NOT IN ('pg_catalog', 'information_schema')`,
 	)
 	if err != nil {
 		return nil, err

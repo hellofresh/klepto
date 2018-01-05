@@ -13,7 +13,7 @@ type (
 	// Table represents a klepto table definition
 	Table struct {
 		Name          string
-		Filter        *Filter
+		Filter        Filter
 		Anonymise     map[string]string
 		Relationships []*Relationship
 	}

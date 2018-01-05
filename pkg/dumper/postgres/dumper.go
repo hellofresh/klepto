@@ -4,6 +4,9 @@ import (
 	"database/sql"
 	"sync"
 
+	"fmt"
+	"strconv"
+
 	"github.com/hellofresh/klepto/pkg/config"
 	"github.com/hellofresh/klepto/pkg/database"
 	"github.com/hellofresh/klepto/pkg/dumper"
@@ -11,8 +14,6 @@ import (
 	"github.com/lib/pq"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
-	"strconv"
-	"fmt"
 )
 
 // pgDumper dumps a database into a postgres db
@@ -70,11 +71,13 @@ func (p *pgDumper) dumpTables(done chan<- struct{}, configTables config.Tables) 
 	var wg sync.WaitGroup
 	wg.Add(len(tables))
 	for _, tbl := range tables {
+		logger := log.WithField("table", tbl)
+		logger.Info("Dumping table data...")
 		var opts reader.ReadTableOpt
 
 		table, err := configTables.FindByName(tbl)
 		if err != nil {
-			log.WithError(err).WithField("table", tbl).Debug("no configuration found for table")
+			logger.WithError(err).Debug("no configuration found for table")
 		}
 
 		if table != nil {
@@ -89,14 +92,15 @@ func (p *pgDumper) dumpTables(done chan<- struct{}, configTables config.Tables) 
 
 		go func(tableName string, rowChan <-chan database.Row) {
 			if err := p.dumpTable(tableName, rowChan); err != nil {
-				log.WithError(err).WithField("table", tableName).Error("Failed to dump table")
+				logger.WithError(err).Error("Failed to dump table")
 			}
 
 			wg.Done()
+			logger.Info("Done dumping table data")
 		}(tbl, rowChan)
 
 		if err := p.reader.ReadTable(tbl, rowChan, opts); err != nil {
-			log.WithError(err).WithField("table", tbl).Error("error while reading table")
+			logger.WithError(err).Error("error while reading table")
 		}
 	}
 
@@ -213,7 +217,6 @@ func (p *pgDumper) enableTriggers(tables []string) {
 		}
 	}
 }
-
 
 func (p *pgDumper) relationshipConfigToOptions(relationshipsConfig []*config.Relationship) []*reader.RelationshipOpt {
 	var opts []*reader.RelationshipOpt

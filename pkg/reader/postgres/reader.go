@@ -59,7 +59,7 @@ func (s *storage) GetTables() ([]string, error) {
 
 // GetColumns returns the columns in the specified database table
 func (s *storage) GetColumns(table string) ([]string, error) {
-	log.WithField("table", table).Info("Fetching table columns")
+	log.WithField("table", table).Debug("Fetching table columns")
 	rows, err := s.connection.Query(
 		"SELECT column_name FROM information_schema.columns WHERE table_catalog=current_database() AND table_name=$1",
 		table,

@@ -40,7 +40,7 @@ func RunInit() {
 		Tables: []*config.Table{
 			{
 				Name: "orders",
-				Filter: &config.Filter{
+				Filter: config.Filter{
 					Limit: 100,
 					Sorts: map[string]string{"orderNr": "asc"},
 				},

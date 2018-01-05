@@ -84,7 +84,7 @@ func (s *sqlReader) GetColumns(tableName string) ([]string, error) {
 // ReadTable returns a list of all rows in a table
 func (s *sqlReader) ReadTable(tableName string, rowChan chan<- database.Row, opts reader.ReadTableOpt) error {
 	logger := log.WithField("table", tableName)
-	logger.Info("Fetching rows")
+	logger.Debug("Reading table data")
 
 	if len(opts.Columns) == 0 {
 		columns, err := s.GetColumns(tableName)

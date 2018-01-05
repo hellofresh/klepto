@@ -71,12 +71,13 @@ func (p *pgDumper) dumpTables(done chan<- struct{}, configTables config.Tables) 
 	var wg sync.WaitGroup
 	wg.Add(len(tables))
 	for _, tbl := range tables {
-		log.WithField("table", tbl).Info("Dumping table data...")
+		logger := log.WithField("table", tbl)
+		logger.Info("Dumping table data...")
 		var opts reader.ReadTableOpt
 
 		table, err := configTables.FindByName(tbl)
 		if err != nil {
-			log.WithError(err).WithField("table", tbl).Debug("no configuration found for table")
+			logger.WithError(err).Debug("no configuration found for table")
 		}
 
 		if table != nil {
@@ -91,15 +92,15 @@ func (p *pgDumper) dumpTables(done chan<- struct{}, configTables config.Tables) 
 
 		go func(tableName string, rowChan <-chan database.Row) {
 			if err := p.dumpTable(tableName, rowChan); err != nil {
-				log.WithError(err).WithField("table", tableName).Error("Failed to dump table")
+				logger.WithError(err).Error("Failed to dump table")
 			}
 
 			wg.Done()
-			log.WithField("table", tbl).Info("Done dumping table data")
+			logger.Info("Done dumping table data")
 		}(tbl, rowChan)
 
 		if err := p.reader.ReadTable(tbl, rowChan, opts); err != nil {
-			log.WithError(err).WithField("table", tbl).Error("error while reading table")
+			logger.WithError(err).Error("error while reading table")
 		}
 	}
 

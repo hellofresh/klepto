@@ -4,6 +4,10 @@ language: go
 go:
   - 1.x
 
+cache:
+  directories:
+    - $GOPATH/pkg/dep
+
 services:
   - mysql
   - postgresql

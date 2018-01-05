@@ -13,13 +13,12 @@ type (
 
 	// Reader provides an interface to access database stores.
 	Reader interface {
+		// GetStructure returns the SQL used to create the database tables
+		GetStructure() (string, error)
 		// GetTables returns a list of all databases tables
 		GetTables() ([]string, error)
 		// GetColumns return a list of all columns for a given table
 		GetColumns(string) ([]string, error)
-		// GetStructure returns the SQL used to create the database tables
-		GetStructure() (string, error)
-		GetPreamble() (string, error)
 		// FormatColumn returns a escaped table.column string
 		FormatColumn(tableName string, columnName string) string
 		// ReadTable returns a channel with all database rows

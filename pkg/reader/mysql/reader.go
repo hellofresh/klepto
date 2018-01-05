@@ -19,7 +19,11 @@ type storage struct {
 
 // NewStorage ...
 func NewStorage(conn *sql.DB) reader.Reader {
-	return generic.NewSqlReader(conn, &storage{connection: conn})
+	return generic.NewSqlReader(&storage{connection: conn})
+}
+
+func (s *storage) GetConnection() *sql.DB {
+	return s.connection
 }
 
 // GetTables gets a list of all tables in the database
@@ -102,6 +106,14 @@ func (s *storage) GetStructure() (string, error) {
 	return buf.String(), nil
 }
 
+func (s *storage) QuoteIdentifier(name string) string {
+	return "`" + strings.Replace(name, "`", "``", -1) + "`"
+}
+
+func (s *storage) Close() error {
+	return s.connection.Close()
+}
+
 // getPreamble puts a big old comment at the top of the database dump.
 // Also acts as first query to check for errors.
 func (s *storage) getPreamble() (string, error) {
@@ -133,8 +145,4 @@ SET FOREIGN_KEY_CHECKS = 0;
 	}
 
 	return fmt.Sprintf(preamble, hostname, db, time.Now().Format(time.RFC1123Z)), nil
-}
-
-func (s *storage) QuoteIdentifier(name string) string {
-	return "`" + strings.Replace(name, "`", "``", -1) + "`"
 }

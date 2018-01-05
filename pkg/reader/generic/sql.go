@@ -16,8 +16,6 @@ type (
 	sqlReader struct {
 		SqlEngine
 
-		Connection *sql.DB
-
 		// tables is a cache variable for all tables in the db
 		tables []string
 		// columns is a cache variable for tables and there columns in the db
@@ -25,6 +23,9 @@ type (
 	}
 
 	SqlEngine interface {
+		// GetConnection return the sql.DB connection
+		GetConnection() *sql.DB
+
 		// GetStructure returns the SQL used to create the database tables
 		GetStructure() (string, error)
 
@@ -36,14 +37,16 @@ type (
 
 		// QuoteIdentifier returns a quoted instance of a identifier (table, column etc.)
 		QuoteIdentifier(string) string
+
+		// Close closes the connection and other resources and releases them.
+		Close() error
 	}
 )
 
-func NewSqlReader(connection *sql.DB, engine SqlEngine) reader.Reader {
+func NewSqlReader(engine SqlEngine) reader.Reader {
 	return &sqlReader{
-		SqlEngine:  engine,
-		Connection: connection,
-		columns:    map[string][]string{},
+		SqlEngine: engine,
+		columns:   map[string][]string{},
 	}
 }
 
@@ -104,7 +107,7 @@ func (s *sqlReader) ReadTable(tableName string, rowChan chan<- database.Row, opt
 		}
 	}
 
-	rows, err := query.RunWith(s.Connection).Query()
+	rows, err := query.RunWith(s.GetConnection()).Query()
 	if err != nil {
 		close(rowChan)
 
@@ -163,10 +166,6 @@ func (s *sqlReader) buildJoinQuery(tableName string, query sq.SelectBuilder, r *
 // FormatColumn returns a escaped table+column string
 func (s *sqlReader) FormatColumn(tableName string, columnName string) string {
 	return fmt.Sprintf("%s.%s", s.QuoteIdentifier(tableName), s.QuoteIdentifier(columnName))
-}
-
-func (s *sqlReader) Close() error {
-	return s.Connection.Close()
 }
 
 func (s *sqlReader) publishRows(rows *sql.Rows, rowChan chan<- database.Row) error {

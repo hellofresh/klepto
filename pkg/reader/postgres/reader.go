@@ -19,7 +19,6 @@ type storage struct {
 // NewStorage ...
 func NewStorage(conn *sql.DB, dumper PgDump) reader.Reader {
 	return generic.NewSqlReader(
-		conn,
 		&storage{
 			PgDump:     dumper,
 			connection: conn,
@@ -27,10 +26,16 @@ func NewStorage(conn *sql.DB, dumper PgDump) reader.Reader {
 	)
 }
 
+func (s *storage) GetConnection() *sql.DB {
+	return s.connection
+}
+
 // GetTables gets a list of all tables in the database
 func (s *storage) GetTables() ([]string, error) {
 	log.Info("Fetching table list")
-	rows, err := s.connection.Query("SELECT table_name FROM information_schema.tables WHERE table_schema='public'")
+	rows, err := s.connection.Query(
+		"SELECT table_name FROM information_schema.tables WHERE table_catalog=current_database()",
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -78,4 +83,8 @@ func (s *storage) GetColumns(table string) ([]string, error) {
 
 func (s *storage) QuoteIdentifier(name string) string {
 	return strconv.Quote(name)
+}
+
+func (s *storage) Close() error {
+	return s.connection.Close()
 }

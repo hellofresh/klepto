@@ -206,9 +206,10 @@ func (s *sqlReader) publishRows(rows *sql.Rows, rowChan chan<- database.Row) err
 }
 
 func (s *sqlReader) formatColumns(tableName string, columns []string) []string {
+	formatted := make([]string, len(columns))
 	for i, c := range columns {
-		columns[i] = s.FormatColumn(tableName, c)
+		formatted[i] = s.FormatColumn(tableName, c)
 	}
 
-	return columns
+	return formatted
 }

@@ -5,11 +5,9 @@ import (
 	"encoding/csv"
 	"fmt"
 	"io"
-	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
-	"time"
 
 	"github.com/go-sql-driver/mysql"
 	"github.com/hellofresh/klepto/pkg/config"
@@ -153,7 +151,6 @@ func (p *myDumper) insertIntoTable(txn *sql.Tx, tableName string, rowChan <-chan
 
 		w := csv.NewWriter(writer)
 
-	L:
 		for {
 			row, more := <-rowChan
 			if !more {
@@ -163,15 +160,11 @@ func (p *myDumper) insertIntoTable(txn *sql.Tx, tableName string, rowChan <-chan
 			// Put the data in the correct order and format
 			rowValues := make([]string, len(columns))
 			for i, col := range columns {
-				val, err := p.toStringValue(row[col])
-				if err != nil {
-					log.WithFields(log.Fields{
-						"value":  val,
-						"column": col,
-					}).WithError(err).Error("failed to convert value to string")
-					break L
+				if row[col] == nil {
+					rowValues[i] = "NULL"
+				} else {
+					rowValues[i] = string(row[col].([]uint8))
 				}
-				rowValues[i] = val
 			}
 
 			if err := w.Write(rowValues); err != nil {
@@ -215,50 +208,4 @@ func (p *myDumper) relationshipConfigToOptions(relationshipsConfig []*config.Rel
 
 func (p *myDumper) quoteIdentifier(name string) string {
 	return "`" + strings.Replace(name, "`", "``", -1) + "`"
-}
-
-// ResolveType accepts a value and attempts to determine its type
-func (p *myDumper) toStringValue(src interface{}) (string, error) {
-	switch src.(type) {
-	case uint8:
-		if value, ok := src.(uint8); ok {
-			return fmt.Sprintf("%v", value), nil
-		}
-	case int64:
-		if value, ok := src.(int64); ok {
-			return strconv.FormatInt(value, 10), nil
-		}
-	case float64:
-		if value, ok := src.(float64); ok {
-			return fmt.Sprintf("%v", value), nil
-		}
-	case bool:
-		if value, ok := src.(bool); ok {
-			return strconv.FormatBool(value), nil
-		}
-	case string:
-		if value, ok := src.(string); ok {
-			return value, nil
-		}
-	case []byte:
-		// TODO handle blobs?
-		if value, ok := src.([]byte); ok {
-			return string(value), nil
-		}
-	case time.Time:
-		if value, ok := src.(time.Time); ok {
-			return value.String(), nil
-		}
-	case nil:
-		return "NULL", nil
-	case *interface{}:
-		if src == nil {
-			return "NULL", nil
-		}
-		return p.toStringValue(*(src.(*interface{})))
-	default:
-		return "", errors.New("could not parse type")
-	}
-
-	return "", nil
 }

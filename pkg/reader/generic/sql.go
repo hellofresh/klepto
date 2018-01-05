@@ -89,6 +89,7 @@ func (s *sqlReader) ReadTable(tableName string, rowChan chan<- database.Row, opt
 	if len(opts.Columns) == 0 {
 		columns, err := s.GetColumns(tableName)
 		if err != nil {
+			close(rowChan)
 			return errors.Wrap(err, "failed to get columns")
 		}
 		opts.Columns = s.formatColumns(tableName, columns)
@@ -103,6 +104,7 @@ func (s *sqlReader) ReadTable(tableName string, rowChan chan<- database.Row, opt
 	for _, r := range opts.Relationships {
 		query, err = s.buildJoinQuery(tableName, query, r)
 		if err != nil {
+			close(rowChan)
 			return errors.Wrapf(err, "failed to build a join query for %s with %s", tableName, r.ReferencedTable)
 		}
 	}

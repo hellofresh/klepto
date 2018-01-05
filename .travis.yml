@@ -5,14 +5,12 @@ go:
   - 1.x
 
 services:
-  - docker
+  - mysql
+  - postgresql
 
 env:
-  - TEST_POSTGRES="postgres://hello:fresh@localhost:8050?sslmode=disable"
-    TEST_MYSQL="root:hellofresh@tcp(localhost:8052)/"
-
-before_install:
-  - docker-compose -f .travis-compose.yml up -d
+  - TEST_POSTGRES="postgres://postgres@localhost:5432?sslmode=disable"
+    TEST_MYSQL="root@tcp(localhost:3306)/"
 
 install:
   - mkdir -p $GOPATH/bin

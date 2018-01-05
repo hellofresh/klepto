@@ -42,13 +42,16 @@ func (p *pgDumper) dumpStructure() error {
 	log.Debug("Dumping structure...")
 	structureSQL, err := p.reader.GetStructure()
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed to read structure")
 	}
 
 	_, err = p.conn.Exec(structureSQL)
-	log.Debug("Structure dumped")
+	if err != nil {
+		return errors.Wrap(err, "failed to dump structure")
+	}
 
-	return err
+	log.Debug("Structure dumped")
+	return nil
 }
 
 func (p *pgDumper) dumpTables(done chan<- struct{}, configTables config.Tables) error {

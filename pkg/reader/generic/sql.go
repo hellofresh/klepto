@@ -3,6 +3,7 @@ package generic
 import (
 	"database/sql"
 	"fmt"
+	"sync"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/hellofresh/klepto/pkg/database"
@@ -19,7 +20,7 @@ type (
 		// tables is a cache variable for all tables in the db
 		tables []string
 		// columns is a cache variable for tables and there columns in the db
-		columns map[string][]string
+		columns sync.Map
 	}
 
 	SqlEngine interface {
@@ -46,7 +47,6 @@ type (
 func NewSqlReader(engine SqlEngine) reader.Reader {
 	return &sqlReader{
 		SqlEngine: engine,
-		columns:   map[string][]string{},
 	}
 }
 
@@ -66,7 +66,7 @@ func (s *sqlReader) GetTables() ([]string, error) {
 
 // GetColumns returns the columns in the specified database table
 func (s *sqlReader) GetColumns(tableName string) ([]string, error) {
-	columns, ok := s.columns[tableName]
+	columns, ok := s.columns.Load(tableName)
 	if !ok {
 		var err error
 
@@ -75,10 +75,10 @@ func (s *sqlReader) GetColumns(tableName string) ([]string, error) {
 			return nil, err
 		}
 
-		s.columns[tableName] = columns
+		s.columns.Store(tableName, columns)
 	}
 
-	return columns, nil
+	return columns.([]string), nil
 }
 
 // ReadTable returns a list of all rows in a table

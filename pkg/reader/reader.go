@@ -28,11 +28,17 @@ type (
 		Close() error
 	}
 
+	// ReadTableOpt represents the read table options
 	ReadTableOpt struct {
-		Limit         uint64
+		// Columns contains the (quoted) column of the table
+		Columns []string
+		// Defines a limit of results to be fetched
+		Limit uint64
+		// Relationships defines an slice of relationship definitions
 		Relationships []*RelationshipOpt
 	}
 
+	// RelationshipOpt represents the relationships options
 	RelationshipOpt struct {
 		ReferencedTable string
 		ReferencedKey   string
@@ -40,6 +46,7 @@ type (
 	}
 )
 
+// Connect acts as fectory method that returns a reader from a DSN
 func Connect(dsn string) (reader Reader, err error) {
 	drivers.Range(func(key, value interface{}) bool {
 		driver, _ := value.(Driver)

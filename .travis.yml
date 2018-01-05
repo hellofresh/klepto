@@ -12,6 +12,9 @@ services:
   - mysql
   - postgresql
 
+addons:
+  postgresql: "9.6"
+
 env:
   - TEST_POSTGRES="postgres://postgres@localhost:5432?sslmode=disable"
     TEST_MYSQL="root@tcp(localhost:3306)/"

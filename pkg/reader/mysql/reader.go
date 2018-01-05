@@ -16,7 +16,10 @@ import (
 type storage struct {
 	generic.SqlReader
 
+	// tables is a cache variable for all tables in the db
 	tables []string
+	// columns is a cache variable for tables and there columns in the db
+	columns map[string][]string
 }
 
 // NewStorage ...
@@ -91,6 +94,36 @@ func (s *storage) GetTables() ([]string, error) {
 	}
 
 	return s.tables, nil
+}
+
+// GetColumns returns the columns in the specified database table
+func (s *storage) GetColumns(tableName string) ([]string, error) {
+	columns, ok := s.columns[tableName]
+	if ok {
+		return columns, nil
+	}
+
+	rows, err := s.Connection.Query(
+		"SELECT `column_name` FROM `information_schema`.`columns` WHERE table_schema=DATABASE() AND table_name=?",
+		tableName,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	columns = []string{}
+	for rows.Next() {
+		var column string
+		if err := rows.Scan(&column); err != nil {
+			return nil, err
+		}
+
+		columns = append(columns, column)
+	}
+
+	s.columns[tableName] = columns
+	return columns, nil
 }
 
 // GetStructure returns the SQL used to create the database tables structure

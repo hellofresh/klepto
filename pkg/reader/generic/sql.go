@@ -17,26 +17,6 @@ type SqlReader struct {
 	QuoteIdentifier func(string) string
 }
 
-// GetColumns returns the columns in the specified database table
-func (s *SqlReader) GetColumns(tableName string) (columns []string, err error) {
-	// TODO fix since it fails for empty tables
-	tableNameQuoted := s.QuoteIdentifier(tableName)
-	var rows *sql.Rows
-	if rows, err = sq.Select("*").From(tableNameQuoted).Limit(1).RunWith(s.Connection).Query(); err != nil {
-		return
-	}
-	defer rows.Close()
-
-	if columns, err = rows.Columns(); err != nil {
-		return
-	}
-
-	for k, column := range columns {
-		columns[k] = column
-	}
-	return
-}
-
 // ReadTable returns a list of all rows in a table
 func (s *SqlReader) ReadTable(tableName string, rowChan chan<- database.Row, opts reader.ReadTableOpt) error {
 	logger := log.WithField("table", tableName)

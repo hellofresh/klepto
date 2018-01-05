@@ -2,7 +2,6 @@ package dsn
 
 import (
 	"errors"
-	"log"
 	"net"
 	"net/url"
 	"reflect"
@@ -44,8 +43,6 @@ func Parse(s string) (*DSN, error) {
 		return nil, ErrInvalidDsn
 	}
 	names := regex.SubexpNames()
-	log.Printf("matches: %v", matches)
-
 	vof := reflect.ValueOf(dsn).Elem()
 
 	if len(matches) > 0 {

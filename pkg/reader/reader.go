@@ -49,7 +49,6 @@ type (
 func Connect(dsn string) (reader Reader, err error) {
 	drivers.Range(func(key, value interface{}) bool {
 		driver, _ := value.(Driver)
-
 		if !driver.IsSupported(dsn) {
 			return true
 		}

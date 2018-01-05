@@ -2,10 +2,9 @@ package postgres
 
 import (
 	"database/sql"
-	"sync"
-
 	"fmt"
 	"strconv"
+	"sync"
 
 	"github.com/hellofresh/klepto/pkg/config"
 	"github.com/hellofresh/klepto/pkg/database"

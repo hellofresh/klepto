@@ -11,6 +11,8 @@ import (
 	"github.com/lib/pq"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
+	"strconv"
+	"fmt"
 )
 
 // pgDumper dumps a database into a postgres db
@@ -61,6 +63,10 @@ func (p *pgDumper) dumpTables(done chan<- struct{}, configTables config.Tables) 
 		return err
 	}
 
+	if err := p.disableTriggers(tables); err != nil {
+		return err
+	}
+
 	var wg sync.WaitGroup
 	wg.Add(len(tables))
 	for _, tbl := range tables {
@@ -97,6 +103,9 @@ func (p *pgDumper) dumpTables(done chan<- struct{}, configTables config.Tables) 
 	go func() {
 		// Wait for all table to be dumped
 		wg.Wait()
+
+		// Enable all database triggers
+		p.enableTriggers(tables)
 
 		done <- struct{}{}
 	}()
@@ -180,6 +189,31 @@ func (p *pgDumper) insertIntoTable(txn *sql.Tx, tableName string, rowChan <-chan
 
 	return inserted, nil
 }
+
+// disableTriggers Disable triggers on all tables
+func (p *pgDumper) disableTriggers(tables []string) error {
+	// We can't use `SET session_replication_role = replica` because multiple connections and stuff
+	for _, tbl := range tables {
+		query := fmt.Sprintf("ALTER TABLE %s DISABLE TRIGGER ALL", strconv.Quote(tbl))
+		if _, err := p.conn.Exec(query); err != nil {
+			return errors.Wrapf(err, "Failed to disable triggers for %s", tbl)
+		}
+	}
+
+	return nil
+}
+
+// enableTriggers Enable triggers on all tables
+func (p *pgDumper) enableTriggers(tables []string) {
+	// We can't use `SET session_replication_role = DEFAULT` because multiple connections and stuff
+	for _, tbl := range tables {
+		query := fmt.Sprintf("ALTER TABLE %s ENABLE TRIGGER ALL", strconv.Quote(tbl))
+		if _, err := p.conn.Exec(query); err != nil {
+			log.WithField("table", tbl).Error("Failed to enable triggers")
+		}
+	}
+}
+
 
 func (p *pgDumper) relationshipConfigToOptions(relationshipsConfig []*config.Relationship) []*reader.RelationshipOpt {
 	var opts []*reader.RelationshipOpt

@@ -51,9 +51,12 @@ func (p *myDumper) dumpStructure() error {
 	}
 
 	_, err = p.conn.Exec(structureSQL)
-	log.WithField("sql", structureSQL).Debug("Structure dumped")
+	if err != nil {
+		return errors.Wrap(err, "failed to dump structure")
+	}
 
-	return errors.Wrap(err, "failed to exec structure sql")
+	log.Debug("Structure dumped")
+	return nil
 }
 
 func (p *myDumper) dumpTables(done chan<- struct{}, configTables config.Tables) error {

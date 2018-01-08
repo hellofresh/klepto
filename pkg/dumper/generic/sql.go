@@ -65,9 +65,14 @@ func (p *sqlDumper) readAndDumpTables(done chan<- struct{}, configTables config.
 		return err
 	}
 
+	// TODO make the amount on concurrent dumps configurable
+	semaphoreChan := make(chan struct{}, 10)
+
 	var wg sync.WaitGroup
 	wg.Add(len(tables))
 	for _, tbl := range tables {
+		semaphoreChan <- struct{}{}
+
 		var opts reader.ReadTableOpt
 
 		table, err := configTables.FindByName(tbl)
@@ -91,6 +96,7 @@ func (p *sqlDumper) readAndDumpTables(done chan<- struct{}, configTables config.
 			}
 
 			wg.Done()
+			<-semaphoreChan
 		}(tbl, rowChan)
 
 		go func(tableName string, opts reader.ReadTableOpt, rowChan chan<- database.Row) {

@@ -28,7 +28,7 @@ func (s *storage) GetConnection() *sql.DB {
 
 // GetTables gets a list of all tables in the database
 func (s *storage) GetTables() ([]string, error) {
-	log.Info("Fetching table list")
+	log.Debug("Fetching table list")
 
 	rows, err := s.connection.Query("SHOW FULL TABLES")
 	if err != nil {

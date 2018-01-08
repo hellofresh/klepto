@@ -26,6 +26,11 @@ type (
 		// Close closes the dumper resources and releases them.
 		Close() error
 	}
+
+	SqlEngineAdvanced interface {
+		PreDumpTables([]string) error
+		PostDumpTables([]string) error
+	}
 )
 
 func NewSqlDumper(rdr reader.Reader, engine SqlEngine) dumper.Dumper {
@@ -63,6 +68,13 @@ func (p *sqlDumper) readAndDumpTables(done chan<- struct{}, configTables config.
 	tables, err := p.reader.GetTables()
 	if err != nil {
 		return err
+	}
+
+	// Trigger pre dump tables
+	if adv, ok := p.SqlEngine.(SqlEngineAdvanced); ok {
+		if err := adv.PreDumpTables(tables); err != nil {
+			return err
+		}
 	}
 
 	// TODO make the amount on concurrent dumps configurable
@@ -109,6 +121,13 @@ func (p *sqlDumper) readAndDumpTables(done chan<- struct{}, configTables config.
 	go func() {
 		// Wait for all table to be dumped
 		wg.Wait()
+
+		// Trigger post dump tables
+		if adv, ok := p.SqlEngine.(SqlEngineAdvanced); ok {
+			if err := adv.PostDumpTables(tables); err != nil {
+				log.WithError(err).Error("Post dump tables failed")
+			}
+		}
 
 		done <- struct{}{}
 	}()

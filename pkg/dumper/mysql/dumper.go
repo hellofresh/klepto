@@ -94,9 +94,11 @@ func (p *myDumper) dumpTables(done chan<- struct{}, configTables config.Tables) 
 			wg.Done()
 		}(tbl, rowChan)
 
-		if err := p.reader.ReadTable(tbl, rowChan, opts); err != nil {
-			return errors.Wrap(err, "")
-		}
+		go func(tableName string, opts reader.ReadTableOpt, rowChan chan<- database.Row) {
+			if err := p.reader.ReadTable(tableName, rowChan, opts); err != nil {
+				log.WithError(err).WithField("table", tableName).Error("Failed to read table")
+			}
+		}(tbl, opts, rowChan)
 	}
 
 	go func() {

@@ -98,9 +98,11 @@ func (p *pgDumper) dumpTables(done chan<- struct{}, configTables config.Tables) 
 			logger.Info("Done dumping table data")
 		}(tbl, rowChan)
 
-		if err := p.reader.ReadTable(tbl, rowChan, opts); err != nil {
-			logger.WithError(err).Error("error while reading table")
-		}
+		go func(tableName string, opts reader.ReadTableOpt, rowChan chan<- database.Row) {
+			if err := p.reader.ReadTable(tableName, rowChan, opts); err != nil {
+				log.WithError(err).WithField("table", tableName).Error("Failed to read table")
+			}
+		}(tbl, opts, rowChan)
 	}
 
 	go func() {

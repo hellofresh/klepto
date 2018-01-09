@@ -55,6 +55,7 @@ func RunSteal(opts *StealOptions) (err error) {
 	log.Info("Stealing...")
 
 	done := make(chan struct{})
+	defer close(done)
 	failOnError(target.Dump(done, globalConfig.Tables), "Error while dumping")
 
 	<-done

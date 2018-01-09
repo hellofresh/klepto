@@ -121,6 +121,7 @@ func (p *sqlDumper) readAndDumpTables(done chan<- struct{}, configTables config.
 	go func() {
 		// Wait for all table to be dumped
 		wg.Wait()
+		close(semaphoreChan)
 
 		// Trigger post dump tables
 		if adv, ok := p.SqlEngine.(SqlEngineAdvanced); ok {

@@ -82,6 +82,22 @@ func (p *sqlDumper) readAndDumpTables(done chan<- struct{}, configTables config.
 
 	var wg sync.WaitGroup
 	wg.Add(len(tables))
+
+	go func() {
+		// Wait for all table to be dumped
+		wg.Wait()
+		close(semaphoreChan)
+
+		// Trigger post dump tables
+		if adv, ok := p.SqlEngine.(SqlEngineAdvanced); ok {
+			if err := adv.PostDumpTables(tables); err != nil {
+				log.WithError(err).Error("Post dump tables failed")
+			}
+		}
+
+		done <- struct{}{}
+	}()
+
 	for _, tbl := range tables {
 		semaphoreChan <- struct{}{}
 
@@ -117,21 +133,6 @@ func (p *sqlDumper) readAndDumpTables(done chan<- struct{}, configTables config.
 			}
 		}(tbl, opts, rowChan)
 	}
-
-	go func() {
-		// Wait for all table to be dumped
-		wg.Wait()
-		close(semaphoreChan)
-
-		// Trigger post dump tables
-		if adv, ok := p.SqlEngine.(SqlEngineAdvanced); ok {
-			if err := adv.PostDumpTables(tables); err != nil {
-				log.WithError(err).Error("Post dump tables failed")
-			}
-		}
-
-		done <- struct{}{}
-	}()
 
 	return nil
 }

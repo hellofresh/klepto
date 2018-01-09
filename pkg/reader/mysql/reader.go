@@ -107,7 +107,7 @@ func (s *storage) GetStructure() (string, error) {
 }
 
 func (s *storage) QuoteIdentifier(name string) string {
-	return "`" + strings.Replace(name, "`", "``", -1) + "`"
+	return fmt.Sprintf("`%s`", strings.Replace(name, "`", "``", -1))
 }
 
 func (s *storage) Close() error {

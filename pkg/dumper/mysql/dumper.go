@@ -89,6 +89,7 @@ func (p *myDumper) insertIntoTable(txn *sql.Tx, tableName string, rowChan <-chan
 		defer writer.Close()
 
 		w := csv.NewWriter(writer)
+		defer w.Flush()
 
 		for {
 			row, more := <-rowChan
@@ -112,8 +113,6 @@ func (p *myDumper) insertIntoTable(txn *sql.Tx, tableName string, rowChan <-chan
 
 			atomic.AddInt64(&inserted, 1)
 		}
-
-		w.Flush()
 	}(rowWriter)
 
 	// Register the reader for reading the csv
@@ -132,5 +131,5 @@ func (p *myDumper) insertIntoTable(txn *sql.Tx, tableName string, rowChan <-chan
 }
 
 func (p *myDumper) quoteIdentifier(name string) string {
-	return "`" + strings.Replace(name, "`", "``", -1) + "`"
+	return fmt.Sprintf("`%s`", strings.Replace(name, "`", "``", -1))
 }

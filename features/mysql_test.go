@@ -4,22 +4,20 @@ import (
 	"database/sql"
 	"fmt"
 	"io/ioutil"
-	"net/url"
 	"os"
 	"path"
 	"testing"
 
-	"strconv"
-
+	"github.com/go-sql-driver/mysql"
 	"github.com/hellofresh/klepto/pkg/config"
 	"github.com/hellofresh/klepto/pkg/dumper"
-	_ "github.com/hellofresh/klepto/pkg/dumper/postgres"
+	_ "github.com/hellofresh/klepto/pkg/dumper/mysql"
 	"github.com/hellofresh/klepto/pkg/reader"
-	_ "github.com/hellofresh/klepto/pkg/reader/postgres"
+	_ "github.com/hellofresh/klepto/pkg/reader/mysql"
 	"github.com/stretchr/testify/suite"
 )
 
-type PostgresTestSuite struct {
+type MysqlTestSuite struct {
 	suite.Suite
 
 	rootDSN        string
@@ -28,21 +26,15 @@ type PostgresTestSuite struct {
 	databases []string
 }
 
-type tableInfo struct {
-	name        string
-	count       uint64
-	columnCount int
+func TestMysqlTestSuite(t *testing.T) {
+	suite.Run(t, new(MysqlTestSuite))
 }
 
-func TestPostgresTestSuite(t *testing.T) {
-	suite.Run(t, new(PostgresTestSuite))
-}
+func (s *MysqlTestSuite) TestExample() {
+	readDSN := s.createDatabase("simple")
+	dumpDSN := s.createDatabase("simple_dump")
 
-func (s *PostgresTestSuite) TestExample() {
-	readDSN := s.createDatabase("pg_simple")
-	dumpDSN := s.createDatabase("pg_simple_dump")
-
-	s.loadFixture(readDSN, "pg_simple.sql")
+	s.loadFixture(readDSN, "mysql_simple.sql")
 
 	rdr, err := reader.Connect(readDSN)
 	s.Require().NoError(err, "Unable to create reader")
@@ -61,22 +53,23 @@ func (s *PostgresTestSuite) TestExample() {
 	s.assertDatabaseAreTheSame(readDSN, dumpDSN)
 }
 
-func (s *PostgresTestSuite) SetupSuite() {
-	rootDSN, ok := os.LookupEnv("TEST_POSTGRES")
+func (s *MysqlTestSuite) SetupSuite() {
+	rootDSN, ok := os.LookupEnv("TEST_MYSQL")
 	if !ok {
-		s.T().Skip("TEST_POSTGRES env is not defined")
+		s.T().Skip("TEST_MYSQL env is not defined")
 	}
 
-	_, err := url.Parse(rootDSN)
-	s.Require().NoError(err, "TEST_POSTGRES failed to parse")
+	rootCfg, err := mysql.ParseDSN(rootDSN)
+	s.Require().NoError(err, "TEST_MYSQL failed to parse")
+	rootCfg.MultiStatements = true
 
-	s.rootDSN = rootDSN
-	s.rootConnection, err = sql.Open("postgres", rootDSN)
-	s.Require().NoError(err, "Failed to connect to postgres")
-	s.Require().NoError(s.rootConnection.Ping(), "Failed to ping postgres")
+	s.rootDSN = rootCfg.FormatDSN()
+	s.rootConnection, err = sql.Open("mysql", rootDSN)
+	s.Require().NoError(err, "Failed to connect to mysql")
+	s.Require().NoError(s.rootConnection.Ping(), "Failed to ping mysql")
 }
 
-func (s *PostgresTestSuite) TearDownSuite() {
+func (s *MysqlTestSuite) TearDownSuite() {
 	for _, db := range s.databases {
 		s.dropDatabase(db)
 	}
@@ -84,7 +77,7 @@ func (s *PostgresTestSuite) TearDownSuite() {
 	s.rootConnection.Close()
 }
 
-func (s *PostgresTestSuite) createDatabase(name string) string {
+func (s *MysqlTestSuite) createDatabase(name string) string {
 	s.databases = append(s.databases, name)
 
 	s.dropDatabase(name)
@@ -92,21 +85,25 @@ func (s *PostgresTestSuite) createDatabase(name string) string {
 	_, err := s.rootConnection.Exec(fmt.Sprintf("CREATE DATABASE %s", name))
 	s.Require().NoError(err, "Unable to create db")
 
-	dbUrl, _ := url.Parse(s.rootDSN)
-	dbUrl.Path = name
-	return dbUrl.String()
+	dbUrl, _ := mysql.ParseDSN(s.rootDSN)
+	dbUrl.DBName = name
+
+	_, err = s.rootConnection.Exec(fmt.Sprintf("GRANT ALL PRIVILEGES ON %s.* TO '%s'@'%%'", name, dbUrl.User))
+	s.Require().NoError(err, "Unable to grant db permissions")
+
+	return dbUrl.FormatDSN()
 }
 
-func (s *PostgresTestSuite) dropDatabase(name string) {
+func (s *MysqlTestSuite) dropDatabase(name string) {
 	_, err := s.rootConnection.Exec(fmt.Sprintf("DROP DATABASE IF EXISTS %s", name))
 	s.NoError(err, "Unable to drop db")
 }
 
-func (s *PostgresTestSuite) loadFixture(dsn string, file string) {
+func (s *MysqlTestSuite) loadFixture(dsn string, file string) {
 	data, err := ioutil.ReadFile(path.Join("../fixtures/", file))
 	s.Require().NoError(err, "Unable to load fixture file")
 
-	conn, err := sql.Open("postgres", dsn)
+	conn, err := sql.Open("mysql", dsn)
 	defer conn.Close()
 	s.Require().NoError(err, "Unable to open db connection to load fixture")
 
@@ -114,12 +111,12 @@ func (s *PostgresTestSuite) loadFixture(dsn string, file string) {
 	s.Require().NoError(err, "Unable to execute fixture")
 }
 
-func (s *PostgresTestSuite) assertDatabaseAreTheSame(expectedDSN string, dumpDSN string) {
-	sourceConn, err := sql.Open("postgres", expectedDSN)
+func (s *MysqlTestSuite) assertDatabaseAreTheSame(expectedDSN string, dumpDSN string) {
+	sourceConn, err := sql.Open("mysql", expectedDSN)
 	s.Require().NoError(err, "Unable to connect to source db")
 	defer sourceConn.Close()
 
-	targetConn, err := sql.Open("postgres", dumpDSN)
+	targetConn, err := sql.Open("mysql", dumpDSN)
 	s.Require().NoError(err, "Unable to connect to target db")
 	defer targetConn.Close()
 
@@ -131,22 +128,18 @@ func (s *PostgresTestSuite) assertDatabaseAreTheSame(expectedDSN string, dumpDSN
 	}
 }
 
-func (s *PostgresTestSuite) fetchTableRowCount(db *sql.DB) []tableInfo {
-	_, err := db.Exec("ANALYSE")
-	s.Require().NoError(err, "Unable to analyse to source db")
-
+func (s *MysqlTestSuite) fetchTableRowCount(db *sql.DB) []tableInfo {
 	tableRows, err := db.Query(
 		`SELECT
-		  pg_class.relname   AS name,
-		  pg_class.reltuples AS count,
-		  pg_class.relnatts  AS columnCount
-		FROM
-		  pg_class
-		  LEFT JOIN pg_namespace ON (pg_namespace.oid = pg_class.relnamespace)
-		WHERE
-		  pg_namespace.nspname NOT IN ('pg_catalog', 'information_schema') AND
-		  pg_class.relkind='r'
-		ORDER BY pg_class.relname, pg_class.reltuples`,
+		  t.TABLE_NAME AS name,
+		  t.TABLE_ROWS AS count,
+		  COUNT(c.COLUMN_NAME) AS columnCount
+		FROM information_schema.TABLES AS t
+		  LEFT JOIN information_schema.COLUMNS AS c ON
+			c.TABLE_SCHEMA = t.TABLE_SCHEMA AND
+			c.TABLE_NAME = t.TABLE_NAME
+		WHERE t.TABLE_SCHEMA = DATABASE()
+		GROUP BY t.TABLE_NAME`,
 	)
 	s.Require().NoError(err, "Unable to fetch table info")
 	defer tableRows.Close()
@@ -166,9 +159,9 @@ func (s *PostgresTestSuite) fetchTableRowCount(db *sql.DB) []tableInfo {
 	return tables
 }
 
-func (s *PostgresTestSuite) compareTable(source *sql.DB, target *sql.DB, table string, columnCount int) {
+func (s *MysqlTestSuite) compareTable(source *sql.DB, target *sql.DB, table string, columnCount int) {
 	assert := s.Require()
-	query := fmt.Sprintf("SELECT * FROM %s", strconv.Quote(table))
+	query := fmt.Sprintf("SELECT * FROM %s", table)
 
 	expectedRows, err := source.Query(query)
 	assert.NoError(err, "Unable to query source table")

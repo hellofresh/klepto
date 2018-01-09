@@ -123,6 +123,7 @@ func (s *sqlReader) ReadTable(tableName string, rowChan chan<- database.Row, opt
 	}
 
 	logger.Debug("Publishing rows")
+
 	return s.publishRows(rows, rowChan)
 }
 
@@ -175,17 +176,23 @@ func (s *sqlReader) publishRows(rows *sql.Rows, rowChan chan<- database.Row) err
 	defer close(rowChan)
 	defer rows.Close()
 
-	columns, err := rows.ColumnTypes()
+	columnTypes, err := rows.ColumnTypes()
 	if err != nil {
 		return err
 	}
+	columnCount := len(columnTypes)
+	columns := make([]string, columnCount)
+	for i, col := range columnTypes {
+		columns[i] = col.Name()
+	}
+
+	fieldPointers := make([]interface{}, columnCount)
 
 	for rows.Next() {
-		row := make(database.Row, len(columns))
+		row := make(database.Row, columnCount)
+		fields := make([]interface{}, columnCount)
 
-		fields := make([]interface{}, len(columns))
-		fieldPointers := make([]interface{}, len(columns))
-		for i := 0; i < len(columns); i++ {
+		for i := 0; i < columnCount; i++ {
 			fieldPointers[i] = &fields[i]
 		}
 
@@ -196,7 +203,7 @@ func (s *sqlReader) publishRows(rows *sql.Rows, rowChan chan<- database.Row) err
 		}
 
 		for idx, column := range columns {
-			row[column.Name()] = fields[idx]
+			row[column] = fields[idx]
 		}
 
 		rowChan <- row
@@ -206,9 +213,10 @@ func (s *sqlReader) publishRows(rows *sql.Rows, rowChan chan<- database.Row) err
 }
 
 func (s *sqlReader) formatColumns(tableName string, columns []string) []string {
+	formatted := make([]string, len(columns))
 	for i, c := range columns {
-		columns[i] = s.FormatColumn(tableName, c)
+		formatted[i] = s.FormatColumn(tableName, c)
 	}
 
-	return columns
+	return formatted
 }

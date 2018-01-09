@@ -12,7 +12,7 @@ services:
       POSTGRES_PASSWORD: fresh
       POSTGRES_DB: klepto
     volumes:
-      - database:/var/lib/postgresql/data
+      - pq_database:/var/lib/postgresql/data
       - ./fixtures/pg_simple.sql:/docker-entrypoint-initdb.d/init.sql
 
   postgres_dest:
@@ -25,5 +25,31 @@ services:
       POSTGRES_PASSWORD: fresh
       POSTGRES_DB: klepto
 
+  mysql_source:
+    image: mysql:5.5
+    ports:
+      - '8052:3306'
+    environment:
+      LC_ALL: C.UTF-8
+      MYSQL_ROOT_PASSWORD: hellofresh
+      MYSQL_USER: hello
+      MYSQL_PASSWORD: fresh
+      MYSQL_DATABASE: klepto
+    volumes:
+      - mysql_database:/var/lib/mysql
+      - ./fixtures/mysql_simple.sql:/docker-entrypoint-initdb.d/init.sql
+
+  mysql_target:
+    image: mysql:5.5
+    ports:
+      - '8053:3306'
+    environment:
+      LC_ALL: C.UTF-8
+      MYSQL_ROOT_PASSWORD: hellofresh
+      MYSQL_USER: hello
+      MYSQL_PASSWORD: fresh
+      MYSQL_DATABASE: klepto
+
 volumes:
-  database:
+  pq_database:
+  mysql_database:

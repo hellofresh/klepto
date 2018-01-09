@@ -4,14 +4,20 @@ language: go
 go:
   - 1.x
 
+cache:
+  directories:
+    - $GOPATH/pkg/dep
+
 services:
-  - docker
+  - mysql
+  - postgresql
+
+addons:
+  postgresql: "9.6"
 
 env:
-  - TEST_POSTGRES="postgres://hello:fresh@localhost:8050/klepto?sslmode=disable"
-
-before_install:
-  - docker-compose up -d
+  - TEST_POSTGRES="postgres://postgres@localhost:5432?sslmode=disable"
+    TEST_MYSQL="root@tcp(localhost:3306)/"
 
 install:
   - mkdir -p $GOPATH/bin

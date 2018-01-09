@@ -2,14 +2,13 @@ package postgres
 
 import (
 	"database/sql"
-	"sync"
-
 	"fmt"
 	"strconv"
 
 	"github.com/hellofresh/klepto/pkg/config"
 	"github.com/hellofresh/klepto/pkg/database"
 	"github.com/hellofresh/klepto/pkg/dumper"
+	"github.com/hellofresh/klepto/pkg/dumper/generic"
 	"github.com/hellofresh/klepto/pkg/reader"
 	"github.com/lib/pq"
 	"github.com/pkg/errors"
@@ -23,101 +22,24 @@ type pgDumper struct {
 }
 
 func NewDumper(conn *sql.DB, rdr reader.Reader) dumper.Dumper {
-	return &pgDumper{
-		conn:   conn,
-		reader: rdr,
-	}
+	return generic.NewSqlDumper(
+		rdr,
+		&pgDumper{
+			conn:   conn,
+			reader: rdr,
+		},
+	)
 }
 
-func (p *pgDumper) Dump(done chan<- struct{}, configTables config.Tables) error {
-	if err := p.dumpStructure(); err != nil {
+func (p *pgDumper) DumpStructure(sql string) error {
+	if _, err := p.conn.Exec(sql); err != nil {
 		return err
 	}
-
-	return p.dumpTables(done, configTables)
-}
-
-func (p *pgDumper) Close() error {
-	return p.conn.Close()
-}
-
-func (p *pgDumper) dumpStructure() error {
-	log.Debug("Dumping structure...")
-	structureSQL, err := p.reader.GetStructure()
-	if err != nil {
-		return errors.Wrap(err, "failed to read structure")
-	}
-
-	_, err = p.conn.Exec(structureSQL)
-	if err != nil {
-		return errors.Wrap(err, "failed to dump structure")
-	}
-
-	log.Debug("Structure dumped")
-	return nil
-}
-
-func (p *pgDumper) dumpTables(done chan<- struct{}, configTables config.Tables) error {
-	// Get the tables
-	tables, err := p.reader.GetTables()
-	if err != nil {
-		return err
-	}
-
-	if err := p.disableTriggers(tables); err != nil {
-		return err
-	}
-
-	var wg sync.WaitGroup
-	wg.Add(len(tables))
-	for _, tbl := range tables {
-		logger := log.WithField("table", tbl)
-		logger.Info("Dumping table data...")
-		var opts reader.ReadTableOpt
-
-		table, err := configTables.FindByName(tbl)
-		if err != nil {
-			logger.WithError(err).Debug("no configuration found for table")
-		}
-
-		if table != nil {
-			opts = reader.ReadTableOpt{
-				Limit:         table.Filter.Limit,
-				Relationships: p.relationshipConfigToOptions(table.Relationships),
-			}
-		}
-
-		// Create read/write chanel
-		rowChan := make(chan database.Row)
-
-		go func(tableName string, rowChan <-chan database.Row) {
-			if err := p.dumpTable(tableName, rowChan); err != nil {
-				logger.WithError(err).Error("Failed to dump table")
-			}
-
-			wg.Done()
-			logger.Info("Done dumping table data")
-		}(tbl, rowChan)
-
-		if err := p.reader.ReadTable(tbl, rowChan, opts); err != nil {
-			logger.WithError(err).Error("error while reading table")
-		}
-	}
-
-	go func() {
-		// Wait for all table to be dumped
-		wg.Wait()
-
-		// Enable all database triggers
-		p.enableTriggers(tables)
-
-		done <- struct{}{}
-	}()
 
 	return nil
 }
 
-func (p *pgDumper) dumpTable(tableName string, rowChan <-chan database.Row) error {
+func (p *pgDumper) DumpTable(tableName string, rowChan <-chan database.Row) error {
 	txn, err := p.conn.Begin()
 	if err != nil {
 		return errors.Wrap(err, "failed to open transaction")
@@ -136,6 +58,36 @@ func (p *pgDumper) dumpTable(tableName string, rowChan <-chan database.Row) erro
 	return nil
 }
 
+// PreDumpTables Disable triggers on all tables to avoid foreign key constraints
+func (p *pgDumper) PreDumpTables(tables []string) error {
+	// We can't use `SET session_replication_role = replica` because multiple connections and stuff
+	for _, tbl := range tables {
+		query := fmt.Sprintf("ALTER TABLE %s DISABLE TRIGGER ALL", strconv.Quote(tbl))
+		if _, err := p.conn.Exec(query); err != nil {
+			return errors.Wrapf(err, "Failed to disable triggers for %s", tbl)
+		}
+	}
+
+	return nil
+}
+
+// PostDumpTables Enable triggers on all tables to enforce foreign key constraints
+func (p *pgDumper) PostDumpTables(tables []string) error {
+	// We can't use `SET session_replication_role = DEFAULT` because multiple connections and stuff
+	for _, tbl := range tables {
+		query := fmt.Sprintf("ALTER TABLE %s ENABLE TRIGGER ALL", strconv.Quote(tbl))
+		if _, err := p.conn.Exec(query); err != nil {
+			return errors.Wrap(err, "Failed to enable triggers")
+		}
+	}
+
+	return nil
+}
+
+func (p *pgDumper) Close() error {
+	return p.conn.Close()
+}
+
 func (p *pgDumper) insertIntoTable(txn *sql.Tx, tableName string, rowChan <-chan database.Row) (int64, error) {
 	columns, err := p.reader.GetColumns(tableName)
 	if err != nil {
@@ -152,6 +104,11 @@ func (p *pgDumper) insertIntoTable(txn *sql.Tx, tableName string, rowChan <-chan
 	if err != nil {
 		return 0, errors.Wrap(err, "failed to prepare copy in")
 	}
+	defer func() {
+		if err = stmt.Close(); err != nil {
+			log.WithError(err).Error("failed to close copy in statement")
+		}
+	}()
 
 	var inserted int64
 	for {
@@ -187,35 +144,7 @@ func (p *pgDumper) insertIntoTable(txn *sql.Tx, tableName string, rowChan <-chan
 		return 0, errors.Wrap(err, "failed to exec copy in")
 	}
 
-	if err = stmt.Close(); err != nil {
-		return 0, errors.Wrap(err, "failed to close copy in statement")
-	}
-
 	return inserted, nil
-}
-
-// disableTriggers Disable triggers on all tables
-func (p *pgDumper) disableTriggers(tables []string) error {
-	// We can't use `SET session_replication_role = replica` because multiple connections and stuff
-	for _, tbl := range tables {
-		query := fmt.Sprintf("ALTER TABLE %s DISABLE TRIGGER ALL", strconv.Quote(tbl))
-		if _, err := p.conn.Exec(query); err != nil {
-			return errors.Wrapf(err, "Failed to disable triggers for %s", tbl)
-		}
-	}
-
-	return nil
-}
-
-// enableTriggers Enable triggers on all tables
-func (p *pgDumper) enableTriggers(tables []string) {
-	// We can't use `SET session_replication_role = DEFAULT` because multiple connections and stuff
-	for _, tbl := range tables {
-		query := fmt.Sprintf("ALTER TABLE %s ENABLE TRIGGER ALL", strconv.Quote(tbl))
-		if _, err := p.conn.Exec(query); err != nil {
-			log.WithField("table", tbl).Error("Failed to enable triggers")
-		}
-	}
 }
 
 func (p *pgDumper) relationshipConfigToOptions(relationshipsConfig []*config.Relationship) []*reader.RelationshipOpt {

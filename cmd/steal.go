@@ -7,7 +7,8 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 
-	// imports dumpers and reders
+	// imports dumpers and readers
+	_ "github.com/hellofresh/klepto/pkg/dumper/mysql"
 	_ "github.com/hellofresh/klepto/pkg/dumper/postgres"
 	_ "github.com/hellofresh/klepto/pkg/dumper/query"
 	_ "github.com/hellofresh/klepto/pkg/reader/mysql"
@@ -54,6 +55,7 @@ func RunSteal(opts *StealOptions) (err error) {
 	log.Info("Stealing...")
 
 	done := make(chan struct{})
+	defer close(done)
 	failOnError(target.Dump(done, globalConfig.Tables), "Error while dumping")
 
 	<-done

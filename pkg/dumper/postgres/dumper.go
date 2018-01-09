@@ -104,6 +104,11 @@ func (p *pgDumper) insertIntoTable(txn *sql.Tx, tableName string, rowChan <-chan
 	if err != nil {
 		return 0, errors.Wrap(err, "failed to prepare copy in")
 	}
+	defer func() {
+		if err = stmt.Close(); err != nil {
+			log.WithError(err).Error("failed to close copy in statement")
+		}
+	}()
 
 	var inserted int64
 	for {
@@ -137,10 +142,6 @@ func (p *pgDumper) insertIntoTable(txn *sql.Tx, tableName string, rowChan <-chan
 	logger.Debug("Executing copy in")
 	if _, err := stmt.Exec(); err != nil {
 		return 0, errors.Wrap(err, "failed to exec copy in")
-	}
-
-	if err = stmt.Close(); err != nil {
-		return 0, errors.Wrap(err, "failed to close copy in statement")
 	}
 
 	return inserted, nil

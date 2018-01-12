@@ -33,7 +33,7 @@ Here is an example of how the config file should look like:
 After you have this, just run:
 
 ```sh
-klepto steal --from 'root:root@tcp(localhost:3306)/fromDB' --to 'root:root@tcp(localhost:3306)/toDB'
+klepto steal --from 'postgres://root:root@tcp(localhost:3306)/fromDB' --to 'postgres://root:root@tcp(localhost:3306)/toDB'
 ```
 
 ## Prerequisites
@@ -54,25 +54,46 @@ You can download the binary for your platform of choice from the [releases page]
 
 Once downloaded, the binary can be run from anywhere. Ideally, though, you should move it into your $PATH for easy use. `/usr/local/bin` is a popular location for this.
 
+## Supported Databases
+
+At the moment we only support 2 RDBMS which are `postgres` and `mysql`.
+
+### Input
+- Postgres
+- MySQL
+
+
+### Output
+- Postgres
+- MySQL
+- Stdout
+- Stderr
+
 ## Anonymisation
 
 Each column can be set to anonymise. Anonymisation is performed by running a Faker against the specified column.
 
-By specifying anonymisation config in your `.klepto.toml` file, you can define which tables' fields require anonymisation. This is done with the format `"table.column" = "DataType"`, as follows:
+By specifying anonymisation config in your `.klepto.toml` file, you can define which tables' fields require anonymisation. This is done as follows:
 
 ```toml
-[anonymise]
-"customer.email" = "EmailAddress"
-"customer.first_name" = "FirstName"
-"customer.last_name" = "LastName"
-"customer.password" = "literal:1234"
+[[Tables]]
+  Name = "customers"
+  [Tables.Anonymise]
+    email = "EmailAddress"
+    firstName = "FirstName"
+
+[[Tables]]
+  Name = "users"
+  [Tables.Anonymise]
+    email = "EmailAddress"
+    password = "literal:1234"
 ```
 
-This would delete these 3 columns from the `customer` table and run `faker.Email`, `faker.FirstName`, and `faker.LastName` against them respectively. We can use `literal:[some-constant-value]` to specify a constant we want to write for a column. In this case, `password: literal:1234` would write `1234` for every row in the password column of the customer table.
+This would delete these 4 columns from the `customer` and `users` tables and run `faker.Email` and `faker.FirstName` against them respectively. We can use `literal:[some-constant-value]` to specify a constant we want to write for a column. In this case, `password: literal:1234` would write `1234` for every row in the password column of the customer table.
 
 ### Available data types for anonymisation
 
-Available data types can be found in `fake.go`. This file is generated from https://github.com/icrowley/fake (it must be generated because it is written in such a way that Go cannot reflect upon it).
+Available data types can be found in [fake.go](pkg/anonymiser/fake.go). This file is generated from https://github.com/icrowley/fake (it must be generated because it is written in such a way that Go cannot reflect upon it).
 
 We generate the file with the following:
 

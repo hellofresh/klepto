@@ -27,8 +27,6 @@ func getOutputWriter(dsn string) (io.Writer, error) {
 	switch config.Type {
 	case "os":
 		return getOsWriter(config.Address), nil
-	case "file":
-		return getOsWriter(config.Address), nil
 	default:
 		return nil, fmt.Errorf("Unknown output writer type: %v", config.Type)
 	}

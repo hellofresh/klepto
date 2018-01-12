@@ -13,7 +13,7 @@ func (m *driver) IsSupported(dsn string) bool {
 	if err != nil {
 		return false
 	}
-	return d.Type == "file" || d.Type == "os"
+	return d.Type == "os"
 }
 
 func (m *driver) NewConnection(dsn string, rdr reader.Reader) (dumper.Dumper, error) {

@@ -36,7 +36,7 @@ func NewStealCmd() *cobra.Command {
 	}
 
 	cmd.PersistentFlags().StringVarP(&opts.from, "from", "f", "root:root@tcp(localhost:3306)/klepto", "Database dsn to steal from")
-	cmd.PersistentFlags().StringVarP(&opts.to, "to", "t", "", "Database to output to (default writes to stdOut)")
+	cmd.PersistentFlags().StringVarP(&opts.to, "to", "t", "os://stdout/", "Database to output to (default writes to stdOut)")
 	cmd.PersistentFlags().IntVarP(&opts.rows, "number", "n", 1000, "Number of rows you want to steal")
 
 	return cmd

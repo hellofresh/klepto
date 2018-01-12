@@ -12,6 +12,10 @@ import (
 type driver struct{}
 
 func (m *driver) IsSupported(dsn string) bool {
+	if dsn == "" {
+		return false
+	}
+
 	_, err := mysql.ParseDSN(dsn)
 	return err == nil
 }

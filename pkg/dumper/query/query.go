@@ -1,8 +1,7 @@
 package query
 
 import (
-	"os"
-
+	parser "github.com/hellofresh/klepto/pkg/dsn"
 	"github.com/hellofresh/klepto/pkg/dumper"
 	"github.com/hellofresh/klepto/pkg/reader"
 )
@@ -10,11 +9,19 @@ import (
 type driver struct{}
 
 func (m *driver) IsSupported(dsn string) bool {
-	return true
+	d, err := parser.Parse(dsn)
+	if err != nil {
+		return false
+	}
+	return d.Type == "os"
 }
 
 func (m *driver) NewConnection(dsn string, rdr reader.Reader) (dumper.Dumper, error) {
-	return NewDumper(os.Stdout, rdr), nil
+	writer, err := getOutputWriter(dsn)
+	if err != nil {
+		return nil, err
+	}
+	return NewDumper(writer, rdr), nil
 }
 
 func init() {

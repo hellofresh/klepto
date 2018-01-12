@@ -33,7 +33,7 @@ Here is an example of how the config file should look like:
 After you have this, just run:
 
 ```sh
-klepto steal --from 'postgres://root:root@tcp(localhost:3306)/fromDB' --to 'postgres://root:root@tcp(localhost:3306)/toDB'
+klepto steal --from 'postgres://root:root@localhost:8050/fromDB?sslmode=disable' --to 'postgres://root:root@localhost:8050/toDB?sslmode=disable'
 ```
 
 ## Prerequisites
@@ -89,7 +89,7 @@ By specifying anonymisation config in your `.klepto.toml` file, you can define w
     password = "literal:1234"
 ```
 
-This would delete these 4 columns from the `customer` and `users` tables and run `faker.Email` and `faker.FirstName` against them respectively. We can use `literal:[some-constant-value]` to specify a constant we want to write for a column. In this case, `password: literal:1234` would write `1234` for every row in the password column of the customer table.
+This would replace these 4 columns from the `customer` and `users` tables and run `faker.Email` and `faker.FirstName` against them respectively. We can use `literal:[some-constant-value]` to specify a constant we want to write for a column. In this case, `password: literal:1234` would write `1234` for every row in the password column of the customer table.
 
 ### Available data types for anonymisation
 

@@ -14,7 +14,7 @@ import (
 func NewInitCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "init",
-		Short: "Create a fresh config file",
+		Short: "Create a fresh config file herp derp this is a test",
 		Run: func(cmd *cobra.Command, args []string) {
 			RunInit()
 		},

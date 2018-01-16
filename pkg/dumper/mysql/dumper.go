@@ -108,7 +108,12 @@ func (p *myDumper) insertIntoTable(txn *sql.Tx, tableName string, rowChan <-chan
 				if row[col] == nil {
 					rowValues[i] = "NULL"
 				} else {
-					rowValues[i] = string(row[col].([]uint8))
+					s, ok := row[col].(string)
+					if ok {
+						rowValues[i] = s
+					} else {
+						rowValues[i] = string(row[col].([]uint8))
+					}
 				}
 			}
 

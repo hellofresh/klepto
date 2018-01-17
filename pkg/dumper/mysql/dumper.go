@@ -113,7 +113,7 @@ func (p *myDumper) insertIntoTable(txn *sql.Tx, tableName string, rowChan <-chan
 				case []uint8:
 					rowValues[i] = string(row[col].([]uint8))
 				default:
-					log.Info("we have an unhandled type: %T \n. attempting to convert to a string \n", v)
+					log.WithField("type", v).Info("we have an unhandled type. attempting to convert to a string \n")
 					rowValues[i] = row[col].(string)
 				}
 			}

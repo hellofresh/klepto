@@ -9,13 +9,14 @@ import (
 )
 
 func getOsWriter(address string) io.Writer {
-	if address == "stderr" {
+	switch address {
+	case "stderr":
 		return os.Stderr
-	}
-	if address == "stdout" {
+	case "stdout":
 		return os.Stdout
+	default:
+		return nil
 	}
-	return nil
 }
 
 // TODO: Implement writer interface for file.
@@ -30,5 +31,4 @@ func getOutputWriter(dsn string) (io.Writer, error) {
 	default:
 		return nil, fmt.Errorf("Unknown output writer type: %v", config.Type)
 	}
-
 }

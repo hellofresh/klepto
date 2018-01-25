@@ -53,8 +53,8 @@ func (p *myDumper) DumpTable(tableName string, rowChan <-chan database.Row) erro
 	}
 
 	log.WithFields(log.Fields{
-		"table", tableName,
-		"inserted", insertedRows,
+		"table":    tableName,
+		"inserted": insertedRows,
 	}).Debug("inserted rows")
 
 	if err := txn.Commit(); err != nil {

@@ -26,8 +26,10 @@ func Register(name string, driver Driver) {
 func Drivers() []string {
 	var list []string
 	drivers.Range(func(key, value interface{}) bool {
-		name, _ := key.(string)
-		list = append(list, name)
+		name, ok := key.(string)
+		if ok {
+			list = append(list, name)
+		}
 		return true
 	})
 	sort.Strings(list)

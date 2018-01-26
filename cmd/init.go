@@ -23,7 +23,7 @@ func NewInitCmd() *cobra.Command {
 	return cmd
 }
 
-// RunInit runs the init command
+// RunInit runs the init command - test
 func RunInit() {
 	log.Infof("Initializing %s", configFileName)
 

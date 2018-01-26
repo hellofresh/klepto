@@ -49,6 +49,7 @@ func (p *myDumper) DumpTable(tableName string, rowChan <-chan database.Row) erro
 
 	insertedRows, err := p.insertIntoTable(txn, tableName, rowChan)
 	if err != nil {
+		txn.Rollback()
 		return errors.Wrap(err, "failed to insert rows")
 	}
 	log.WithField("table", tableName).WithField("inserted", insertedRows).Debug("inserted rows")

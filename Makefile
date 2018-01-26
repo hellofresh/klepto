@@ -6,6 +6,7 @@ WARN_COLOR=\033[33;01m
 # Space separated patterns of packages to skip in list, test, format.
 IGNORED_PACKAGES := /vendor/
 
+
 .PHONY: all clean deps build
 
 all: clean deps build

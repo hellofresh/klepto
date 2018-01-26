@@ -25,8 +25,8 @@ type (
 // NewDumper is a factory method that will create a dumper based on the provided DSN
 func NewDumper(dsn string, rdr reader.Reader) (dumper Dumper, err error) {
 	drivers.Range(func(key, value interface{}) bool {
-		driver, _ := value.(Driver)
-		if !driver.IsSupported(dsn) {
+		driver, ok := value.(Driver)
+		if !ok || !driver.IsSupported(dsn) {
 			return true
 		}
 		log.WithField("driver", key).Debug("Found driver")

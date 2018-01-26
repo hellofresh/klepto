@@ -52,7 +52,11 @@ func (p *myDumper) DumpTable(tableName string, rowChan <-chan database.Row) erro
 		txn.Rollback()
 		return errors.Wrap(err, "failed to insert rows")
 	}
-	log.WithField("table", tableName).WithField("inserted", insertedRows).Debug("inserted rows")
+
+	log.WithFields(log.Fields{
+		"table":    tableName,
+		"inserted": insertedRows,
+	}).Debug("inserted rows")
 
 	if err := txn.Commit(); err != nil {
 		return errors.Wrap(err, "failed to commit transaction")

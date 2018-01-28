@@ -48,8 +48,8 @@ type (
 // Connect acts as fectory method that returns a reader from a DSN
 func Connect(dsn string) (reader Reader, err error) {
 	drivers.Range(func(key, value interface{}) bool {
-		driver, _ := value.(Driver)
-		if !driver.IsSupported(dsn) {
+		driver, ok := value.(Driver)
+		if !ok || !driver.IsSupported(dsn) {
 			return true
 		}
 

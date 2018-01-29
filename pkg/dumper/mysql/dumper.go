@@ -105,10 +105,16 @@ func (p *myDumper) insertIntoTable(txn *sql.Tx, tableName string, rowChan <-chan
 			// Put the data in the correct order and format
 			rowValues := make([]string, len(columns))
 			for i, col := range columns {
-				if row[col] == nil {
+				switch v := row[col].(type) {
+				case nil:
 					rowValues[i] = "NULL"
-				} else {
+				case string:
+					rowValues[i] = row[col].(string)
+				case []uint8:
 					rowValues[i] = string(row[col].([]uint8))
+				default:
+					log.WithField("type", v).Info("we have an unhandled type. attempting to convert to a string \n")
+					rowValues[i] = row[col].(string)
 				}
 			}
 

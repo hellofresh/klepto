@@ -3,7 +3,9 @@ package generic
 import (
 	"database/sql"
 	"fmt"
+	"strconv"
 	"sync"
+	"time"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/hellofresh/klepto/pkg/database"
@@ -82,14 +84,15 @@ func (s *sqlReader) GetColumns(tableName string) ([]string, error) {
 }
 
 // ReadTable returns a list of all rows in a table
-func (s *sqlReader) ReadTable(tableName string, rowChan chan<- database.Row, opts reader.ReadTableOpt) error {
+func (s *sqlReader) ReadTable(tableName string, rowChan chan<- database.Table, opts reader.ReadTableOpt) error {
+	defer close(rowChan)
+
 	logger := log.WithField("table", tableName)
 	logger.Debug("Reading table data")
 
 	if len(opts.Columns) == 0 {
 		columns, err := s.GetColumns(tableName)
 		if err != nil {
-			close(rowChan)
 			return errors.Wrap(err, "failed to get columns")
 		}
 		opts.Columns = s.formatColumns(tableName, columns)
@@ -97,22 +100,11 @@ func (s *sqlReader) ReadTable(tableName string, rowChan chan<- database.Row, opt
 
 	query, err := s.buildQuery(tableName, opts)
 	if err != nil {
-		close(rowChan)
 		return errors.Wrapf(err, "failed to build query for %s", tableName)
-	}
-
-	for _, r := range opts.Relationships {
-		query, err = s.buildJoinQuery(tableName, query, r)
-		if err != nil {
-			close(rowChan)
-			return errors.Wrapf(err, "failed to build a join query for %s with %s", tableName, r.ReferencedTable)
-		}
 	}
 
 	rows, err := query.RunWith(s.GetConnection()).Query()
 	if err != nil {
-		close(rowChan)
-
 		querySQL, queryParams, _ := query.ToSql()
 		logger.WithFields(log.Fields{
 			"query":  querySQL,
@@ -121,10 +113,87 @@ func (s *sqlReader) ReadTable(tableName string, rowChan chan<- database.Row, opt
 
 		return errors.Wrap(err, "failed to query rows")
 	}
+	// defer rows.Close()
+	table := database.NewTable(tableName)
+	s.publishRows(table, rows, rowChan, opts)
 
 	logger.Debug("Publishing rows")
 
-	return s.publishRows(rows, rowChan)
+	return err
+}
+
+func (s *sqlReader) publishRows(table database.Table, rows *sql.Rows, rowChan chan<- database.Table, opts reader.ReadTableOpt) error {
+	columnTypes, err := rows.ColumnTypes()
+	if err != nil {
+		return err
+	}
+	columnCount := len(columnTypes)
+	columns := make([]string, columnCount)
+	for i, col := range columnTypes {
+		columns[i] = col.Name()
+	}
+
+	fieldPointers := make([]interface{}, columnCount)
+
+	for rows.Next() {
+		table.Row = make(database.Row, columnCount)
+		fields := make([]interface{}, columnCount)
+
+		for i := 0; i < columnCount; i++ {
+			fieldPointers[i] = &fields[i]
+		}
+
+		err := rows.Scan(fieldPointers...)
+		if err != nil {
+			log.WithError(err).Warning("Failed to fetch row")
+			continue
+		}
+
+		for idx, column := range columns {
+			table.Row[column] = fields[idx]
+		}
+
+		for _, r := range opts.Relationships {
+			relationshipOpts := reader.ReadTableOpt{}
+			relationshipColumns, err := s.GetColumns(r.ReferencedTable)
+			if err != nil {
+				return errors.Wrap(err, "failed to get columns")
+			}
+			relationshipOpts.Columns = s.formatColumns(r.ReferencedTable, relationshipColumns)
+
+			rowValue, err := s.toSQLStringValue(table.Row[r.ForeignKey])
+			if err != nil {
+				log.WithField("column", r.ForeignKey).WithError(err).Error("Failed to parse an SQL value for column")
+				continue
+			}
+
+			q, _ := s.buildQuery(r.ReferencedTable, relationshipOpts)
+			q = q.Where(fmt.Sprintf(
+				"%s = '%v'",
+				r.ReferencedKey,
+				rowValue,
+			))
+
+			relationshipRows, err := q.RunWith(s.GetConnection()).Query()
+			if err != nil {
+				querySQL, queryParams, _ := q.ToSql()
+				log.WithError(err).WithFields(log.Fields{
+					"query":  querySQL,
+					"params": queryParams,
+				}).Error("failed to query relationship rows")
+
+				return errors.Wrap(err, "failed to query rows")
+			}
+			err = s.publishRows(database.NewTable(r.ReferencedTable), relationshipRows, rowChan, relationshipOpts)
+			if err != nil {
+				log.WithError(err).Error("There was an error publishing relationship rows")
+			}
+		}
+
+		rowChan <- table
+	}
+
+	return nil
 }
 
 // BuildQuery builds the query that will be used to read the table
@@ -140,76 +209,9 @@ func (s *sqlReader) buildQuery(tableName string, opts reader.ReadTableOpt) (sq.S
 	return query, nil
 }
 
-func (s *sqlReader) buildJoinQuery(tableName string, query sq.SelectBuilder, r *reader.RelationshipOpt) (sq.SelectBuilder, error) {
-	// TODO: Fetch the reference table configuration from the config file if it's defined.
-
-	subselectJoin, err := s.buildQuery(r.ReferencedTable, reader.ReadTableOpt{
-		Columns: []string{r.ReferencedKey},
-	})
-	if err != nil {
-		return query, errors.Wrapf(err, "could not build query for relationship %s", r.ReferencedTable)
-	}
-
-	subselectJoinStr, _, err := subselectJoin.ToSql()
-	if err != nil {
-		return query, errors.Wrapf(err, "could create SQL string for relationship %s", r.ReferencedTable)
-	}
-
-	subselectAlias := fmt.Sprintf("%s_%s", tableName, r.ReferencedTable)
-
-	return query.Join(fmt.Sprintf(
-		"(%s) AS %s ON %s = %s",
-		subselectJoinStr,
-		subselectAlias,
-		fmt.Sprintf("%s.%s", s.QuoteIdentifier(tableName), s.QuoteIdentifier(r.ForeignKey)),
-		fmt.Sprintf("%s.%s", s.QuoteIdentifier(subselectAlias), s.QuoteIdentifier(r.ReferencedKey)),
-	)), nil
-}
-
 // FormatColumn returns a escaped table+column string
 func (s *sqlReader) FormatColumn(tableName string, columnName string) string {
 	return fmt.Sprintf("%s.%s", s.QuoteIdentifier(tableName), s.QuoteIdentifier(columnName))
-}
-
-func (s *sqlReader) publishRows(rows *sql.Rows, rowChan chan<- database.Row) error {
-	// this ensures that there is no more jobs to be done
-	defer close(rowChan)
-	defer rows.Close()
-
-	columnTypes, err := rows.ColumnTypes()
-	if err != nil {
-		return err
-	}
-	columnCount := len(columnTypes)
-	columns := make([]string, columnCount)
-	for i, col := range columnTypes {
-		columns[i] = col.Name()
-	}
-
-	fieldPointers := make([]interface{}, columnCount)
-
-	for rows.Next() {
-		row := make(database.Row, columnCount)
-		fields := make([]interface{}, columnCount)
-
-		for i := 0; i < columnCount; i++ {
-			fieldPointers[i] = &fields[i]
-		}
-
-		err := rows.Scan(fieldPointers...)
-		if err != nil {
-			log.WithError(err).Warning("Failed to fetch row")
-			continue
-		}
-
-		for idx, column := range columns {
-			row[column] = fields[idx]
-		}
-
-		rowChan <- row
-	}
-
-	return nil
 }
 
 func (s *sqlReader) formatColumns(tableName string, columns []string) []string {
@@ -219,4 +221,46 @@ func (s *sqlReader) formatColumns(tableName string, columns []string) []string {
 	}
 
 	return formatted
+}
+
+// ResolveType accepts a value and attempts to determine its type
+func (s *sqlReader) toSQLStringValue(src interface{}) (string, error) {
+	switch src.(type) {
+	case int64:
+		if value, ok := src.(int64); ok {
+			return strconv.FormatInt(value, 10), nil
+		}
+	case float64:
+		if value, ok := src.(float64); ok {
+			return fmt.Sprintf("%v", value), nil
+		}
+	case bool:
+		if value, ok := src.(bool); ok {
+			return strconv.FormatBool(value), nil
+		}
+	case string:
+		if value, ok := src.(string); ok {
+			return value, nil
+		}
+	case []byte:
+		// TODO handle blobs?
+		if value, ok := src.([]byte); ok {
+			return string(value), nil
+		}
+	case time.Time:
+		if value, ok := src.(time.Time); ok {
+			return value.String(), nil
+		}
+	case nil:
+		return "NULL", nil
+	case *interface{}:
+		if src == nil {
+			return "NULL", nil
+		}
+		return s.toSQLStringValue(*(src.(*interface{})))
+	default:
+		return "", errors.New("could not parse type")
+	}
+
+	return "", nil
 }

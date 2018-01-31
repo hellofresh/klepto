@@ -41,7 +41,7 @@ func (p *myDumper) DumpStructure(sql string) error {
 	return nil
 }
 
-func (p *myDumper) DumpTable(tableName string, rowChan <-chan database.Row) error {
+func (p *myDumper) DumpTable(tableName string, rowChan <-chan database.Table) error {
 	txn, err := p.conn.Begin()
 	if err != nil {
 		return errors.Wrap(err, "failed to open transaction")
@@ -54,7 +54,6 @@ func (p *myDumper) DumpTable(tableName string, rowChan <-chan database.Row) erro
 	}
 
 	log.WithFields(log.Fields{
-		"table":    tableName,
 		"inserted": insertedRows,
 	}).Debug("inserted rows")
 
@@ -69,12 +68,11 @@ func (p *myDumper) Close() error {
 	return p.conn.Close()
 }
 
-func (p *myDumper) insertIntoTable(txn *sql.Tx, tableName string, rowChan <-chan database.Row) (int64, error) {
+func (p *myDumper) insertIntoTable(txn *sql.Tx, tableName string, rowChan <-chan database.Table) (int64, error) {
 	columns, err := p.reader.GetColumns(tableName)
 	if err != nil {
 		return 0, err
 	}
-
 	// Create query
 	columnsQuoted := make([]string, len(columns))
 	for i, column := range columns {
@@ -97,24 +95,26 @@ func (p *myDumper) insertIntoTable(txn *sql.Tx, tableName string, rowChan <-chan
 		defer w.Flush()
 
 		for {
-			row, more := <-rowChan
+			table, more := <-rowChan
 			if !more {
 				break
 			}
 
+			columnsForTable, _ := p.reader.GetColumns(table.Name)
+
 			// Put the data in the correct order and format
-			rowValues := make([]string, len(columns))
-			for i, col := range columns {
-				switch v := row[col].(type) {
+			rowValues := make([]string, len(columnsForTable))
+			for i, col := range columnsForTable {
+				switch v := table.Row[col].(type) {
 				case nil:
 					rowValues[i] = "NULL"
 				case string:
-					rowValues[i] = row[col].(string)
+					rowValues[i] = table.Row[col].(string)
 				case []uint8:
-					rowValues[i] = string(row[col].([]uint8))
+					rowValues[i] = string(table.Row[col].([]uint8))
 				default:
 					log.WithField("type", v).Info("we have an unhandled type. attempting to convert to a string \n")
-					rowValues[i] = row[col].(string)
+					rowValues[i] = table.Row[col].(string)
 				}
 			}
 
@@ -135,7 +135,9 @@ func (p *myDumper) insertIntoTable(txn *sql.Tx, tableName string, rowChan <-chan
 	// Execute the query
 	txn.Exec("SET foreign_key_checks = 0;")
 	if _, err := txn.Exec(query); err != nil {
-		return 0, err
+		log.WithError(err).WithFields(log.Fields{
+			"table": tableName,
+		}).Error("Could not insert data")
 	}
 
 	return inserted, nil

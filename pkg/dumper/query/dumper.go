@@ -57,17 +57,17 @@ func (d *textDumper) Dump(done chan<- struct{}, configTables config.Tables) erro
 		}
 
 		// Create read/write chanel
-		rowChan := make(chan database.Row)
+		rowChan := make(chan database.Table)
 
 		go func(tableName string) {
 			for {
-				row, more := <-rowChan
+				table, more := <-rowChan
 				if !more {
 					done <- struct{}{}
 					return
 				}
 
-				columnMap, err := d.toSQLColumnMap(row)
+				columnMap, err := d.toSQLColumnMap(table.Row)
 				if err != nil {
 					log.WithError(err).Fatal("could not convert value to string")
 				}

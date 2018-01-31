@@ -112,15 +112,14 @@ func (s *sqlReader) ReadTable(tableName string, rowChan chan<- *database.Table, 
 		return errors.Wrap(err, "failed to query rows")
 	}
 	// defer rows.Close()
-	table := database.NewTable(tableName)
-	s.publishRows(table, rows, rowChan, opts)
+	s.publishRows(tableName, rows, rowChan, opts)
 
 	logger.Debug("Publishing rows")
 
 	return err
 }
 
-func (s *sqlReader) publishRows(table *database.Table, rows *sql.Rows, rowChan chan<- *database.Table, opts reader.ReadTableOpt) error {
+func (s *sqlReader) publishRows(tableName string, rows *sql.Rows, rowChan chan<- *database.Table, opts reader.ReadTableOpt) error {
 	columnTypes, err := rows.ColumnTypes()
 	if err != nil {
 		return err
@@ -134,7 +133,7 @@ func (s *sqlReader) publishRows(table *database.Table, rows *sql.Rows, rowChan c
 	fieldPointers := make([]interface{}, columnCount)
 
 	for rows.Next() {
-		table.Row = make(database.Row, columnCount)
+		table := database.NewTable(tableName)
 		fields := make([]interface{}, columnCount)
 
 		for i := 0; i < columnCount; i++ {
@@ -159,7 +158,8 @@ func (s *sqlReader) publishRows(table *database.Table, rows *sql.Rows, rowChan c
 			}
 			relationshipOpts.Columns = s.formatColumns(r.ReferencedTable, relationshipColumns)
 
-			rowValue, err := database.ToSQLStringValue(table.Row[r.ForeignKey])
+			value, _ := table.Row[r.ForeignKey]
+			rowValue, err := database.ToSQLStringValue(value)
 			if err != nil {
 				log.WithField("column", r.ForeignKey).WithError(err).Error("Failed to parse an SQL value for column")
 				continue
@@ -182,7 +182,7 @@ func (s *sqlReader) publishRows(table *database.Table, rows *sql.Rows, rowChan c
 
 				return errors.Wrap(err, "failed to query rows")
 			}
-			err = s.publishRows(database.NewTable(r.ReferencedTable), relationshipRows, rowChan, relationshipOpts)
+			err = s.publishRows(r.ReferencedTable, relationshipRows, rowChan, relationshipOpts)
 			if err != nil {
 				log.WithError(err).Error("There was an error publishing relationship rows")
 			}

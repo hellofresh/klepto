@@ -58,6 +58,7 @@ func (p *myDumper) DumpTable(tableName string, rowChan <-chan *database.Table) e
 	}).Debug("inserted rows")
 
 	if err := txn.Commit(); err != nil {
+		txn.Rollback()
 		return errors.Wrap(err, "failed to commit transaction")
 	}
 
@@ -85,9 +86,16 @@ func (p *myDumper) insertIntoTable(txn *sql.Tx, tableName string, rowChan <-chan
 		strings.Join(columnsQuoted, ","),
 	)
 
+	logger := log.WithFields(log.Fields{
+		"table":   tableName,
+		"columns": columns,
+	})
+	logger.Debug("Preparing copy in")
+
 	// Write all rows as csv to the pipe
 	rowReader, rowWriter := io.Pipe()
 	var inserted int64
+
 	go func(writer *io.PipeWriter) {
 		defer writer.Close()
 
@@ -97,6 +105,7 @@ func (p *myDumper) insertIntoTable(txn *sql.Tx, tableName string, rowChan <-chan
 		for {
 			table, more := <-rowChan
 			if !more {
+				logger.Debug("rowChan was closed")
 				break
 			}
 
@@ -107,12 +116,12 @@ func (p *myDumper) insertIntoTable(txn *sql.Tx, tableName string, rowChan <-chan
 			for i, col := range columnsForTable {
 				rowValues[i], err = database.ToSQLStringValue(table.Row[col])
 				if err != nil {
-					log.WithError(err).Error("could not assert type for row value")
+					logger.WithError(err).Error("could not assert type for row value")
 				}
 			}
 
 			if err := w.Write(rowValues); err != nil {
-				log.WithError(err).Error("error writing record to mysql")
+				logger.WithError(err).Error("error writing record to mysql")
 			}
 
 			atomic.AddInt64(&inserted, 1)
@@ -128,12 +137,24 @@ func (p *myDumper) insertIntoTable(txn *sql.Tx, tableName string, rowChan <-chan
 	// Execute the query
 	txn.Exec("SET foreign_key_checks = 0;")
 	if _, err := txn.Exec(query); err != nil {
-		log.WithError(err).WithFields(log.Fields{
-			"table": tableName,
-		}).Error("Could not insert data")
+		logger.WithError(err).Error("Could not insert data")
 	}
 
 	return inserted, nil
+}
+
+func (p *myDumper) toSQLColumnMap(row database.Row) map[string]interface{} {
+	sqlColumnMap := make(map[string]interface{})
+
+	for column, value := range row {
+		stringValue, err := database.ToSQLStringValue(value)
+		if err != nil {
+			log.WithError(err).Error("could not assert type for row value")
+		}
+		sqlColumnMap[column] = stringValue
+	}
+
+	return sqlColumnMap
 }
 
 func (p *myDumper) quoteIdentifier(name string) string {

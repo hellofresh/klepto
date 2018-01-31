@@ -21,7 +21,7 @@ type (
 	SqlEngine interface {
 		DumpStructure(sql string) error
 
-		DumpTable(tableName string, rowChan <-chan database.Table) error
+		DumpTable(tableName string, rowChan <-chan *database.Table) error
 
 		// Close closes the dumper resources and releases them.
 		Close() error
@@ -101,11 +101,11 @@ func (p *sqlDumper) readAndDumpTables(done chan<- struct{}, configTables config.
 	filteredTables := configTables.FilterRelashionships(tables)
 
 	// Create read/write chanel
-	rowChan := make(chan database.Table)
+	rowChan := make(chan *database.Table)
 
 	for _, tbl := range tables {
 		// semaphoreChan <- struct{}{}
-		go func(tableName string, rowChan <-chan database.Table) {
+		go func(tableName string, rowChan <-chan *database.Table) {
 			defer wg.Done()
 			// defer func(semaphoreChan <-chan struct{}) { <-semaphoreChan }(semaphoreChan)
 
@@ -116,7 +116,7 @@ func (p *sqlDumper) readAndDumpTables(done chan<- struct{}, configTables config.
 	}
 
 	for _, tbl := range filteredTables {
-		go func(tableName string, rowChan chan<- database.Table) {
+		go func(tableName string, rowChan chan<- *database.Table) {
 			var opts reader.ReadTableOpt
 
 			tableConfig, err := configTables.FindByName(tableName)

@@ -55,7 +55,7 @@ func (d *textDumper) Dump(done chan<- struct{}, configTables config.Tables) erro
 		}
 
 		// Create read/write chanel
-		rowChan := make(chan database.Table)
+		rowChan := make(chan *database.Table)
 
 		go func(tableName string) {
 			for {

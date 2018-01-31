@@ -82,7 +82,7 @@ func (s *sqlReader) GetColumns(tableName string) ([]string, error) {
 }
 
 // ReadTable returns a list of all rows in a table
-func (s *sqlReader) ReadTable(tableName string, rowChan chan<- database.Table, opts reader.ReadTableOpt) error {
+func (s *sqlReader) ReadTable(tableName string, rowChan chan<- *database.Table, opts reader.ReadTableOpt) error {
 	defer close(rowChan)
 
 	logger := log.WithField("table", tableName)
@@ -120,7 +120,7 @@ func (s *sqlReader) ReadTable(tableName string, rowChan chan<- database.Table, o
 	return err
 }
 
-func (s *sqlReader) publishRows(table database.Table, rows *sql.Rows, rowChan chan<- database.Table, opts reader.ReadTableOpt) error {
+func (s *sqlReader) publishRows(table *database.Table, rows *sql.Rows, rowChan chan<- *database.Table, opts reader.ReadTableOpt) error {
 	columnTypes, err := rows.ColumnTypes()
 	if err != nil {
 		return err

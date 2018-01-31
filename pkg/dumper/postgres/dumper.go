@@ -39,7 +39,7 @@ func (p *pgDumper) DumpStructure(sql string) error {
 	return nil
 }
 
-func (p *pgDumper) DumpTable(tableName string, rowChan <-chan database.Table) error {
+func (p *pgDumper) DumpTable(tableName string, rowChan <-chan *database.Table) error {
 	txn, err := p.conn.Begin()
 	if err != nil {
 		return errors.Wrap(err, "failed to open transaction")
@@ -89,7 +89,7 @@ func (p *pgDumper) Close() error {
 	return p.conn.Close()
 }
 
-func (p *pgDumper) insertIntoTable(txn *sql.Tx, tableName string, rowChan <-chan database.Table) (int64, error) {
+func (p *pgDumper) insertIntoTable(txn *sql.Tx, tableName string, rowChan <-chan *database.Table) (int64, error) {
 	columns, err := p.reader.GetColumns(tableName)
 	if err != nil {
 		return 0, err

@@ -25,7 +25,7 @@ func NewAnonymiser(source reader.Reader, tables config.Tables) reader.Reader {
 	return &anonymiser{source, tables}
 }
 
-func (a *anonymiser) ReadTable(tableName string, rowChan chan<- database.Table, opts reader.ReadTableOpt) error {
+func (a *anonymiser) ReadTable(tableName string, rowChan chan<- *database.Table, opts reader.ReadTableOpt) error {
 	logger := log.WithField("table", tableName)
 
 	logger.Debug("Loading anonymiser config")
@@ -41,7 +41,7 @@ func (a *anonymiser) ReadTable(tableName string, rowChan chan<- database.Table, 
 	}
 
 	// Create read/write chanel
-	rawChan := make(chan database.Table)
+	rawChan := make(chan *database.Table)
 
 	// Anonimise the rows
 	go func() {

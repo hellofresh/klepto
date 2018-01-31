@@ -16,8 +16,8 @@ type (
 	Row map[string]interface{}
 )
 
-func NewTable(name string) Table {
-	return Table{
+func NewTable(name string) *Table {
+	return &Table{
 		Name: name,
 		Row:  make(map[string]interface{}),
 	}

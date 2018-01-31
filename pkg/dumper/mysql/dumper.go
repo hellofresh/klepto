@@ -105,16 +105,9 @@ func (p *myDumper) insertIntoTable(txn *sql.Tx, tableName string, rowChan <-chan
 			// Put the data in the correct order and format
 			rowValues := make([]string, len(columnsForTable))
 			for i, col := range columnsForTable {
-				switch v := table.Row[col].(type) {
-				case nil:
-					rowValues[i] = "NULL"
-				case string:
-					rowValues[i] = table.Row[col].(string)
-				case []uint8:
-					rowValues[i] = string(table.Row[col].([]uint8))
-				default:
-					log.WithField("type", v).Info("we have an unhandled type. attempting to convert to a string \n")
-					rowValues[i] = table.Row[col].(string)
+				rowValues[i], err = database.ToSQLStringValue(table.Row[col])
+				if err != nil {
+					log.WithError(err).Error("could not assert type for row value")
 				}
 			}
 

@@ -3,9 +3,7 @@ package generic
 import (
 	"database/sql"
 	"fmt"
-	"strconv"
 	"sync"
-	"time"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/hellofresh/klepto/pkg/database"
@@ -161,7 +159,7 @@ func (s *sqlReader) publishRows(table database.Table, rows *sql.Rows, rowChan ch
 			}
 			relationshipOpts.Columns = s.formatColumns(r.ReferencedTable, relationshipColumns)
 
-			rowValue, err := s.toSQLStringValue(table.Row[r.ForeignKey])
+			rowValue, err := database.ToSQLStringValue(table.Row[r.ForeignKey])
 			if err != nil {
 				log.WithField("column", r.ForeignKey).WithError(err).Error("Failed to parse an SQL value for column")
 				continue
@@ -221,46 +219,4 @@ func (s *sqlReader) formatColumns(tableName string, columns []string) []string {
 	}
 
 	return formatted
-}
-
-// ResolveType accepts a value and attempts to determine its type
-func (s *sqlReader) toSQLStringValue(src interface{}) (string, error) {
-	switch src.(type) {
-	case int64:
-		if value, ok := src.(int64); ok {
-			return strconv.FormatInt(value, 10), nil
-		}
-	case float64:
-		if value, ok := src.(float64); ok {
-			return fmt.Sprintf("%v", value), nil
-		}
-	case bool:
-		if value, ok := src.(bool); ok {
-			return strconv.FormatBool(value), nil
-		}
-	case string:
-		if value, ok := src.(string); ok {
-			return value, nil
-		}
-	case []byte:
-		// TODO handle blobs?
-		if value, ok := src.([]byte); ok {
-			return string(value), nil
-		}
-	case time.Time:
-		if value, ok := src.(time.Time); ok {
-			return value.String(), nil
-		}
-	case nil:
-		return "NULL", nil
-	case *interface{}:
-		if src == nil {
-			return "NULL", nil
-		}
-		return s.toSQLStringValue(*(src.(*interface{})))
-	default:
-		return "", errors.New("could not parse type")
-	}
-
-	return "", nil
 }

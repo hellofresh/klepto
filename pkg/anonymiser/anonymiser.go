@@ -53,6 +53,10 @@ func (a *anonymiser) ReadTable(tableName string, rowChan chan<- *database.Table,
 			}
 
 			for column, fakerType := range tableConfig.Anonymise {
+				if _, ok := table.Row[column]; !ok {
+					continue
+				}
+
 				if strings.HasPrefix(fakerType, literalPrefix) {
 					table.Row[column] = strings.TrimPrefix(fakerType, literalPrefix)
 					continue

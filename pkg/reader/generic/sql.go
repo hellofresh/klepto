@@ -83,8 +83,6 @@ func (s *sqlReader) GetColumns(tableName string) ([]string, error) {
 
 // ReadTable returns a list of all rows in a table
 func (s *sqlReader) ReadTable(tableName string, rowChan chan<- *database.Table, opts reader.ReadTableOpt) error {
-	defer close(rowChan)
-
 	logger := log.WithField("table", tableName)
 	logger.Debug("Reading table data")
 
@@ -111,15 +109,20 @@ func (s *sqlReader) ReadTable(tableName string, rowChan chan<- *database.Table, 
 
 		return errors.Wrap(err, "failed to query rows")
 	}
-	// defer rows.Close()
-	s.publishRows(tableName, rows, rowChan, opts)
 
-	logger.Debug("Publishing rows")
+	logger.Debug("publish rows")
+	err = s.publishRows(tableName, rows, rowChan, opts)
+	if err != nil {
+		logger.Debug("failed to publish rows")
+	}
 
 	return err
 }
 
 func (s *sqlReader) publishRows(tableName string, rows *sql.Rows, rowChan chan<- *database.Table, opts reader.ReadTableOpt) error {
+	defer close(rowChan)
+	defer rows.Close()
+
 	columnTypes, err := rows.ColumnTypes()
 	if err != nil {
 		return err

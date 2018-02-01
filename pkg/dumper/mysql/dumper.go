@@ -58,7 +58,6 @@ func (p *myDumper) DumpTable(tableName string, rowChan <-chan *database.Table) e
 	}).Debug("inserted rows")
 
 	if err := txn.Commit(); err != nil {
-		txn.Rollback()
 		return errors.Wrap(err, "failed to commit transaction")
 	}
 

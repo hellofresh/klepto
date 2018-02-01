@@ -98,43 +98,43 @@ func (p *sqlDumper) readAndDumpTables(done chan<- struct{}, configTables config.
 		done <- struct{}{}
 	}()
 
-	filteredTables := configTables.FilterRelashionships(tables)
-
-	// Create read/write chanel
-	rowChan := make(chan *database.Table)
+	relationships := configTables.FlattenRelationships()
 
 	for _, tbl := range tables {
-		// semaphoreChan <- struct{}{}
+		semaphoreChan <- struct{}{}
+		// Create read/write chanel
+		rowChan := make(chan *database.Table)
+
 		go func(tableName string, rowChan <-chan *database.Table) {
 			defer wg.Done()
-			// defer func(semaphoreChan <-chan struct{}) { <-semaphoreChan }(semaphoreChan)
+			defer func(semaphoreChan <-chan struct{}) { <-semaphoreChan }(semaphoreChan)
 
 			if err := p.DumpTable(tableName, rowChan); err != nil {
 				log.WithError(err).Error("Failed to dump table")
 			}
 		}(tbl, rowChan)
-	}
 
-	for _, tbl := range filteredTables {
-		go func(tableName string, rowChan chan<- *database.Table) {
-			var opts reader.ReadTableOpt
+		if _, ok := relationships[tbl]; !ok {
+			go func(tableName string, rowChan chan<- *database.Table) {
+				var opts reader.ReadTableOpt
 
-			tableConfig, err := configTables.FindByName(tableName)
-			if err != nil {
-				log.WithError(err).WithField("table", tableName).Debug("no configuration found for table")
-			}
-
-			if tableConfig != nil {
-				opts = reader.ReadTableOpt{
-					Limit:         tableConfig.Filter.Limit,
-					Relationships: p.relationshipConfigToOptions(tableConfig.Relationships),
+				tableConfig, err := configTables.FindByName(tableName)
+				if err != nil {
+					log.WithError(err).WithField("table", tableName).Debug("no configuration found for table")
 				}
-			}
 
-			if err := p.reader.ReadTable(tableName, rowChan, opts); err != nil {
-				log.WithError(err).WithField("table", tableName).Error("Failed to read table")
-			}
-		}(tbl, rowChan)
+				if tableConfig != nil {
+					opts = reader.ReadTableOpt{
+						Limit:         tableConfig.Filter.Limit,
+						Relationships: p.relationshipConfigToOptions(tableConfig.Relationships),
+					}
+				}
+
+				if err := p.reader.ReadTable(tableName, rowChan, opts); err != nil {
+					log.WithError(err).WithField("table", tableName).Error("Failed to read table")
+				}
+			}(tbl, rowChan)
+		}
 	}
 
 	return nil

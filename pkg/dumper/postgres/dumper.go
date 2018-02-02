@@ -122,10 +122,13 @@ func (p *pgDumper) insertIntoTable(txn *sql.Tx, tableName string, rowChan <-chan
 		// Put the data in the correct order
 		rowValues := make([]interface{}, len(columns))
 		for i, col := range columns {
-			rowValues[i], err = database.ToSQLStringValue(table.Row[col])
-			if err != nil {
-				logger.WithError(err).Error("could not assert type for row value")
+			val := table.Row[col]
+			switch val.(type) {
+			case []byte:
+				val = string(val.([]byte))
 			}
+
+			rowValues[i] = val
 		}
 
 		// Insert

@@ -5,7 +5,7 @@ Klepto
 
 > Klepto is a tool for copying and anonymising data
 
-Klepto helps you keep the data in your enviroment as consistent as it can by copying it form another enviroment's database. The reason for this is that you might have production data that you'd like to use for testing but you don't want to use the real customer information for your testing or local debuging. That's when Klepto comes very handy and will deal with that for you!
+Klepto helps you keep the data in your environment as consistent as it can by copying it from another environment's database. The reason for this is that you might have production data that you'd like to use for testing but you don't want to use the real customer information for your testing or local debugging. That's when Klepto comes very handy and will deal with that for you!
 
 ## Getting Started
 

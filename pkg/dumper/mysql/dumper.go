@@ -73,7 +73,7 @@ func (p *myDumper) insertIntoTable(txn *sql.Tx, tableName string, rowChan <-chan
 	if err != nil {
 		return 0, err
 	}
-	// Create query
+
 	columnsQuoted := make([]string, len(columns))
 	for i, column := range columns {
 		columnsQuoted[i] = p.quoteIdentifier(column)
@@ -93,20 +93,27 @@ func (p *myDumper) insertIntoTable(txn *sql.Tx, tableName string, rowChan <-chan
 
 	// Write all rows as csv to the pipe
 	rowReader, rowWriter := io.Pipe()
+	mysql.RegisterReaderHandler(tableName, func() io.Reader { return rowReader })
+	defer mysql.DeregisterReaderHandler(tableName)
+
+	logger.Debug("reader handler registered")
+
 	var inserted int64
 
-	go func(writer *io.PipeWriter) {
+	go func(writer *io.PipeWriter, rowChan <-chan *database.Table) {
 		defer writer.Close()
 
 		w := csv.NewWriter(writer)
 		defer w.Flush()
 
 		for {
-			table, more := <-rowChan
-			if !more {
+			table, ok := <-rowChan
+			if !ok {
 				logger.Debug("rowChan was closed")
 				break
 			}
+
+			log.WithField("table_name", tableName).Debug("receiving row record")
 
 			columnsForTable, _ := p.reader.GetColumns(table.Name)
 
@@ -121,23 +128,25 @@ func (p *myDumper) insertIntoTable(txn *sql.Tx, tableName string, rowChan <-chan
 
 			if err := w.Write(rowValues); err != nil {
 				logger.WithError(err).Error("error writing record to mysql")
+			} else {
+				atomic.AddInt64(&inserted, 1)
 			}
-
-			atomic.AddInt64(&inserted, 1)
 		}
-	}(rowWriter)
+	}(rowWriter, rowChan)
 
-	// Register the reader for reading the csv
-	mysql.RegisterReaderHandler(tableName, func() io.Reader {
-		return rowReader
-	})
-	defer mysql.DeregisterReaderHandler(tableName)
+	logger.Debug("executing set foreign_key_checks for load data")
+	if _, err := txn.Exec("SET foreign_key_checks = 0;"); err != nil {
+		logger.WithError(err).Error("Could not set foreign_key_checks for query")
+		return 0, err
+	}
 
-	// Execute the query
-	txn.Exec("SET foreign_key_checks = 0;")
+	logger.Debug("executing query reader for load data")
 	if _, err := txn.Exec(query); err != nil {
 		logger.WithError(err).Error("Could not insert data")
+		return 0, err
 	}
+
+	logger.Debug("load query reader executed")
 
 	return inserted, nil
 }

@@ -77,11 +77,11 @@ func (p *sqlDumper) readAndDumpTables(done chan<- struct{}, configTables config.
 		}
 	}
 
+	wg := sync.WaitGroup{}
+	wg.Add(len(tables))
+
 	// TODO make the amount on concurrent dumps configurable
 	semaphoreChan := make(chan struct{}, 10)
-
-	var wg sync.WaitGroup
-	wg.Add(len(tables))
 
 	go func() {
 		// Wait for all table to be dumped
@@ -105,17 +105,19 @@ func (p *sqlDumper) readAndDumpTables(done chan<- struct{}, configTables config.
 		// Create read/write chanel
 		rowChan := make(chan *database.Table)
 
-		go func(tableName string, rowChan <-chan *database.Table) {
+		go func(tableName string, rowChan <-chan *database.Table, wg *sync.WaitGroup) {
 			defer wg.Done()
 			defer func(semaphoreChan <-chan struct{}) { <-semaphoreChan }(semaphoreChan)
 
 			if err := p.DumpTable(tableName, rowChan); err != nil {
 				log.WithError(err).Error("Failed to dump table")
 			}
-		}(tbl, rowChan)
+		}(tbl, rowChan, &wg)
 
+		// we should only read table without relationships
+		// the parent table manages to load relationships
 		if _, ok := relationships[tbl]; !ok {
-			go func(tableName string, rowChan chan<- *database.Table) {
+			go func(tableName string, rowChan chan<- *database.Table, wg *sync.WaitGroup) {
 				var opts reader.ReadTableOpt
 
 				tableConfig, err := configTables.FindByName(tableName)
@@ -133,7 +135,7 @@ func (p *sqlDumper) readAndDumpTables(done chan<- struct{}, configTables config.
 				if err := p.reader.ReadTable(tableName, rowChan, opts); err != nil {
 					log.WithError(err).WithField("table", tableName).Error("Failed to read table")
 				}
-			}(tbl, rowChan)
+			}(tbl, rowChan, &wg)
 		}
 	}
 

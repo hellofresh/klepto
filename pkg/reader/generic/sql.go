@@ -83,6 +83,8 @@ func (s *sqlReader) GetColumns(tableName string) ([]string, error) {
 
 // ReadTable returns a list of all rows in a table
 func (s *sqlReader) ReadTable(tableName string, rowChan chan<- *database.Table, opts reader.ReadTableOpt) error {
+	defer close(rowChan)
+
 	logger := log.WithField("table", tableName)
 	logger.Debug("Reading table data")
 
@@ -110,23 +112,25 @@ func (s *sqlReader) ReadTable(tableName string, rowChan chan<- *database.Table, 
 		return errors.Wrap(err, "failed to query rows")
 	}
 
-	logger.Debug("publish rows")
-	err = s.publishRows(tableName, rows, rowChan, opts)
-	if err != nil {
+	logger.Debug("publishing rows")
+	if err := s.publishRows(tableName, rows, rowChan, opts); err != nil {
 		logger.Debug("failed to publish rows")
+		return err
 	}
 
-	return err
+	logger.Debug("rows published")
+
+	return nil
 }
 
 func (s *sqlReader) publishRows(tableName string, rows *sql.Rows, rowChan chan<- *database.Table, opts reader.ReadTableOpt) error {
-	defer close(rowChan)
 	defer rows.Close()
 
 	columnTypes, err := rows.ColumnTypes()
 	if err != nil {
 		return err
 	}
+
 	columnCount := len(columnTypes)
 	columns := make([]string, columnCount)
 	for i, col := range columnTypes {
@@ -143,8 +147,7 @@ func (s *sqlReader) publishRows(tableName string, rows *sql.Rows, rowChan chan<-
 			fieldPointers[i] = &fields[i]
 		}
 
-		err := rows.Scan(fieldPointers...)
-		if err != nil {
+		if err := rows.Scan(fieldPointers...); err != nil {
 			log.WithError(err).Warning("Failed to fetch row")
 			continue
 		}
@@ -185,8 +188,8 @@ func (s *sqlReader) publishRows(tableName string, rows *sql.Rows, rowChan chan<-
 
 				return errors.Wrap(err, "failed to query rows")
 			}
-			err = s.publishRows(r.ReferencedTable, relationshipRows, rowChan, relationshipOpts)
-			if err != nil {
+
+			if err := s.publishRows(r.ReferencedTable, relationshipRows, rowChan, relationshipOpts); err != nil {
 				log.WithError(err).Error("There was an error publishing relationship rows")
 			}
 		}

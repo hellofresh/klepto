@@ -44,7 +44,7 @@ func (p *myDumper) DumpStructure(sql string) error {
 }
 
 func (p *myDumper) DumpTable(tableName string, rowChan <-chan *database.Table) error {
-	ctx, cancel := context.WithTimeout(context.TODO(), time.Second*10)
+	ctx, cancel := context.WithTimeout(context.TODO(), time.Second*20)
 	defer cancel()
 
 	txn, err := p.conn.BeginTx(ctx, nil)
@@ -102,12 +102,8 @@ func (p *myDumper) insertIntoTable(ctx context.Context, txn *sql.Tx, tableName s
 
 	var inserted int64
 
-	sem := make(chan struct{}, 1)
-	sem <- struct{}{}
-
-	go func(writer *io.PipeWriter, rowChan <-chan *database.Table, sem <-chan struct{}) {
+	go func(writer *io.PipeWriter, rowChan <-chan *database.Table) {
 		defer writer.Close()
-		defer func(sem <-chan struct{}) { <-sem }(sem)
 
 		w := csv.NewWriter(writer)
 		defer w.Flush()
@@ -138,7 +134,7 @@ func (p *myDumper) insertIntoTable(ctx context.Context, txn *sql.Tx, tableName s
 				atomic.AddInt64(&inserted, 1)
 			}
 		}
-	}(rowWriter, rowChan, sem)
+	}(rowWriter, rowChan)
 
 	logger.Debug("executing set foreign_key_checks for load data")
 	if _, err := txn.ExecContext(ctx, "SET foreign_key_checks = 0;"); err != nil {

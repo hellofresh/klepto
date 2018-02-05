@@ -67,3 +67,15 @@ func (t Tables) FilterRelashionships(tables []string) []string {
 
 	return filteredTables
 }
+
+func (t Tables) FindByRelationship(tableName string) (*Relationship, error) {
+	for _, table := range t {
+		for _, r := range table.Relationships {
+			if r.ReferencedTable == tableName {
+				return r, nil
+			}
+		}
+	}
+
+	return nil, errors.New("relationship table not found")
+}

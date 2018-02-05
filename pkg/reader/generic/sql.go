@@ -15,39 +15,23 @@ import (
 // sqlReader is a base class for sql related readers
 type (
 	sqlReader struct {
-		SqlEngine
+		reader.SqlEngine
 
 		// tables is a cache variable for all tables in the db
 		tables []string
 		// columns is a cache variable for tables and there columns in the db
 		columns sync.Map
 	}
-
-	SqlEngine interface {
-		// GetConnection return the sql.DB connection
-		GetConnection() *sql.DB
-
-		// GetStructure returns the SQL used to create the database tables
-		GetStructure() (string, error)
-
-		// GetTables return a list of all database tables
-		GetTables() ([]string, error)
-
-		// GetColumns return a list of all columns for a given table
-		GetColumns(string) ([]string, error)
-
-		// QuoteIdentifier returns a quoted instance of a identifier (table, column etc.)
-		QuoteIdentifier(string) string
-
-		// Close closes the connection and other resources and releases them.
-		Close() error
-	}
 )
 
-func NewSqlReader(engine SqlEngine) reader.Reader {
+func NewSqlReader(engine reader.SqlEngine) reader.Reader {
 	return &sqlReader{
 		SqlEngine: engine,
 	}
+}
+
+func (s *sqlReader) GetSQLEngine() reader.SqlEngine {
+	return s.SqlEngine
 }
 
 // GetTables gets a list of all tables in the database
@@ -154,44 +138,6 @@ func (s *sqlReader) publishRows(tableName string, rows *sql.Rows, rowChan chan<-
 
 		for idx, column := range columns {
 			table.Row[column] = fields[idx]
-		}
-
-		for _, r := range opts.Relationships {
-			relationshipOpts := reader.ReadTableOpt{}
-			relationshipColumns, err := s.GetColumns(r.ReferencedTable)
-			if err != nil {
-				return errors.Wrap(err, "failed to get columns")
-			}
-			relationshipOpts.Columns = s.formatColumns(r.ReferencedTable, relationshipColumns)
-
-			value, _ := table.Row[r.ForeignKey]
-			rowValue, err := database.ToSQLStringValue(value)
-			if err != nil {
-				log.WithField("column", r.ForeignKey).WithError(err).Error("Failed to parse an SQL value for column")
-				continue
-			}
-
-			q, _ := s.buildQuery(r.ReferencedTable, relationshipOpts)
-			q = q.Where(fmt.Sprintf(
-				"%s = '%v'",
-				r.ReferencedKey,
-				rowValue,
-			))
-
-			relationshipRows, err := q.RunWith(s.GetConnection()).Query()
-			if err != nil {
-				querySQL, queryParams, _ := q.ToSql()
-				log.WithError(err).WithFields(log.Fields{
-					"query":  querySQL,
-					"params": queryParams,
-				}).Error("failed to query relationship rows")
-
-				return errors.Wrap(err, "failed to query rows")
-			}
-
-			if err := s.publishRows(r.ReferencedTable, relationshipRows, rowChan, relationshipOpts); err != nil {
-				log.WithError(err).Error("There was an error publishing relationship rows")
-			}
 		}
 
 		rowChan <- table

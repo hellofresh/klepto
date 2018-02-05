@@ -90,26 +90,12 @@ func (p *pgDumper) Close() error {
 }
 
 func (p *pgDumper) insertIntoTable(txn *sql.Tx, tableName string, rowChan <-chan *database.Table) (int64, error) {
-	columns, err := p.reader.GetColumns(tableName)
-	if err != nil {
-		return 0, err
-	}
 
 	logger := log.WithFields(log.Fields{
-		"table":   tableName,
-		"columns": columns,
+	// "table":   tableName,
+	// "columns": columns,
 	})
 	logger.Debug("Preparing copy in")
-
-	stmt, err := txn.Prepare(pq.CopyIn(tableName, columns...))
-	if err != nil {
-		return 0, errors.Wrap(err, "failed to prepare copy in")
-	}
-	defer func() {
-		if err = stmt.Close(); err != nil {
-			log.WithError(err).Error("failed to close copy in statement")
-		}
-	}()
 
 	var inserted int64
 	for {
@@ -118,6 +104,21 @@ func (p *pgDumper) insertIntoTable(txn *sql.Tx, tableName string, rowChan <-chan
 			logger.Debug("rowChan was closed")
 			break
 		}
+
+		columns, err := p.reader.GetColumns(table.Name)
+		if err != nil {
+			return 0, err
+		}
+
+		stmt, err := txn.Prepare(pq.CopyIn(table.Name, columns...))
+		if err != nil {
+			return 0, errors.Wrap(err, "failed to prepare copy in")
+		}
+		defer func() {
+			if err = stmt.Close(); err != nil {
+				log.WithError(err).Error("failed to close copy in statement")
+			}
+		}()
 
 		// Put the data in the correct order
 		rowValues := make([]interface{}, len(columns))
@@ -132,17 +133,17 @@ func (p *pgDumper) insertIntoTable(txn *sql.Tx, tableName string, rowChan <-chan
 		}
 
 		// Insert
-		_, err := stmt.Exec(rowValues...)
+		_, err = stmt.Exec(rowValues...)
 		if err != nil {
 			return 0, errors.Wrap(err, "failed to copy in row")
 		}
 
-		inserted++
-	}
+		logger.Debug("Executing copy in")
+		if _, err := stmt.Exec(); err != nil {
+			return 0, errors.Wrap(err, "failed to exec copy in")
+		}
 
-	logger.Debug("Executing copy in")
-	if _, err := stmt.Exec(); err != nil {
-		return 0, errors.Wrap(err, "failed to exec copy in")
+		inserted++
 	}
 
 	return inserted, nil

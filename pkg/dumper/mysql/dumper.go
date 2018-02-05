@@ -2,13 +2,10 @@ package mysql
 
 import (
 	"database/sql"
-	"encoding/csv"
 	"fmt"
-	"io"
 	"strings"
-	"sync/atomic"
 
-	"github.com/go-sql-driver/mysql"
+	sq "github.com/Masterminds/squirrel"
 	"github.com/hellofresh/klepto/pkg/database"
 	"github.com/hellofresh/klepto/pkg/dumper"
 	"github.com/hellofresh/klepto/pkg/dumper/generic"
@@ -69,84 +66,26 @@ func (p *myDumper) Close() error {
 }
 
 func (p *myDumper) insertIntoTable(txn *sql.Tx, tableName string, rowChan <-chan *database.Table) (int64, error) {
-	columns, err := p.reader.GetColumns(tableName)
-	if err != nil {
-		return 0, err
-	}
-
-	columnsQuoted := make([]string, len(columns))
-	for i, column := range columns {
-		columnsQuoted[i] = p.quoteIdentifier(column)
-	}
-	query := fmt.Sprintf(
-		"LOAD DATA LOCAL INFILE 'Reader::%s' INTO TABLE %s FIELDS TERMINATED BY ',' ENCLOSED BY '\"' ESCAPED BY '\"' (%s)",
-		tableName,
-		p.quoteIdentifier(tableName),
-		strings.Join(columnsQuoted, ","),
-	)
-
-	logger := log.WithFields(log.Fields{
-		"table":   tableName,
-		"columns": columns,
-	})
-	logger.Debug("Preparing copy in")
-
-	// Write all rows as csv to the pipe
-	rowReader, rowWriter := io.Pipe()
-	mysql.RegisterReaderHandler(tableName, func() io.Reader { return rowReader })
-	defer mysql.DeregisterReaderHandler(tableName)
-
-	logger.Debug("reader handler registered")
-
 	var inserted int64
 
-	go func(writer *io.PipeWriter, rowChan <-chan *database.Table) {
-		defer writer.Close()
-
-		w := csv.NewWriter(writer)
-		defer w.Flush()
-
-		for {
-			table, ok := <-rowChan
-			if !ok {
-				logger.Debug("rowChan was closed")
-				break
-			}
-
-			log.WithField("table_name", tableName).Debug("receiving row record")
-
-			columnsForTable, _ := p.reader.GetColumns(table.Name)
-
-			// Put the data in the correct order and format
-			rowValues := make([]string, len(columnsForTable))
-			for i, col := range columnsForTable {
-				rowValues[i], err = database.ToSQLStringValue(table.Row[col])
-				if err != nil {
-					logger.WithError(err).Error("could not assert type for row value")
-				}
-			}
-
-			if err := w.Write(rowValues); err != nil {
-				logger.WithError(err).Error("error writing record to mysql")
-			} else {
-				atomic.AddInt64(&inserted, 1)
-			}
-		}
-	}(rowWriter, rowChan)
-
-	logger.Debug("executing set foreign_key_checks for load data")
+	log.Debug("executing set foreign_key_checks for load data")
 	if _, err := txn.Exec("SET foreign_key_checks = 0;"); err != nil {
-		logger.WithError(err).Error("Could not set foreign_key_checks for query")
+		log.WithError(err).Error("Could not set foreign_key_checks for query")
 		return 0, err
 	}
 
-	logger.Debug("executing query reader for load data")
-	if _, err := txn.Exec(query); err != nil {
-		logger.WithError(err).Error("Could not insert data")
-		return 0, err
-	}
+	for {
+		table, more := <-rowChan
+		if !more {
+			break
+		}
 
-	logger.Debug("load query reader executed")
+		insert := sq.Insert(table.Name).SetMap(p.toSQLColumnMap(table.Row))
+		_, err := insert.RunWith(txn).Exec()
+		if err != nil {
+			log.WithError(err).WithField("table", tableName).Error("Could not insert record")
+		}
+	}
 
 	return inserted, nil
 }

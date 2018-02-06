@@ -36,9 +36,6 @@ func (m *driver) NewConnection(dsn string, rdr reader.Reader) (dumper.Dumper, er
 		return nil, err
 	}
 
-	// avoid error=io: read/write on closed pipe
-	conn.SetMaxIdleConns(0)
-
 	return NewDumper(conn, rdr), nil
 }
 

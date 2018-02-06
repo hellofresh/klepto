@@ -1,9 +1,11 @@
 package mysql
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"strings"
+	"time"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/hellofresh/klepto/pkg/database"
@@ -39,20 +41,20 @@ func (p *myDumper) DumpStructure(sql string) error {
 }
 
 func (p *myDumper) DumpTable(tableName string, rowChan <-chan *database.Table) error {
-	txn, err := p.conn.Begin()
+	ctx, cancel := context.WithTimeout(context.TODO(), time.Second*20)
+	defer cancel()
+
+	txn, err := p.conn.BeginTx(ctx, nil)
 	if err != nil {
 		return errors.Wrap(err, "failed to open transaction")
 	}
 
 	insertedRows, err := p.insertIntoTable(txn, tableName, rowChan)
 	if err != nil {
-		txn.Rollback()
 		return errors.Wrap(err, "failed to insert rows")
 	}
 
-	log.WithFields(log.Fields{
-		"inserted": insertedRows,
-	}).Debug("inserted rows")
+	log.WithField("inserted", insertedRows).Debug("inserted rows")
 
 	if err := txn.Commit(); err != nil {
 		return errors.Wrap(err, "failed to commit transaction")

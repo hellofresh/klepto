@@ -85,6 +85,8 @@ func (p *myDumper) insertIntoTable(txn *sql.Tx, tableName string, rowChan <-chan
 		if err != nil {
 			log.WithError(err).WithField("table", tableName).Error("Could not insert record")
 		}
+
+		inserted++
 	}
 
 	return inserted, nil

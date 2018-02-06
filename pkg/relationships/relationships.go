@@ -46,7 +46,8 @@ func (a *relationships) ReadTable(tableName string, rowChan chan<- *database.Tab
 
 			tableConfig, err := a.tables.FindByName(table.Name)
 			if err != nil {
-				logger.WithError(err).Warn("there is no relationships declared")
+				// logger.WithError(err).Warn("there is no relationships declared")
+				rowChan <- table
 				continue
 			}
 

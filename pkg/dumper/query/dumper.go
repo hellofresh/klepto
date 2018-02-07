@@ -3,8 +3,6 @@ package query
 import (
 	"fmt"
 	"io"
-	"strconv"
-	"time"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/hellofresh/klepto/pkg/config"
@@ -57,17 +55,17 @@ func (d *textDumper) Dump(done chan<- struct{}, configTables config.Tables) erro
 		}
 
 		// Create read/write chanel
-		rowChan := make(chan database.Row)
+		rowChan := make(chan *database.Table)
 
 		go func(tableName string) {
 			for {
-				row, more := <-rowChan
+				table, more := <-rowChan
 				if !more {
 					done <- struct{}{}
 					return
 				}
 
-				columnMap, err := d.toSQLColumnMap(row)
+				columnMap, err := d.toSQLColumnMap(table.Row)
 				if err != nil {
 					log.WithError(err).Fatal("could not convert value to string")
 				}
@@ -99,7 +97,7 @@ func (d *textDumper) toSQLColumnMap(row database.Row) (map[string]interface{}, e
 	sqlColumnMap := make(map[string]interface{})
 
 	for column, value := range row {
-		strValue, err := d.toSQLStringValue(value)
+		strValue, err := database.ToSQLStringValue(value)
 		if err != nil {
 			return sqlColumnMap, err
 		}
@@ -108,48 +106,6 @@ func (d *textDumper) toSQLColumnMap(row database.Row) (map[string]interface{}, e
 	}
 
 	return sqlColumnMap, nil
-}
-
-// ResolveType accepts a value and attempts to determine its type
-func (d *textDumper) toSQLStringValue(src interface{}) (string, error) {
-	switch src.(type) {
-	case int64:
-		if value, ok := src.(int64); ok {
-			return strconv.FormatInt(value, 10), nil
-		}
-	case float64:
-		if value, ok := src.(float64); ok {
-			return fmt.Sprintf("%v", value), nil
-		}
-	case bool:
-		if value, ok := src.(bool); ok {
-			return strconv.FormatBool(value), nil
-		}
-	case string:
-		if value, ok := src.(string); ok {
-			return value, nil
-		}
-	case []byte:
-		// TODO handle blobs?
-		if value, ok := src.([]byte); ok {
-			return string(value), nil
-		}
-	case time.Time:
-		if value, ok := src.(time.Time); ok {
-			return value.String(), nil
-		}
-	case nil:
-		return "NULL", nil
-	case *interface{}:
-		if src == nil {
-			return "NULL", nil
-		}
-		return d.toSQLStringValue(*(src.(*interface{})))
-	default:
-		return "", errors.New("could not parse type")
-	}
-
-	return "", nil
 }
 
 func (d *textDumper) relationshipConfigToOptions(relationshipsConfig []*config.Relationship) []*reader.RelationshipOpt {

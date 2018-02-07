@@ -21,7 +21,7 @@ type (
 	SqlEngine interface {
 		DumpStructure(sql string) error
 
-		DumpTable(tableName string, rowChan <-chan database.Row) error
+		DumpTable(tableName string, rowChan <-chan *database.Table) error
 
 		// Close closes the dumper resources and releases them.
 		Close() error
@@ -77,11 +77,11 @@ func (p *sqlDumper) readAndDumpTables(done chan<- struct{}, configTables config.
 		}
 	}
 
+	wg := sync.WaitGroup{}
+	wg.Add(len(configTables.FilterRelashionships(tables)))
+
 	// TODO make the amount on concurrent dumps configurable
 	semaphoreChan := make(chan struct{}, 10)
-
-	var wg sync.WaitGroup
-	wg.Add(len(tables))
 
 	go func() {
 		// Wait for all table to be dumped
@@ -100,38 +100,37 @@ func (p *sqlDumper) readAndDumpTables(done chan<- struct{}, configTables config.
 
 	for _, tbl := range tables {
 		semaphoreChan <- struct{}{}
-
-		var opts reader.ReadTableOpt
-
-		table, err := configTables.FindByName(tbl)
-		if err != nil {
-			log.WithError(err).WithField("table", tbl).Debug("no configuration found for table")
-		}
-
-		if table != nil {
-			opts = reader.ReadTableOpt{
-				Limit:         table.Filter.Limit,
-				Relationships: p.relationshipConfigToOptions(table.Relationships),
-			}
-		}
-
 		// Create read/write chanel
-		rowChan := make(chan database.Row)
+		rowChan := make(chan *database.Table)
 
-		go func(tableName string, rowChan <-chan database.Row) {
+		go func(tableName string, rowChan <-chan *database.Table, wg *sync.WaitGroup) {
 			defer wg.Done()
 			defer func(semaphoreChan <-chan struct{}) { <-semaphoreChan }(semaphoreChan)
 
 			if err := p.DumpTable(tableName, rowChan); err != nil {
-				log.WithError(err).WithField("table", tableName).Error("Failed to dump table")
+				log.WithError(err).Error("Failed to dump table")
 			}
-		}(tbl, rowChan)
+		}(tbl, rowChan, &wg)
 
-		go func(tableName string, opts reader.ReadTableOpt, rowChan chan<- database.Row) {
+		go func(tableName string, rowChan chan<- *database.Table, wg *sync.WaitGroup) {
+			var opts reader.ReadTableOpt
+
+			tableConfig, err := configTables.FindByName(tableName)
+			if err != nil {
+				log.WithError(err).WithField("table", tableName).Debug("no configuration found for table")
+			}
+
+			if tableConfig != nil {
+				opts = reader.ReadTableOpt{
+					Limit:         tableConfig.Filter.Limit,
+					Relationships: p.relationshipConfigToOptions(tableConfig.Relationships),
+				}
+			}
+
 			if err := p.reader.ReadTable(tableName, rowChan, opts); err != nil {
 				log.WithError(err).WithField("table", tableName).Error("Failed to read table")
 			}
-		}(tbl, opts, rowChan)
+		}(tbl, rowChan, &wg)
 	}
 
 	return nil

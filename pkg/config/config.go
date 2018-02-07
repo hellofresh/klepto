@@ -42,3 +42,40 @@ func (t Tables) FindByName(name string) (*Table, error) {
 
 	return nil, errors.New("table not found")
 }
+
+func (t Tables) FlattenRelationships() map[string]struct{} {
+	relationships := make(map[string]struct{})
+
+	for _, table := range t {
+		for _, r := range table.Relationships {
+			relationships[r.ReferencedTable] = struct{}{}
+		}
+	}
+
+	return relationships
+}
+
+func (t Tables) FilterRelashionships(tables []string) []string {
+	var filteredTables []string
+	relationships := t.FlattenRelationships()
+
+	for _, t := range tables {
+		if _, ok := relationships[t]; !ok {
+			filteredTables = append(filteredTables, t)
+		}
+	}
+
+	return filteredTables
+}
+
+func (t Tables) FindByRelationship(tableName string) (*Relationship, error) {
+	for _, table := range t {
+		for _, r := range table.Relationships {
+			if r.ReferencedTable == tableName {
+				return r, nil
+			}
+		}
+	}
+
+	return nil, errors.New("relationship table not found")
+}

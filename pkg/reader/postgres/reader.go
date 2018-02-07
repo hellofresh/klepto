@@ -3,6 +3,7 @@ package postgres
 import (
 	"database/sql"
 	"strconv"
+	"sync"
 
 	"github.com/hellofresh/klepto/pkg/reader"
 	"github.com/hellofresh/klepto/pkg/reader/generic"
@@ -14,6 +15,7 @@ type storage struct {
 	PgDump
 
 	connection *sql.DB
+	cache      sync.Map
 }
 
 // NewStorage ...
@@ -60,6 +62,13 @@ func (s *storage) GetTables() ([]string, error) {
 // GetColumns returns the columns in the specified database table
 func (s *storage) GetColumns(table string) ([]string, error) {
 	log.WithField("table", table).Debug("Fetching table columns")
+
+	if c, ok := s.cache.Load(table); ok {
+		if columns, ok := c.([]string); ok {
+			return columns, nil
+		}
+	}
+
 	rows, err := s.connection.Query(
 		"SELECT column_name FROM information_schema.columns WHERE table_catalog=current_database() AND table_name=$1",
 		table,
@@ -78,6 +87,8 @@ func (s *storage) GetColumns(table string) ([]string, error) {
 
 		columns = append(columns, column)
 	}
+
+	s.cache.Store(table, columns)
 
 	return columns, nil
 }

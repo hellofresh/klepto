@@ -1,6 +1,8 @@
 package reader
 
 import (
+	"database/sql"
+
 	"github.com/hellofresh/klepto/pkg/database"
 )
 
@@ -22,8 +24,30 @@ type (
 		// FormatColumn returns a escaped table.column string
 		FormatColumn(tableName string, columnName string) string
 		// ReadTable returns a channel with all database rows
-		ReadTable(string, chan<- database.Row, ReadTableOpt) error
+		ReadTable(string, chan<- *database.Table, ReadTableOpt) error
 		// Close closes the reader resources and releases them.
+		Close() error
+
+		GetSQLEngine() SqlEngine
+	}
+
+	SqlEngine interface {
+		// GetConnection return the sql.DB connection
+		GetConnection() *sql.DB
+
+		// GetStructure returns the SQL used to create the database tables
+		GetStructure() (string, error)
+
+		// GetTables return a list of all database tables
+		GetTables() ([]string, error)
+
+		// GetColumns return a list of all columns for a given table
+		GetColumns(string) ([]string, error)
+
+		// QuoteIdentifier returns a quoted instance of a identifier (table, column etc.)
+		QuoteIdentifier(string) string
+
+		// Close closes the connection and other resources and releases them.
 		Close() error
 	}
 

@@ -25,36 +25,40 @@ func NewAnonymiser(source reader.Reader, tables config.Tables) reader.Reader {
 	return &anonymiser{source, tables}
 }
 
-func (a *anonymiser) ReadTable(tableName string, rowChan chan<- database.Row, opts reader.ReadTableOpt) error {
+func (a *anonymiser) ReadTable(tableName string, rowChan chan<- *database.Table, opts reader.ReadTableOpt) error {
 	logger := log.WithField("table", tableName)
 
 	logger.Debug("Loading anonymiser config")
-	table, err := a.tables.FindByName(tableName)
+	tableConfig, err := a.tables.FindByName(tableName)
 	if err != nil {
 		logger.WithError(err).Debug("the table is not configured to be anonymised")
 		return a.Reader.ReadTable(tableName, rowChan, opts)
 	}
 
-	if len(table.Anonymise) == 0 {
+	if len(tableConfig.Anonymise) == 0 {
 		logger.Debug("Skipping anonymiser")
 		return a.Reader.ReadTable(tableName, rowChan, opts)
 	}
 
 	// Create read/write chanel
-	rawChan := make(chan database.Row)
+	rawChan := make(chan *database.Table)
 
 	// Anonimise the rows
 	go func() {
 		for {
-			row, more := <-rawChan
+			table, more := <-rawChan
 			if !more {
 				close(rowChan)
 				return
 			}
 
-			for column, fakerType := range table.Anonymise {
+			for column, fakerType := range tableConfig.Anonymise {
+				if _, ok := table.Row[column]; !ok {
+					continue
+				}
+
 				if strings.HasPrefix(fakerType, literalPrefix) {
-					row[column] = strings.TrimPrefix(fakerType, literalPrefix)
+					table.Row[column] = strings.TrimPrefix(fakerType, literalPrefix)
 					continue
 				}
 
@@ -63,11 +67,11 @@ func (a *anonymiser) ReadTable(tableName string, rowChan chan<- database.Row, op
 						continue
 					}
 
-					row[column] = faker.Call([]reflect.Value{})[0].String()
+					table.Row[column] = faker.Call([]reflect.Value{})[0].String()
 				}
 			}
 
-			rowChan <- row
+			rowChan <- table
 		}
 	}()
 

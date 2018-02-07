@@ -20,6 +20,10 @@ func (m *driver) NewConnection(dsn string, rdr reader.Reader) (dumper.Dumper, er
 		return nil, err
 	}
 
+	// conn.SetConnMaxLifetime()
+	conn.SetMaxIdleConns(0)
+	//conn.SetMaxOpenConns(50)
+
 	return NewDumper(conn, rdr), nil
 }
 

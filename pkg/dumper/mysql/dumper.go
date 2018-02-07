@@ -85,10 +85,11 @@ func (p *myDumper) insertIntoTable(txn *sql.Tx, tableName string, rowChan <-chan
 		insert := sq.Insert(table.Name).SetMap(p.toSQLColumnMap(table.Row))
 		_, err := insert.RunWith(txn).Exec()
 		if err != nil {
+			// TODO rethink this flow, most likely we should be returning the error and rollback the transaction
 			log.WithError(err).WithField("table", tableName).Error("Could not insert record")
+		} else {
+			inserted++
 		}
-
-		inserted++
 	}
 
 	return inserted, nil

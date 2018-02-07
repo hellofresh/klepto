@@ -35,7 +35,6 @@ func (a *relationships) ReadTable(tableName string, rowChan chan<- *database.Tab
 		return nil
 	}
 
-	// Anonimise the rows
 	go func(tableName string, rowChan chan<- *database.Table, rawChan <-chan *database.Table) {
 		for {
 			table, more := <-rawChan
@@ -46,7 +45,6 @@ func (a *relationships) ReadTable(tableName string, rowChan chan<- *database.Tab
 
 			tableConfig, err := a.tables.FindByName(table.Name)
 			if err != nil {
-				// logger.WithError(err).Warn("there is no relationships declared")
 				rowChan <- table
 				continue
 			}

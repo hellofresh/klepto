@@ -141,7 +141,6 @@ func (s *sqlReader) publishRows(tableName string, rows *sql.Rows, rowChan chan<-
 		}
 
 		rowChan <- table
-		log.Debug("row published")
 	}
 
 	return nil

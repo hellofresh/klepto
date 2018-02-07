@@ -50,6 +50,7 @@ func RunSteal(opts *StealOptions) (err error) {
 	defer source.Close()
 
 	source = anonymiser.NewAnonymiser(source, globalConfig.Tables)
+	// TODO fix this source.GetSQLEngine()
 	source = relationships.New(source, source.GetSQLEngine(), globalConfig.Tables)
 
 	target, err := dumper.NewDumper(opts.to, source)

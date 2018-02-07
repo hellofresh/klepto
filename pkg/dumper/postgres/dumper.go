@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"strconv"
+	"sync"
 
 	"github.com/hellofresh/klepto/pkg/config"
 	"github.com/hellofresh/klepto/pkg/database"
@@ -19,6 +20,7 @@ import (
 type pgDumper struct {
 	conn   *sql.DB
 	reader reader.Reader
+	cache  sync.Map
 }
 
 func NewDumper(conn *sql.DB, rdr reader.Reader) dumper.Dumper {
@@ -90,11 +92,7 @@ func (p *pgDumper) Close() error {
 }
 
 func (p *pgDumper) insertIntoTable(txn *sql.Tx, tableName string, rowChan <-chan *database.Table) (int64, error) {
-
-	logger := log.WithFields(log.Fields{
-	// "table":   tableName,
-	// "columns": columns,
-	})
+	logger := log.WithField("table", tableName)
 	logger.Debug("Preparing copy in")
 
 	var inserted int64
@@ -110,15 +108,10 @@ func (p *pgDumper) insertIntoTable(txn *sql.Tx, tableName string, rowChan <-chan
 			return 0, err
 		}
 
-		stmt, err := txn.Prepare(pq.CopyIn(table.Name, columns...))
+		stmt, err := p.prepare(txn, table.Name, columns)
 		if err != nil {
 			return 0, errors.Wrap(err, "failed to prepare copy in")
 		}
-		defer func() {
-			if err = stmt.Close(); err != nil {
-				log.WithError(err).Error("failed to close copy in statement")
-			}
-		}()
 
 		// Put the data in the correct order
 		rowValues := make([]interface{}, len(columns))
@@ -138,9 +131,12 @@ func (p *pgDumper) insertIntoTable(txn *sql.Tx, tableName string, rowChan <-chan
 			return 0, errors.Wrap(err, "failed to copy in row")
 		}
 
-		logger.Debug("Executing copy in")
 		if _, err := stmt.Exec(); err != nil {
 			return 0, errors.Wrap(err, "failed to exec copy in")
+		}
+
+		if err = stmt.Close(); err != nil {
+			log.WithError(err).Error("failed to close copy in statement")
 		}
 
 		inserted++
@@ -161,4 +157,21 @@ func (p *pgDumper) relationshipConfigToOptions(relationshipsConfig []*config.Rel
 	}
 
 	return opts
+}
+
+func (p *pgDumper) prepare(txn *sql.Tx, table string, columns []string) (*sql.Stmt, error) {
+	if stmt, ok := p.cache.Load(table); ok {
+		if v, ok := stmt.(*sql.Stmt); ok {
+			return v, nil
+		}
+	}
+
+	stmt, err := txn.Prepare(pq.CopyIn(table, columns...))
+	if err != nil {
+		return nil, err
+	}
+
+	p.cache.Store(stmt, columns)
+
+	return stmt, nil
 }

@@ -10,7 +10,7 @@ type (
 	// Driver is a driver interface used to support multiple drivers
 	Driver interface {
 		IsSupported(string) bool
-		NewConnection(ConnectionOpts) (Reader, error)
+		NewConnection(ConnOpts) (Reader, error)
 	}
 
 	// Reader provides an interface to access database stores.
@@ -46,18 +46,18 @@ type (
 		ForeignKey      string
 	}
 
-	// ConnectionOpts are the options to create a connection
-	ConnectionOpts struct {
-		DSN                string
-		Timeout            time.Duration
-		MaxConnLifetime    time.Duration
-		MaxConnections     int
-		MaxIdleConnections int
+	// ConnOpts are the options to create a connection
+	ConnOpts struct {
+		DSN             string
+		Timeout         time.Duration
+		MaxConnLifetime time.Duration
+		MaxConns        int
+		MaxIdleConns    int
 	}
 )
 
 // Connect acts as fectory method that returns a reader from a DSN
-func Connect(opts ConnectionOpts) (reader Reader, err error) {
+func Connect(opts ConnOpts) (reader Reader, err error) {
 	drivers.Range(func(key, value interface{}) bool {
 		driver, ok := value.(Driver)
 		if !ok || !driver.IsSupported(opts.DSN) {

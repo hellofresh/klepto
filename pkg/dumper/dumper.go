@@ -13,7 +13,7 @@ type (
 	// Driver is a driver interface used to support multiple drivers
 	Driver interface {
 		IsSupported(dsn string) bool
-		NewConnection(ConnectionOpts, reader.Reader) (Dumper, error)
+		NewConnection(ConnOpts, reader.Reader) (Dumper, error)
 	}
 
 	// A Dumper writes a database's stucture to the provided stream.
@@ -23,18 +23,18 @@ type (
 		Close() error
 	}
 
-	// ConnectionOpts are the options to create a connection
-	ConnectionOpts struct {
-		DSN                string
-		Timeout            time.Duration
-		MaxConnLifetime    time.Duration
-		MaxConnections     int
-		MaxIdleConnections int
+	// ConnOpts are the options to create a connection
+	ConnOpts struct {
+		DSN             string
+		Timeout         time.Duration
+		MaxConnLifetime time.Duration
+		MaxConns        int
+		MaxIdleConns    int
 	}
 )
 
 // NewDumper is a factory method that will create a dumper based on the provided DSN
-func NewDumper(opts ConnectionOpts, rdr reader.Reader) (dumper Dumper, err error) {
+func NewDumper(opts ConnOpts, rdr reader.Reader) (dumper Dumper, err error) {
 	drivers.Range(func(key, value interface{}) bool {
 		driver, ok := value.(Driver)
 		if !ok || !driver.IsSupported(opts.DSN) {

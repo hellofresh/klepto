@@ -19,12 +19,12 @@ import (
 
 // StealOptions represents the command options
 type StealOptions struct {
-	from               string
-	to                 string
-	timeout            string
-	maxConnLifetime    string
-	maxConnections     int
-	maxIdleConnections int
+	from            string
+	to              string
+	timeout         string
+	maxConnLifetime string
+	maxConns        int
+	maxIdleConns    int
 }
 
 // NewStealCmd creates a new steal command
@@ -45,8 +45,8 @@ func NewStealCmd() *cobra.Command {
 
 	cmd.PersistentFlags().StringVar(&opts.timeout, "timeout", "30s", "Sets the timeout for all the operations")
 	cmd.PersistentFlags().StringVar(&opts.maxConnLifetime, "conn-lifetime", "0", "Sets the maximum amount of time a connection may be reused")
-	cmd.PersistentFlags().IntVarP(&opts.maxConnections, "max-conns", "m", 10, "Sets the maximum number of open connections to the database")
-	cmd.PersistentFlags().IntVarP(&opts.maxIdleConnections, "max-idle-conns", "i", 0, "Sets the maximum number of connections in the idle connection pool")
+	cmd.PersistentFlags().IntVarP(&opts.maxConns, "max-conns", "m", 10, "Sets the maximum number of open connections to the database")
+	cmd.PersistentFlags().IntVarP(&opts.maxIdleConns, "max-idle-conns", "i", 0, "Sets the maximum number of connections in the idle connection pool")
 
 	return cmd
 }
@@ -59,22 +59,22 @@ func RunSteal(opts *StealOptions) (err error) {
 	maxConnLifetime, err := time.ParseDuration(opts.maxConnLifetime)
 	failOnError(err, "Failed to parse the timeout duration")
 
-	source, err := reader.Connect(reader.ConnectionOpts{
-		DSN:                opts.from,
-		Timeout:            timeout,
-		MaxConnLifetime:    maxConnLifetime,
-		MaxConnections:     opts.maxConnections,
-		MaxIdleConnections: opts.maxIdleConnections,
+	source, err := reader.Connect(reader.ConnOpts{
+		DSN:             opts.from,
+		Timeout:         timeout,
+		MaxConnLifetime: maxConnLifetime,
+		MaxConns:        opts.maxConns,
+		MaxIdleConns:    opts.maxIdleConns,
 	})
 	failOnError(err, "Error connecting to reader")
 	defer source.Close()
 
 	source = anonymiser.NewAnonymiser(source, globalConfig.Tables)
-	target, err := dumper.NewDumper(dumper.ConnectionOpts{
-		DSN:                opts.to,
-		Timeout:            timeout,
-		MaxConnections:     opts.maxConnections,
-		MaxIdleConnections: opts.maxIdleConnections,
+	target, err := dumper.NewDumper(dumper.ConnOpts{
+		DSN:          opts.to,
+		Timeout:      timeout,
+		MaxConns:     opts.maxConns,
+		MaxIdleConns: opts.maxIdleConns,
 	}, source)
 	failOnError(err, "Error creating dumper")
 	defer target.Close()

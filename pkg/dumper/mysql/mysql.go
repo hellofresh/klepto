@@ -20,7 +20,7 @@ func (m *driver) IsSupported(dsn string) bool {
 	return err == nil
 }
 
-func (m *driver) NewConnection(opts dumper.ConnectionOpts, rdr reader.Reader) (dumper.Dumper, error) {
+func (m *driver) NewConnection(opts dumper.ConnOpts, rdr reader.Reader) (dumper.Dumper, error) {
 	dsnCfg, err := mysql.ParseDSN(opts.DSN)
 	if err != nil {
 		return nil, err
@@ -36,8 +36,8 @@ func (m *driver) NewConnection(opts dumper.ConnectionOpts, rdr reader.Reader) (d
 		return nil, err
 	}
 
-	conn.SetMaxOpenConns(opts.MaxConnections)
-	conn.SetMaxIdleConns(opts.MaxIdleConnections)
+	conn.SetMaxOpenConns(opts.MaxConns)
+	conn.SetMaxIdleConns(opts.MaxIdleConns)
 	conn.SetConnMaxLifetime(opts.MaxConnLifetime)
 
 	return NewDumper(conn, rdr), nil

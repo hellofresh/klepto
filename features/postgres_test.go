@@ -44,11 +44,11 @@ func (s *PostgresTestSuite) TestExample() {
 
 	s.loadFixture(readDSN, "pg_simple.sql")
 
-	rdr, err := reader.Connect(readDSN)
+	rdr, err := reader.Connect(reader.ConnectionOpts{DSN: readDSN})
 	s.Require().NoError(err, "Unable to create reader")
 	defer rdr.Close()
 
-	dmp, err := dumper.NewDumper(dumpDSN, rdr)
+	dmp, err := dumper.NewDumper(dumper.ConnectionOpts{DSN: dumpDSN}, rdr)
 	s.Require().NoError(err, "Unable to create dumper")
 	defer dmp.Close()
 

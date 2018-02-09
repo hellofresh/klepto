@@ -18,14 +18,20 @@ import (
 )
 
 // StealOptions represents the command options
-type StealOptions struct {
-	from            string
-	to              string
-	timeout         string
-	maxConnLifetime string
-	maxConns        int
-	maxIdleConns    int
-}
+type (
+	StealOptions struct {
+		from      string
+		to        string
+		readOpts  connOpts
+		writeOpts connOpts
+	}
+	connOpts struct {
+		timeout         string
+		maxConnLifetime string
+		maxConns        int
+		maxIdleConns    int
+	}
+)
 
 // NewStealCmd creates a new steal command
 func NewStealCmd() *cobra.Command {
@@ -43,38 +49,51 @@ func NewStealCmd() *cobra.Command {
 	cmd.PersistentFlags().StringVarP(&opts.from, "from", "f", "root:root@tcp(localhost:3306)/klepto", "Database dsn to steal from")
 	cmd.PersistentFlags().StringVarP(&opts.to, "to", "t", "os://stdout/", "Database to output to (default writes to stdOut)")
 
-	cmd.PersistentFlags().StringVar(&opts.timeout, "timeout", "30s", "Sets the timeout for all the operations")
-	cmd.PersistentFlags().StringVar(&opts.maxConnLifetime, "conn-lifetime", "0", "Sets the maximum amount of time a connection may be reused")
-	cmd.PersistentFlags().IntVarP(&opts.maxConns, "max-conns", "m", 10, "Sets the maximum number of open connections to the database")
-	cmd.PersistentFlags().IntVarP(&opts.maxIdleConns, "max-idle-conns", "i", 0, "Sets the maximum number of connections in the idle connection pool")
+	cmd.PersistentFlags().StringVar(&opts.readOpts.timeout, "read-timeout", "30s", "Sets the timeout for all read operations")
+	cmd.PersistentFlags().StringVar(&opts.writeOpts.timeout, "write-timeout", "30s", "Sets the timeout for all write operations")
+
+	cmd.PersistentFlags().StringVar(&opts.readOpts.maxConnLifetime, "read-conn-lifetime", "0", "Sets the maximum amount of time a connection may be reused on the read database")
+	cmd.PersistentFlags().IntVar(&opts.readOpts.maxConns, "read-max-conns", 10, "Sets the maximum number of open connections to the reade database")
+	cmd.PersistentFlags().IntVar(&opts.readOpts.maxIdleConns, "read-max-idle-conns", 0, "Sets the maximum number of connections in the idle connection pool for the read database")
+
+	cmd.PersistentFlags().StringVar(&opts.writeOpts.maxConnLifetime, "write-conn-lifetime", "0", "Sets the maximum amount of time a connection may be reused on the write database")
+	cmd.PersistentFlags().IntVar(&opts.writeOpts.maxConns, "write-max-conns", 10, "Sets the maximum number of open connections to the write database")
+	cmd.PersistentFlags().IntVar(&opts.writeOpts.maxIdleConns, "write-max-idle-conns", 0, "Sets the maximum number of connections in the idle connection pool for the write database")
 
 	return cmd
 }
 
 // RunSteal is the handler for the rootCmd.
 func RunSteal(opts *StealOptions) (err error) {
-	timeout, err := time.ParseDuration(opts.timeout)
+	readTimeout, err := time.ParseDuration(opts.readOpts.timeout)
+	failOnError(err, "Failed to parse read timeout duration")
+
+	writeTimeout, err := time.ParseDuration(opts.readOpts.timeout)
+	failOnError(err, "Failed to parse write timeout duration")
+
+	readMaxConnLifetime, err := time.ParseDuration(opts.readOpts.maxConnLifetime)
 	failOnError(err, "Failed to parse the timeout duration")
 
-	maxConnLifetime, err := time.ParseDuration(opts.maxConnLifetime)
+	writeMaxConnLifetime, err := time.ParseDuration(opts.writeOpts.maxConnLifetime)
 	failOnError(err, "Failed to parse the timeout duration")
 
 	source, err := reader.Connect(reader.ConnOpts{
 		DSN:             opts.from,
-		Timeout:         timeout,
-		MaxConnLifetime: maxConnLifetime,
-		MaxConns:        opts.maxConns,
-		MaxIdleConns:    opts.maxIdleConns,
+		Timeout:         readTimeout,
+		MaxConnLifetime: readMaxConnLifetime,
+		MaxConns:        opts.readOpts.maxConns,
+		MaxIdleConns:    opts.readOpts.maxIdleConns,
 	})
 	failOnError(err, "Error connecting to reader")
 	defer source.Close()
 
 	source = anonymiser.NewAnonymiser(source, globalConfig.Tables)
 	target, err := dumper.NewDumper(dumper.ConnOpts{
-		DSN:          opts.to,
-		Timeout:      timeout,
-		MaxConns:     opts.maxConns,
-		MaxIdleConns: opts.maxIdleConns,
+		DSN:             opts.to,
+		Timeout:         writeTimeout,
+		MaxConnLifetime: writeMaxConnLifetime,
+		MaxConns:        opts.writeOpts.maxConns,
+		MaxIdleConns:    opts.writeOpts.maxIdleConns,
 	}, source)
 	failOnError(err, "Error creating dumper")
 	defer target.Close()

@@ -16,8 +16,8 @@ func (m *driver) IsSupported(dsn string) bool {
 	return d.Type == "os"
 }
 
-func (m *driver) NewConnection(dsn string, rdr reader.Reader) (dumper.Dumper, error) {
-	writer, err := getOutputWriter(dsn)
+func (m *driver) NewConnection(opts dumper.ConnOpts, rdr reader.Reader) (dumper.Dumper, error) {
+	writer, err := getOutputWriter(opts.DSN)
 	if err != nil {
 		return nil, err
 	}

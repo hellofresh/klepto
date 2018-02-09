@@ -18,11 +18,15 @@ func (m *driver) IsSupported(dsn string) bool {
 	return err == nil
 }
 
-func (m *driver) NewConnection(dsn string) (reader.Reader, error) {
-	conn, err := sql.Open("mysql", dsn)
+func (m *driver) NewConnection(opts reader.ConnOpts) (reader.Reader, error) {
+	conn, err := sql.Open("mysql", opts.DSN)
 	if err != nil {
 		return nil, err
 	}
+
+	conn.SetMaxOpenConns(opts.MaxConns)
+	conn.SetMaxIdleConns(opts.MaxIdleConns)
+	conn.SetConnMaxLifetime(opts.MaxConnLifetime)
 
 	return NewStorage(conn), nil
 }

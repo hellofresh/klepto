@@ -53,7 +53,7 @@ func NewStealCmd() *cobra.Command {
 	cmd.PersistentFlags().StringVar(&opts.writeOpts.timeout, "write-timeout", "30s", "Sets the timeout for all write operations")
 
 	cmd.PersistentFlags().StringVar(&opts.readOpts.maxConnLifetime, "read-conn-lifetime", "0", "Sets the maximum amount of time a connection may be reused on the read database")
-	cmd.PersistentFlags().IntVar(&opts.readOpts.maxConns, "read-max-conns", 10, "Sets the maximum number of open connections to the reade database")
+	cmd.PersistentFlags().IntVar(&opts.readOpts.maxConns, "read-max-conns", 10, "Sets the maximum number of open connections to the read database")
 	cmd.PersistentFlags().IntVar(&opts.readOpts.maxIdleConns, "read-max-idle-conns", 0, "Sets the maximum number of connections in the idle connection pool for the read database")
 
 	cmd.PersistentFlags().StringVar(&opts.writeOpts.maxConnLifetime, "write-conn-lifetime", "0", "Sets the maximum amount of time a connection may be reused on the write database")

@@ -14,13 +14,17 @@ func (m *driver) IsSupported(dsn string) bool {
 	return strings.HasPrefix(strings.ToLower(dsn), "postgres://")
 }
 
-func (m *driver) NewConnection(dsn string) (reader.Reader, error) {
-	conn, err := sql.Open("postgres", dsn)
+func (m *driver) NewConnection(opts reader.ConnectionOpts) (reader.Reader, error) {
+	conn, err := sql.Open("postgres", opts.DSN)
 	if err != nil {
 		return nil, err
 	}
 
-	dump, err := NewPgDump(dsn)
+	conn.SetMaxOpenConns(opts.MaxConnections)
+	conn.SetMaxIdleConns(opts.MaxIdleConnections)
+	conn.SetConnMaxLifetime(opts.MaxConnLifetime)
+
+	dump, err := NewPgDump(opts.DSN)
 	if err != nil {
 		return nil, err
 	}

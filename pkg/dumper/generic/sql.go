@@ -101,20 +101,6 @@ func (p *sqlDumper) readAndDumpTables(done chan<- struct{}, configTables config.
 	for _, tbl := range tables {
 		semaphoreChan <- struct{}{}
 
-		var opts reader.ReadTableOpt
-
-		table, err := configTables.FindByName(tbl)
-		if err != nil {
-			log.WithError(err).WithField("table", tbl).Debug("no configuration found for table")
-		}
-
-		if table != nil {
-			opts = reader.ReadTableOpt{
-				Limit:         table.Filter.Limit,
-				Relationships: p.relationshipConfigToOptions(table.Relationships),
-			}
-		}
-
 		// Create read/write chanel
 		rowChan := make(chan database.Row)
 
@@ -127,11 +113,27 @@ func (p *sqlDumper) readAndDumpTables(done chan<- struct{}, configTables config.
 			}
 		}(tbl, rowChan)
 
-		go func(tableName string, opts reader.ReadTableOpt, rowChan chan<- database.Row) {
-			if err := p.reader.ReadTable(tableName, rowChan, opts); err != nil {
-				log.WithError(err).WithField("table", tableName).Error("Failed to read table")
+		go func(tableName string, rowChan chan<- database.Row) {
+			var opts reader.ReadTableOpt
+
+			tableConfig, err := configTables.FindByName(tableName)
+			if err != nil {
+				log.WithError(err).WithField("table", tbl).Debug("no configuration found for table")
 			}
-		}(tbl, opts, rowChan)
+
+			if tableConfig != nil {
+				opts = reader.ReadTableOpt{
+					Match:         tableConfig.Filter.Match,
+					Limit:         tableConfig.Filter.Limit,
+					Relationships: p.relationshipConfigToOptions(tableConfig.Relationships),
+				}
+			}
+
+			if err := p.reader.ReadTable(tableName, rowChan, opts, configTables); err != nil {
+				log.WithError(err).WithField("table", tableName).Error("Failed to read table")
+				return
+			}
+		}(tbl, rowChan)
 	}
 
 	return nil

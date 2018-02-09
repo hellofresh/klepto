@@ -105,6 +105,7 @@ func (p *pgDumper) insertIntoTable(txn *sql.Tx, tableName string, rowChan <-chan
 	if err != nil {
 		return 0, errors.Wrap(err, "failed to prepare copy in")
 	}
+
 	defer func() {
 		if err = stmt.Close(); err != nil {
 			log.WithError(err).Error("failed to close copy in statement")

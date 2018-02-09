@@ -1,6 +1,8 @@
 package dumper
 
 import (
+	"time"
+
 	"github.com/hellofresh/klepto/pkg/config"
 	"github.com/hellofresh/klepto/pkg/reader"
 	"github.com/pkg/errors"
@@ -11,7 +13,7 @@ type (
 	// Driver is a driver interface used to support multiple drivers
 	Driver interface {
 		IsSupported(dsn string) bool
-		NewConnection(string, reader.Reader) (Dumper, error)
+		NewConnection(ConnectionOpts, reader.Reader) (Dumper, error)
 	}
 
 	// A Dumper writes a database's stucture to the provided stream.
@@ -20,18 +22,27 @@ type (
 		// Close closes the dumper resources and releases them.
 		Close() error
 	}
+
+	// ConnectionOpts are the options to create a connection
+	ConnectionOpts struct {
+		DSN                string
+		Timeout            time.Duration
+		MaxConnLifetime    time.Duration
+		MaxConnections     int
+		MaxIdleConnections int
+	}
 )
 
 // NewDumper is a factory method that will create a dumper based on the provided DSN
-func NewDumper(dsn string, rdr reader.Reader) (dumper Dumper, err error) {
+func NewDumper(opts ConnectionOpts, rdr reader.Reader) (dumper Dumper, err error) {
 	drivers.Range(func(key, value interface{}) bool {
 		driver, ok := value.(Driver)
-		if !ok || !driver.IsSupported(dsn) {
+		if !ok || !driver.IsSupported(opts.DSN) {
 			return true
 		}
 		log.WithField("driver", key).Debug("Found driver")
 
-		dumper, err = driver.NewConnection(dsn, rdr)
+		dumper, err = driver.NewConnection(opts, rdr)
 		return false
 	})
 
@@ -39,7 +50,7 @@ func NewDumper(dsn string, rdr reader.Reader) (dumper Dumper, err error) {
 		err = errors.New("no supported driver found")
 	}
 
-	err = errors.Wrapf(err, "could not create dumper for dsn: '%v'", dsn)
+	err = errors.Wrapf(err, "could not create dumper for dsn: '%v'", opts.DSN)
 
 	return
 }

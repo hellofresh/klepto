@@ -1,14 +1,16 @@
 package reader
 
 import (
+	"time"
+
 	"github.com/hellofresh/klepto/pkg/database"
 )
 
 type (
 	// Driver is a driver interface used to support multiple drivers
 	Driver interface {
-		IsSupported(dsn string) bool
-		NewConnection(dsn string) (Reader, error)
+		IsSupported(string) bool
+		NewConnection(ConnectionOpts) (Reader, error)
 	}
 
 	// Reader provides an interface to access database stores.
@@ -43,17 +45,26 @@ type (
 		ReferencedKey   string
 		ForeignKey      string
 	}
+
+	// ConnectionOpts are the options to create a connection
+	ConnectionOpts struct {
+		DSN                string
+		Timeout            time.Duration
+		MaxConnLifetime    time.Duration
+		MaxConnections     int
+		MaxIdleConnections int
+	}
 )
 
 // Connect acts as fectory method that returns a reader from a DSN
-func Connect(dsn string) (reader Reader, err error) {
+func Connect(opts ConnectionOpts) (reader Reader, err error) {
 	drivers.Range(func(key, value interface{}) bool {
 		driver, ok := value.(Driver)
-		if !ok || !driver.IsSupported(dsn) {
+		if !ok || !driver.IsSupported(opts.DSN) {
 			return true
 		}
 
-		reader, err = driver.NewConnection(dsn)
+		reader, err = driver.NewConnection(opts)
 		return false
 	})
 

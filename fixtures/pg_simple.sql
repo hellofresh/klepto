@@ -7,14 +7,14 @@ CREATE TABLE "users" (
   username character varying(50) NOT NULL,
   email character varying(255) NOT NULL,
   active boolean NOT NULL,
-  gender character(1)
+  gender character(1),
   created_at timestamp
 );
 
 CREATE TABLE "orders" (
   id UUID PRIMARY KEY NOT NULL,
   user_id UUID NOT NULL,
-  created_at timestamp
+  created_at timestamp,
   FOREIGN KEY (user_id) REFERENCES users(id)
 );
 

@@ -4,7 +4,7 @@ CREATE TABLE users
   username varchar(50) NOT NULL,
   email varchar(255) NOT NULL,
   active tinyint(1) NOT NULL,
-  gender char(1)
+  gender char(1),
   created_at timestamp
 );
 
@@ -12,7 +12,7 @@ CREATE TABLE orders
 (
   id varchar(36) PRIMARY KEY NOT NULL,
   user_id varchar(36) NOT NULL,
-  created_at timestamp
+  created_at timestamp,
   CONSTRAINT orders_ibfk_1 FOREIGN KEY (user_id) REFERENCES users (id)
 );
 

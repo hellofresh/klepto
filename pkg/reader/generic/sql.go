@@ -15,9 +15,9 @@ import (
 
 // sqlReader is a base class for sql related readers
 type (
-	sqlReader struct {
-		SqlEngine
-
+	SqlReader struct {
+		// sqlEngine is te sql engine
+		sqlEngine SqlEngine
 		// tables is a cache variable for all tables in the db
 		tables []string
 		// columns is a cache variable for tables and there columns in the db
@@ -45,16 +45,15 @@ type (
 	}
 )
 
-func NewSqlReader(engine SqlEngine) reader.Reader {
-	return &sqlReader{
-		SqlEngine: engine,
-	}
+// NewSqlReader creates a new sql reader
+func NewSqlReader(se SqlEngine) *SqlReader {
+	return &SqlReader{sqlEngine: se}
 }
 
 // GetTables gets a list of all tables in the database
-func (s *sqlReader) GetTables() ([]string, error) {
+func (s *SqlReader) GetTables() ([]string, error) {
 	if s.tables == nil {
-		tables, err := s.SqlEngine.GetTables()
+		tables, err := s.sqlEngine.GetTables()
 		if err != nil {
 			return nil, err
 		}
@@ -66,11 +65,11 @@ func (s *sqlReader) GetTables() ([]string, error) {
 }
 
 // GetColumns returns the columns in the specified database table
-func (s *sqlReader) GetColumns(tableName string) ([]string, error) {
+func (s *SqlReader) GetColumns(tableName string) ([]string, error) {
 	columns, ok := s.columns.Load(tableName)
 	if !ok {
 		var err error
-		columns, err = s.SqlEngine.GetColumns(tableName)
+		columns, err = s.sqlEngine.GetColumns(tableName)
 		if err != nil {
 			return nil, err
 		}
@@ -82,14 +81,14 @@ func (s *sqlReader) GetColumns(tableName string) ([]string, error) {
 }
 
 // ReadTable returns a list of all rows in a table
-func (s *sqlReader) ReadTable(tableName string, rowChan chan<- database.Row, opts reader.ReadTableOpt, configTables config.Tables) error {
+func (s *SqlReader) ReadTable(tableName string, rowChan chan<- database.Row, opts reader.ReadTableOpt, configTables config.Tables) error {
 	defer close(rowChan)
 
 	logger := log.WithField("table", tableName)
 	logger.Debug("reading table data")
 
 	if len(opts.Columns) == 0 {
-		columns, err := s.GetColumns(tableName)
+		columns, err := s.sqlEngine.GetColumns(tableName)
 		if err != nil {
 			return errors.Wrap(err, "failed to get columns")
 		}
@@ -101,7 +100,7 @@ func (s *sqlReader) ReadTable(tableName string, rowChan chan<- database.Row, opt
 		return errors.Wrapf(err, "failed to build query for %s", tableName)
 	}
 
-	rows, err := query.RunWith(s.GetConnection()).Query()
+	rows, err := query.RunWith(s.sqlEngine.GetConnection()).Query()
 	if err != nil {
 		querySQL, queryParams, _ := query.ToSql()
 		logger.WithFields(log.Fields{
@@ -112,17 +111,16 @@ func (s *sqlReader) ReadTable(tableName string, rowChan chan<- database.Row, opt
 		return errors.Wrap(err, "failed to query rows")
 	}
 
-	err = s.publishRows(rows, rowChan)
-	logger.Debug("table was read")
-	return err
+	return s.publishRows(rows, rowChan, tableName)
 }
 
 // BuildQuery builds the query that will be used to read the table
-func (s *sqlReader) buildQuery(tableName string, opts reader.ReadTableOpt, configTables config.Tables) (sq.SelectBuilder, error) {
+func (s *SqlReader) buildQuery(tableName string, opts reader.ReadTableOpt, configTables config.Tables) (sq.SelectBuilder, error) {
 	var query sq.SelectBuilder
 
-	query = sq.Select(opts.Columns...).From(s.QuoteIdentifier(tableName))
+	query = sq.Select(opts.Columns...).From(s.sqlEngine.QuoteIdentifier(tableName))
 
+	// TODO do we support multiple relationships?
 	for _, r := range opts.Relationships {
 		query = query.Join(fmt.Sprintf(
 			"%s ON %s.%s = %s.%s",
@@ -131,7 +129,7 @@ func (s *sqlReader) buildQuery(tableName string, opts reader.ReadTableOpt, confi
 			r.ForeignKey,
 			r.ReferencedTable,
 			r.ReferencedKey,
-		))
+		)).GroupBy(fmt.Sprintf("%s.id", tableName))
 	}
 
 	if opts.Match != "" {
@@ -146,11 +144,15 @@ func (s *sqlReader) buildQuery(tableName string, opts reader.ReadTableOpt, confi
 }
 
 // FormatColumn returns a escaped table+column string
-func (s *sqlReader) FormatColumn(tableName string, columnName string) string {
-	return fmt.Sprintf("%s.%s", s.QuoteIdentifier(tableName), s.QuoteIdentifier(columnName))
+func (s *SqlReader) FormatColumn(tableName string, columnName string) string {
+	return fmt.Sprintf(
+		"%s.%s",
+		s.sqlEngine.QuoteIdentifier(tableName),
+		s.sqlEngine.QuoteIdentifier(columnName),
+	)
 }
 
-func (s *sqlReader) publishRows(rows *sql.Rows, rowChan chan<- database.Row) error {
+func (s *SqlReader) publishRows(rows *sql.Rows, rowChan chan<- database.Row, tableName string) error {
 	defer rows.Close()
 
 	columnTypes, err := rows.ColumnTypes()
@@ -173,9 +175,8 @@ func (s *sqlReader) publishRows(rows *sql.Rows, rowChan chan<- database.Row) err
 			fieldPointers[i] = &fields[i]
 		}
 
-		err := rows.Scan(fieldPointers...)
-		if err != nil {
-			log.WithError(err).Warning("Failed to fetch row")
+		if err := rows.Scan(fieldPointers...); err != nil {
+			log.WithError(err).Warn("failed to fetch row")
 			continue
 		}
 
@@ -189,7 +190,7 @@ func (s *sqlReader) publishRows(rows *sql.Rows, rowChan chan<- database.Row) err
 	return nil
 }
 
-func (s *sqlReader) formatColumns(tableName string, columns []string) []string {
+func (s *SqlReader) formatColumns(tableName string, columns []string) []string {
 	formatted := make([]string, len(columns))
 	for i, c := range columns {
 		formatted[i] = s.FormatColumn(tableName, c)

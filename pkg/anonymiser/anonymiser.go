@@ -14,8 +14,12 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// literalPrefix defines the constant we use to prefix literals
-const literalPrefix = "literal:"
+const (
+	// literalPrefix defines the constant we use to prefix literals
+	literalPrefix = "literal:"
+	email         = "EmailAddress"
+	username      = "UserName"
+)
 
 // Anonymiser is responsible for anonymising columns
 type Anonymiser struct {
@@ -65,12 +69,18 @@ func (a *Anonymiser) ReadTable(tableName string, rowChan chan<- database.Row, op
 						continue
 					}
 
-					b := make([]byte, 2)
-					rand.Read(b)
+					hash := ""
+					// check if the anonymised value should be uniq
+					if a.uniq(name) {
+						b := make([]byte, 2)
+						rand.Read(b)
+						hash = hex.EncodeToString(b)
+					}
+
 					row[column] = fmt.Sprintf(
 						"%s.%s",
 						faker.Call([]reflect.Value{})[0].String(),
-						hex.EncodeToString(b),
+						hash,
 					)
 				}
 			}
@@ -84,4 +94,8 @@ func (a *Anonymiser) ReadTable(tableName string, rowChan chan<- database.Row, op
 	}
 
 	return nil
+}
+
+func (a *Anonymiser) uniq(column string) bool {
+	return column == email || column == username
 }

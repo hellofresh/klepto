@@ -17,18 +17,21 @@ Here is an example of how the config file should look like:
 [[Tables]]
   Name = "orders"
   [Tables.Filter]
+		Match = "orders.createdat BETWEEN '2018-02-01' AND now()"
     Limit = 100
-    [Tables.Filter.Sorts]
-      orderNr = "asc"
-  [Tables.Anonymise]
-    email = "EmailAddress"
-    firstName = "FirstName"
 
+[[Tables]]
+  Name = "customers"
+  [Tables.Filter]
+		Match = "orders.createdat BETWEEN '2018-02-01' AND now()"
+    Limit = 100
   [[Tables.Relationships]]
     ReferencedTable = "customers"
     ReferencedKey = "id"
     ForeignKey = "customer_id"
 ```
+
+In this example it will dump 100 orders with creation date greater or equal than `2018-01-01` and all customers related to these orders.
 
 After you have this, just run:
 

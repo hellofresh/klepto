@@ -102,10 +102,11 @@ func RunSteal(opts *StealOptions) (err error) {
 
 	done := make(chan struct{})
 	defer close(done)
+	start := time.Now()
 	failOnError(target.Dump(done, globalConfig.Tables), "Error while dumping")
 
 	<-done
-	log.Info("Done!")
+	log.WithField("total_time", time.Since(start)).Info("Done!")
 
 	return nil
 }

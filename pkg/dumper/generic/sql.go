@@ -64,7 +64,6 @@ func (p *sqlDumper) readAndDumpStructure() error {
 }
 
 func (p *sqlDumper) readAndDumpTables(done chan<- struct{}, configTables config.Tables) error {
-	// Get the tables
 	tables, err := p.reader.GetTables()
 	if err != nil {
 		return err
@@ -78,7 +77,7 @@ func (p *sqlDumper) readAndDumpTables(done chan<- struct{}, configTables config.
 	}
 
 	// TODO make the amount on concurrent dumps configurable
-	semaphoreChan := make(chan struct{}, 10)
+	semaphoreChan := make(chan struct{}, 4)
 
 	var wg sync.WaitGroup
 	wg.Add(len(tables))
@@ -114,13 +113,12 @@ func (p *sqlDumper) readAndDumpTables(done chan<- struct{}, configTables config.
 		}(tbl, rowChan)
 
 		go func(tableName string, rowChan chan<- database.Row) {
-			var opts reader.ReadTableOpt
-
 			tableConfig, err := configTables.FindByName(tableName)
 			if err != nil {
-				log.WithError(err).WithField("table", tbl).Debug("no configuration found for table")
+				log.WithError(err).WithField("table", tableName).Debug("no configuration found for table")
 			}
 
+			var opts reader.ReadTableOpt
 			if tableConfig != nil {
 				opts = reader.ReadTableOpt{
 					Match:         tableConfig.Filter.Match,
@@ -131,7 +129,6 @@ func (p *sqlDumper) readAndDumpTables(done chan<- struct{}, configTables config.
 
 			if err := p.reader.ReadTable(tableName, rowChan, opts, configTables); err != nil {
 				log.WithError(err).WithField("table", tableName).Error("Failed to read table")
-				return
 			}
 		}(tbl, rowChan)
 	}

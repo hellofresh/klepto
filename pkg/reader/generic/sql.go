@@ -16,8 +16,7 @@ import (
 // sqlReader is a base class for sql related readers
 type (
 	SqlReader struct {
-		// sqlEngine is te sql engine
-		sqlEngine SqlEngine
+		SqlEngine
 		// tables is a cache variable for all tables in the db
 		tables []string
 		// columns is a cache variable for tables and there columns in the db
@@ -47,13 +46,13 @@ type (
 
 // NewSqlReader creates a new sql reader
 func NewSqlReader(se SqlEngine) *SqlReader {
-	return &SqlReader{sqlEngine: se}
+	return &SqlReader{SqlEngine: se}
 }
 
 // GetTables gets a list of all tables in the database
 func (s *SqlReader) GetTables() ([]string, error) {
 	if s.tables == nil {
-		tables, err := s.sqlEngine.GetTables()
+		tables, err := s.SqlEngine.GetTables()
 		if err != nil {
 			return nil, err
 		}
@@ -69,7 +68,7 @@ func (s *SqlReader) GetColumns(tableName string) ([]string, error) {
 	columns, ok := s.columns.Load(tableName)
 	if !ok {
 		var err error
-		columns, err = s.sqlEngine.GetColumns(tableName)
+		columns, err = s.SqlEngine.GetColumns(tableName)
 		if err != nil {
 			return nil, err
 		}
@@ -88,7 +87,7 @@ func (s *SqlReader) ReadTable(tableName string, rowChan chan<- database.Row, opt
 	logger.Debug("reading table data")
 
 	if len(opts.Columns) == 0 {
-		columns, err := s.sqlEngine.GetColumns(tableName)
+		columns, err := s.GetColumns(tableName)
 		if err != nil {
 			return errors.Wrap(err, "failed to get columns")
 		}
@@ -100,7 +99,7 @@ func (s *SqlReader) ReadTable(tableName string, rowChan chan<- database.Row, opt
 		return errors.Wrapf(err, "failed to build query for %s", tableName)
 	}
 
-	rows, err := query.RunWith(s.sqlEngine.GetConnection()).Query()
+	rows, err := query.RunWith(s.GetConnection()).Query()
 	if err != nil {
 		querySQL, queryParams, _ := query.ToSql()
 		logger.WithFields(log.Fields{
@@ -118,7 +117,7 @@ func (s *SqlReader) ReadTable(tableName string, rowChan chan<- database.Row, opt
 func (s *SqlReader) buildQuery(tableName string, opts reader.ReadTableOpt, configTables config.Tables) (sq.SelectBuilder, error) {
 	var query sq.SelectBuilder
 
-	query = sq.Select(opts.Columns...).From(s.sqlEngine.QuoteIdentifier(tableName))
+	query = sq.Select(opts.Columns...).From(s.QuoteIdentifier(tableName))
 
 	// TODO do we support multiple relationships?
 	for _, r := range opts.Relationships {
@@ -147,8 +146,8 @@ func (s *SqlReader) buildQuery(tableName string, opts reader.ReadTableOpt, confi
 func (s *SqlReader) FormatColumn(tableName string, columnName string) string {
 	return fmt.Sprintf(
 		"%s.%s",
-		s.sqlEngine.QuoteIdentifier(tableName),
-		s.sqlEngine.QuoteIdentifier(columnName),
+		s.QuoteIdentifier(tableName),
+		s.QuoteIdentifier(columnName),
 	)
 }
 

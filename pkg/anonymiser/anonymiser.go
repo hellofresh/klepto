@@ -1,6 +1,9 @@
 package anonymiser
 
 import (
+	"crypto/rand"
+	"encoding/hex"
+	"fmt"
 	"reflect"
 	"strings"
 
@@ -14,37 +17,36 @@ import (
 // literalPrefix defines the constant we use to prefix literals
 const literalPrefix = "literal:"
 
-// anonymiser anonymises MySQL tables
-type anonymiser struct {
-	reader.Reader
+// Anonymiser is responsible for anonymising columns
+type Anonymiser struct {
+	reader reader.Reader
 	tables config.Tables
 }
 
 // NewAnonymiser returns an initialised instance of MySQLAnonymiser
-func NewAnonymiser(source reader.Reader, tables config.Tables) reader.Reader {
-	return &anonymiser{source, tables}
+func NewAnonymiser(source reader.Reader, tables config.Tables) *Anonymiser {
+	return &Anonymiser{source, tables}
 }
 
-func (a *anonymiser) ReadTable(tableName string, rowChan chan<- database.Row, opts reader.ReadTableOpt, configTables config.Tables) error {
+// ReadTable wraps reader.ReadTable method for anonymising rows published from the reader.Reader
+func (a *Anonymiser) ReadTable(tableName string, rowChan chan<- database.Row, opts reader.ReadTableOpt, configTables config.Tables) error {
 	logger := log.WithField("table", tableName)
-
 	logger.Debug("Loading anonymiser config")
 	table, err := a.tables.FindByName(tableName)
 	if err != nil {
 		logger.WithError(err).Debug("the table is not configured to be anonymised")
-		return a.Reader.ReadTable(tableName, rowChan, opts, configTables)
+		return a.reader.ReadTable(tableName, rowChan, opts, configTables)
 	}
 
 	if len(table.Anonymise) == 0 {
 		logger.Debug("Skipping anonymiser")
-		return a.Reader.ReadTable(tableName, rowChan, opts, configTables)
+		return a.reader.ReadTable(tableName, rowChan, opts, configTables)
 	}
 
 	// Create read/write chanel
 	rawChan := make(chan database.Row)
 
-	// Anonimise the rows
-	go func() {
+	go func(rowChan chan<- database.Row, rawChan chan database.Row, table *config.Table) {
 		for {
 			row, more := <-rawChan
 			if !more {
@@ -63,15 +65,21 @@ func (a *anonymiser) ReadTable(tableName string, rowChan chan<- database.Row, op
 						continue
 					}
 
-					row[column] = faker.Call([]reflect.Value{})[0].String()
+					b := make([]byte, 2)
+					rand.Read(b)
+					row[column] = fmt.Sprintf(
+						"%s.%s",
+						faker.Call([]reflect.Value{})[0].String(),
+						hex.EncodeToString(b),
+					)
 				}
 			}
 
 			rowChan <- row
 		}
-	}()
+	}(rowChan, rawChan, table)
 
-	if err := a.Reader.ReadTable(tableName, rawChan, opts, configTables); err != nil {
+	if err := a.reader.ReadTable(tableName, rawChan, opts, configTables); err != nil {
 		return errors.Wrap(err, "anonymiser: error while reading table")
 	}
 

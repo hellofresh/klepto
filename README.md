@@ -17,13 +17,13 @@ Here is an example of how the config file should look like:
 [[Tables]]
   Name = "orders"
   [Tables.Filter]
-		Match = "orders.createdat BETWEEN '2018-02-01' AND now()"
+    Match = "orders.createdat BETWEEN '2018-02-01' AND now()"
     Limit = 100
 
 [[Tables]]
   Name = "customers"
   [Tables.Filter]
-		Match = "orders.createdat BETWEEN '2018-02-01' AND now()"
+    Match = "orders.createdat BETWEEN '2018-02-01' AND now()"
     Limit = 100
   [[Tables.Relationships]]
     ReferencedTable = "customers"

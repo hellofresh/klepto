@@ -71,7 +71,7 @@ After you have created the file just run:
 
 Postgres:
 ```sh
-go run main.go steal \
+klepto steal \
 --from="postgres://user:pass@localhost/fromDB?sslmode=disable" \
 --to="postgres://user:pass@localhost/toDB?sslmode=disable" \
 --concurrency=6 \

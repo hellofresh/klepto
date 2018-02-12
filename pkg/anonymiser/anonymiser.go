@@ -19,6 +19,7 @@ const (
 	literalPrefix = "literal:"
 	email         = "EmailAddress"
 	username      = "UserName"
+	password      = "Password"
 )
 
 // anonymiser is responsible for anonymising columns
@@ -69,19 +70,20 @@ func (a *anonymiser) ReadTable(tableName string, rowChan chan<- database.Row, op
 						continue
 					}
 
-					hash := ""
-					// check if the anonymised value should be uniq
-					if a.uniq(name) {
+					var value string
+					switch name {
+					case email, username:
 						b := make([]byte, 2)
 						rand.Read(b)
-						hash = hex.EncodeToString(b)
+						value = fmt.Sprintf(
+							"%s.%s",
+							faker.Call([]reflect.Value{})[0].String(),
+							hex.EncodeToString(b),
+						)
+					default:
+						value = faker.Call([]reflect.Value{})[0].String()
 					}
-
-					row[column] = fmt.Sprintf(
-						"%s.%s",
-						faker.Call([]reflect.Value{})[0].String(),
-						hash,
-					)
+					row[column] = value
 				}
 			}
 
@@ -94,8 +96,4 @@ func (a *anonymiser) ReadTable(tableName string, rowChan chan<- database.Row, op
 	}
 
 	return nil
-}
-
-func (a *anonymiser) uniq(column string) bool {
-	return column == email || column == username
 }

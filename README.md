@@ -13,30 +13,79 @@ All you need to have is a simple configuration file where you're going to define
 
 Here is an example of how the config file should look like:
 
+Dump all users based on the `match` field and use it for dumping their related orders:
 ```toml
 [[Tables]]
-  Name = "orders"
+  # Dump only matching users
+  Name = "users"
   [Tables.Filter]
-    Match = "orders.createdat BETWEEN '2018-02-01' AND now()"
-    Limit = 100
+    # Behind the scenes it will generate the following sql query:
+    # SELECT users.* FROM users
+    # WHERE users.id IN ('39240e9f-ae09-4e95-9fd0-a712035c8ad7', '66a45c1b-19af-4ab5-8747-1b0e2d79339d')
+		Match = "users.id IN ('39240e9f-ae09-4e95-9fd0-a712035c8ad7', '66a45c1b-19af-4ab5-8747-1b0e2d79339d')"
 
 [[Tables]]
-  Name = "customers"
+  # Dump only orders which are related to the matching users
+  Name = "orders"
   [Tables.Filter]
-    Match = "orders.createdat BETWEEN '2018-02-01' AND now()"
-    Limit = 100
+    # Behind the scenes it will generate the following sql query:
+    # SELECT orders.* FROM orders
+    # JOIN users ON orders.user_id = users.id
+    # WHERE users.id IN ('39240e9f-ae09-4e95-9fd0-a712035c8ad7', '66a45c1b-19af-4ab5-8747-1b0e2d79339d')
+    # GROUP BY orders.id
+		Match = "users.id IN ('39240e9f-ae09-4e95-9fd0-a712035c8ad7', '66a45c1b-19af-4ab5-8747-1b0e2d79339d')"
   [[Tables.Relationships]]
-    ReferencedTable = "customers"
+    ReferencedTable = "users"
     ReferencedKey = "id"
-    ForeignKey = "customer_id"
+    ForeignKey = "user_id"
 ```
 
-In this example it will dump 100 orders with creation date greater or equal than `2018-01-01` and all customers related to these orders.
+Additionally you can dump all orders based on the `match` field and use it for dumping all related users:
+```toml
+[[Tables]]
+  # Dump only matching orders
+  Name = "orders"
+  [Tables.Filter]
+    # Behind the scenes it will generate the following query:
+    # SELECT orders.* FROM orders
+    # WHERE orders.created_at BETWEEN '2018-01-01' AND now()
+		Match = "orders.created_at BETWEEN '2018-01-01' AND now()"
 
-After you have this, just run:
+[[Tables]]
+  # Dump only users which are related to the orders
+  Name = "users"
+  [Tables.Filter]
+    # Behind the scenes it will generate the following query:
+    # SELECT users.* FROM users
+    # JOIN orders ON users.id = orders.user_id
+    # WHERE orders.created_at BETWEEN '2018-01-01' AND now()
+    # GROUP BY users.id
+    Match = "orders.created_at BETWEEN '2018-01-01' AND now()"
+  [[Tables.Relationships]]
+    ReferencedTable = "users"
+    ReferencedKey = "id"
+    ForeignKey = "user_id"
+```
 
+After you have created the file just run:
+
+Postgres:
 ```sh
-klepto steal --from 'postgres://root:root@localhost:8050/fromDB?sslmode=disable' --to 'postgres://root:root@localhost:8050/toDB?sslmode=disable'
+go run main.go steal \
+--from="postgres://user:pass@localhost/fromDB?sslmode=disable" \
+--to="postgres://user:pass@localhost/toDB?sslmode=disable" \
+--concurrency=6 \
+--read-max-conns=10 \
+--read-max-idle-conns=4
+```
+
+MySQL:
+```sh
+klepto steal \
+--from 'user:pass@tcp(localhost:3306)/fromDB?sslmode=disable' \
+--to 'user:pass@tcp(localhost:3306)/toDB?sslmode=disable' \
+--concurrency=4 \
+--read-max-conns=8
 ```
 
 ## Prerequisites

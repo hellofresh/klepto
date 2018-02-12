@@ -22,7 +22,7 @@ Dump all users based on the `match` field and use it for dumping their related o
     # Behind the scenes it will generate the following sql query:
     # SELECT users.* FROM users
     # WHERE users.id IN ('39240e9f-ae09-4e95-9fd0-a712035c8ad7', '66a45c1b-19af-4ab5-8747-1b0e2d79339d')
-		Match = "users.id IN ('39240e9f-ae09-4e95-9fd0-a712035c8ad7', '66a45c1b-19af-4ab5-8747-1b0e2d79339d')"
+    Match = "users.id IN ('39240e9f-ae09-4e95-9fd0-a712035c8ad7', '66a45c1b-19af-4ab5-8747-1b0e2d79339d')"
 
 [[Tables]]
   # Dump only orders which are related to the matching users
@@ -33,7 +33,7 @@ Dump all users based on the `match` field and use it for dumping their related o
     # JOIN users ON orders.user_id = users.id
     # WHERE users.id IN ('39240e9f-ae09-4e95-9fd0-a712035c8ad7', '66a45c1b-19af-4ab5-8747-1b0e2d79339d')
     # GROUP BY orders.id
-		Match = "users.id IN ('39240e9f-ae09-4e95-9fd0-a712035c8ad7', '66a45c1b-19af-4ab5-8747-1b0e2d79339d')"
+    Match = "users.id IN ('39240e9f-ae09-4e95-9fd0-a712035c8ad7', '66a45c1b-19af-4ab5-8747-1b0e2d79339d')"
   [[Tables.Relationships]]
     ReferencedTable = "users"
     ReferencedKey = "id"
@@ -49,7 +49,7 @@ Additionally you can dump all orders based on the `match` field and use it for d
     # Behind the scenes it will generate the following query:
     # SELECT orders.* FROM orders
     # WHERE orders.created_at BETWEEN '2018-01-01' AND now()
-		Match = "orders.created_at BETWEEN '2018-01-01' AND now()"
+    Match = "orders.created_at BETWEEN '2018-01-01' AND now()"
 
 [[Tables]]
   # Dump only users which are related to the orders

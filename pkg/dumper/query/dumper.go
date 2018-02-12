@@ -29,7 +29,7 @@ func NewDumper(output io.Writer, rdr reader.Reader) dumper.Dumper {
 	}
 }
 
-func (d *textDumper) Dump(done chan<- struct{}, configTables config.Tables) error {
+func (d *textDumper) Dump(done chan<- struct{}, configTables config.Tables, concurrency int) error {
 	tables, err := d.reader.GetTables()
 	if err != nil {
 		return errors.Wrap(err, "could not get tables")

@@ -34,7 +34,8 @@ type (
 	ReadTableOpt struct {
 		// Columns contains the (quoted) column of the table
 		Columns []string
-		Match   string
+		// Match is a condition field to dump only certain amount data
+		Match string
 		// Defines a limit of results to be fetched
 		Limit uint64
 		// Relationships defines an slice of relationship definitions

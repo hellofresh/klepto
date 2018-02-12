@@ -119,7 +119,6 @@ func (s *SqlReader) buildQuery(tableName string, opts reader.ReadTableOpt, confi
 
 	query = sq.Select(opts.Columns...).From(s.QuoteIdentifier(tableName))
 
-	// TODO do we support multiple relationships?
 	for _, r := range opts.Relationships {
 		query = query.Join(fmt.Sprintf(
 			"%s ON %s.%s = %s.%s",
@@ -128,7 +127,11 @@ func (s *SqlReader) buildQuery(tableName string, opts reader.ReadTableOpt, confi
 			r.ForeignKey,
 			r.ReferencedTable,
 			r.ReferencedKey,
-		)).GroupBy(fmt.Sprintf("%s.id", tableName))
+		))
+	}
+
+	if len(opts.Relationships) > 0 {
+		query = query.GroupBy(fmt.Sprintf("%s.id", tableName))
 	}
 
 	if opts.Match != "" {

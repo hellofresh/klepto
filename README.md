@@ -143,6 +143,15 @@ By specifying anonymisation config in your `.klepto.toml` file, you can define w
 
 This would replace these 4 columns from the `customer` and `users` tables and run `faker.Email` and `faker.FirstName` against them respectively. We can use `literal:[some-constant-value]` to specify a constant we want to write for a column. In this case, `password: literal:1234` would write `1234` for every row in the password column of the customer table.
 
+## Ignore data
+
+Additionally you can dump the database structured without importing data
+```toml
+[[Tables]]
+ Name = "logs"
+ IgnoreData = true
+```
+
 ### Available data types for anonymisation
 
 Available data types can be found in [fake.go](pkg/anonymiser/fake.go). This file is generated from https://github.com/icrowley/fake (it must be generated because it is written in such a way that Go cannot reflect upon it).

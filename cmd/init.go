@@ -61,6 +61,10 @@ func RunInit() {
 					},
 				},
 			},
+			{
+				Name:       "logs",
+				IgnoreData: true,
+			},
 		},
 	})
 	failOnError(err, "Could not encode config")

@@ -51,6 +51,7 @@ func RunInit() {
 				Name: "orders",
 				Filter: config.Filter{
 					Match: "users.active = TRUE",
+					Limit: 10,
 				},
 				Relationships: []*config.Relationship{
 					{

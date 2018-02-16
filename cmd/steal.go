@@ -20,10 +20,11 @@ import (
 // StealOptions represents the command options
 type (
 	StealOptions struct {
-		from      string
-		to        string
-		readOpts  connOpts
-		writeOpts connOpts
+		from        string
+		to          string
+		concurrency int
+		readOpts    connOpts
+		writeOpts   connOpts
 	}
 	connOpts struct {
 		timeout         string
@@ -48,18 +49,15 @@ func NewStealCmd() *cobra.Command {
 
 	cmd.PersistentFlags().StringVarP(&opts.from, "from", "f", "root:root@tcp(localhost:3306)/klepto", "Database dsn to steal from")
 	cmd.PersistentFlags().StringVarP(&opts.to, "to", "t", "os://stdout/", "Database to output to (default writes to stdOut)")
-
+	cmd.PersistentFlags().IntVar(&opts.concurrency, "concurrency", 4, "Sets the amount of dumps to be performed concurrently")
 	cmd.PersistentFlags().StringVar(&opts.readOpts.timeout, "read-timeout", "30s", "Sets the timeout for all read operations")
 	cmd.PersistentFlags().StringVar(&opts.writeOpts.timeout, "write-timeout", "30s", "Sets the timeout for all write operations")
-
 	cmd.PersistentFlags().StringVar(&opts.readOpts.maxConnLifetime, "read-conn-lifetime", "0", "Sets the maximum amount of time a connection may be reused on the read database")
 	cmd.PersistentFlags().IntVar(&opts.readOpts.maxConns, "read-max-conns", 10, "Sets the maximum number of open connections to the read database")
 	cmd.PersistentFlags().IntVar(&opts.readOpts.maxIdleConns, "read-max-idle-conns", 0, "Sets the maximum number of connections in the idle connection pool for the read database")
-
 	cmd.PersistentFlags().StringVar(&opts.writeOpts.maxConnLifetime, "write-conn-lifetime", "0", "Sets the maximum amount of time a connection may be reused on the write database")
 	cmd.PersistentFlags().IntVar(&opts.writeOpts.maxConns, "write-max-conns", 10, "Sets the maximum number of open connections to the write database")
 	cmd.PersistentFlags().IntVar(&opts.writeOpts.maxIdleConns, "write-max-idle-conns", 0, "Sets the maximum number of connections in the idle connection pool for the write database")
-
 	return cmd
 }
 
@@ -102,10 +100,11 @@ func RunSteal(opts *StealOptions) (err error) {
 
 	done := make(chan struct{})
 	defer close(done)
-	failOnError(target.Dump(done, globalConfig.Tables), "Error while dumping")
+	start := time.Now()
+	failOnError(target.Dump(done, globalConfig.Tables, opts.concurrency), "Error while dumping")
 
 	<-done
-	log.Info("Done!")
+	log.WithField("total_time", time.Since(start)).Info("Done!")
 
 	return nil
 }

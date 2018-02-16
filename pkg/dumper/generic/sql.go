@@ -40,12 +40,12 @@ func NewSqlDumper(rdr reader.Reader, engine SqlEngine) dumper.Dumper {
 	}
 }
 
-func (p *sqlDumper) Dump(done chan<- struct{}, configTables config.Tables) error {
+func (p *sqlDumper) Dump(done chan<- struct{}, configTables config.Tables, concurrency int) error {
 	if err := p.readAndDumpStructure(); err != nil {
 		return err
 	}
 
-	return p.readAndDumpTables(done, configTables)
+	return p.readAndDumpTables(done, configTables, concurrency)
 }
 
 func (p *sqlDumper) readAndDumpStructure() error {
@@ -63,8 +63,7 @@ func (p *sqlDumper) readAndDumpStructure() error {
 	return nil
 }
 
-func (p *sqlDumper) readAndDumpTables(done chan<- struct{}, configTables config.Tables) error {
-	// Get the tables
+func (p *sqlDumper) readAndDumpTables(done chan<- struct{}, configTables config.Tables, concurrency int) error {
 	tables, err := p.reader.GetTables()
 	if err != nil {
 		return err
@@ -77,8 +76,7 @@ func (p *sqlDumper) readAndDumpTables(done chan<- struct{}, configTables config.
 		}
 	}
 
-	// TODO make the amount on concurrent dumps configurable
-	semaphoreChan := make(chan struct{}, 10)
+	semChan := make(chan struct{}, concurrency)
 
 	var wg sync.WaitGroup
 	wg.Add(len(tables))
@@ -86,7 +84,7 @@ func (p *sqlDumper) readAndDumpTables(done chan<- struct{}, configTables config.
 	go func() {
 		// Wait for all table to be dumped
 		wg.Wait()
-		close(semaphoreChan)
+		close(semChan)
 
 		// Trigger post dump tables
 		if adv, ok := p.SqlEngine.(SqlEngineAdvanced); ok {
@@ -99,39 +97,39 @@ func (p *sqlDumper) readAndDumpTables(done chan<- struct{}, configTables config.
 	}()
 
 	for _, tbl := range tables {
-		semaphoreChan <- struct{}{}
-
-		var opts reader.ReadTableOpt
-
-		table, err := configTables.FindByName(tbl)
-		if err != nil {
-			log.WithError(err).WithField("table", tbl).Debug("no configuration found for table")
-		}
-
-		if table != nil {
-			opts = reader.ReadTableOpt{
-				Limit:         table.Filter.Limit,
-				Relationships: p.relationshipConfigToOptions(table.Relationships),
-			}
-		}
+		semChan <- struct{}{}
 
 		// Create read/write chanel
 		rowChan := make(chan database.Row)
 
 		go func(tableName string, rowChan <-chan database.Row) {
 			defer wg.Done()
-			defer func(semaphoreChan <-chan struct{}) { <-semaphoreChan }(semaphoreChan)
+			defer func(semChan <-chan struct{}) { <-semChan }(semChan)
 
 			if err := p.DumpTable(tableName, rowChan); err != nil {
 				log.WithError(err).WithField("table", tableName).Error("Failed to dump table")
 			}
 		}(tbl, rowChan)
 
-		go func(tableName string, opts reader.ReadTableOpt, rowChan chan<- database.Row) {
-			if err := p.reader.ReadTable(tableName, rowChan, opts); err != nil {
+		go func(tableName string, rowChan chan<- database.Row) {
+			tableConfig, err := configTables.FindByName(tableName)
+			if err != nil {
+				log.WithError(err).WithField("table", tableName).Debug("no configuration found for table")
+			}
+
+			var opts reader.ReadTableOpt
+			if tableConfig != nil {
+				opts = reader.ReadTableOpt{
+					Match:         tableConfig.Filter.Match,
+					Limit:         tableConfig.Filter.Limit,
+					Relationships: p.relationshipConfigToOptions(tableConfig.Relationships),
+				}
+			}
+
+			if err := p.reader.ReadTable(tableName, rowChan, opts, configTables); err != nil {
 				log.WithError(err).WithField("table", tableName).Error("Failed to read table")
 			}
-		}(tbl, opts, rowChan)
+		}(tbl, rowChan)
 	}
 
 	return nil

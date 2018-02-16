@@ -20,6 +20,7 @@ type (
 
 	// Filter represents the way you want to filter the results
 	Filter struct {
+		Match string
 		Limit uint64
 		Sorts map[string]string
 	}

@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	sq "github.com/Masterminds/squirrel"
+	"github.com/hellofresh/klepto/pkg/config"
 	"github.com/hellofresh/klepto/pkg/database"
 	"github.com/hellofresh/klepto/pkg/reader"
 	"github.com/pkg/errors"
@@ -14,9 +15,8 @@ import (
 
 // sqlReader is a base class for sql related readers
 type (
-	sqlReader struct {
+	SqlReader struct {
 		SqlEngine
-
 		// tables is a cache variable for all tables in the db
 		tables []string
 		// columns is a cache variable for tables and there columns in the db
@@ -44,14 +44,13 @@ type (
 	}
 )
 
-func NewSqlReader(engine SqlEngine) reader.Reader {
-	return &sqlReader{
-		SqlEngine: engine,
-	}
+// NewSqlReader creates a new sql reader
+func NewSqlReader(se SqlEngine) *SqlReader {
+	return &SqlReader{SqlEngine: se}
 }
 
 // GetTables gets a list of all tables in the database
-func (s *sqlReader) GetTables() ([]string, error) {
+func (s *SqlReader) GetTables() ([]string, error) {
 	if s.tables == nil {
 		tables, err := s.SqlEngine.GetTables()
 		if err != nil {
@@ -65,11 +64,10 @@ func (s *sqlReader) GetTables() ([]string, error) {
 }
 
 // GetColumns returns the columns in the specified database table
-func (s *sqlReader) GetColumns(tableName string) ([]string, error) {
+func (s *SqlReader) GetColumns(tableName string) ([]string, error) {
 	columns, ok := s.columns.Load(tableName)
 	if !ok {
 		var err error
-
 		columns, err = s.SqlEngine.GetColumns(tableName)
 		if err != nil {
 			return nil, err
@@ -82,37 +80,27 @@ func (s *sqlReader) GetColumns(tableName string) ([]string, error) {
 }
 
 // ReadTable returns a list of all rows in a table
-func (s *sqlReader) ReadTable(tableName string, rowChan chan<- database.Row, opts reader.ReadTableOpt) error {
+func (s *SqlReader) ReadTable(tableName string, rowChan chan<- database.Row, opts reader.ReadTableOpt, configTables config.Tables) error {
+	defer close(rowChan)
+
 	logger := log.WithField("table", tableName)
-	logger.Debug("Reading table data")
+	logger.Debug("reading table data")
 
 	if len(opts.Columns) == 0 {
 		columns, err := s.GetColumns(tableName)
 		if err != nil {
-			close(rowChan)
 			return errors.Wrap(err, "failed to get columns")
 		}
 		opts.Columns = s.formatColumns(tableName, columns)
 	}
 
-	query, err := s.buildQuery(tableName, opts)
+	query, err := s.buildQuery(tableName, opts, configTables)
 	if err != nil {
-		close(rowChan)
 		return errors.Wrapf(err, "failed to build query for %s", tableName)
-	}
-
-	for _, r := range opts.Relationships {
-		query, err = s.buildJoinQuery(tableName, query, r)
-		if err != nil {
-			close(rowChan)
-			return errors.Wrapf(err, "failed to build a join query for %s with %s", tableName, r.ReferencedTable)
-		}
 	}
 
 	rows, err := query.RunWith(s.GetConnection()).Query()
 	if err != nil {
-		close(rowChan)
-
 		querySQL, queryParams, _ := query.ToSql()
 		logger.WithFields(log.Fields{
 			"query":  querySQL,
@@ -122,16 +110,33 @@ func (s *sqlReader) ReadTable(tableName string, rowChan chan<- database.Row, opt
 		return errors.Wrap(err, "failed to query rows")
 	}
 
-	logger.Debug("Publishing rows")
-
-	return s.publishRows(rows, rowChan)
+	return s.publishRows(rows, rowChan, tableName)
 }
 
 // BuildQuery builds the query that will be used to read the table
-func (s *sqlReader) buildQuery(tableName string, opts reader.ReadTableOpt) (sq.SelectBuilder, error) {
+func (s *SqlReader) buildQuery(tableName string, opts reader.ReadTableOpt, configTables config.Tables) (sq.SelectBuilder, error) {
 	var query sq.SelectBuilder
 
 	query = sq.Select(opts.Columns...).From(s.QuoteIdentifier(tableName))
+
+	for _, r := range opts.Relationships {
+		query = query.Join(fmt.Sprintf(
+			"%s ON %s.%s = %s.%s",
+			r.ReferencedTable,
+			tableName,
+			r.ForeignKey,
+			r.ReferencedTable,
+			r.ReferencedKey,
+		))
+	}
+
+	if len(opts.Relationships) > 0 {
+		query = query.GroupBy(fmt.Sprintf("%s.id", tableName))
+	}
+
+	if opts.Match != "" {
+		query = query.Where(opts.Match)
+	}
 
 	if opts.Limit > 0 {
 		query = query.Limit(opts.Limit)
@@ -140,40 +145,16 @@ func (s *sqlReader) buildQuery(tableName string, opts reader.ReadTableOpt) (sq.S
 	return query, nil
 }
 
-func (s *sqlReader) buildJoinQuery(tableName string, query sq.SelectBuilder, r *reader.RelationshipOpt) (sq.SelectBuilder, error) {
-	// TODO: Fetch the reference table configuration from the config file if it's defined.
-
-	subselectJoin, err := s.buildQuery(r.ReferencedTable, reader.ReadTableOpt{
-		Columns: []string{r.ReferencedKey},
-	})
-	if err != nil {
-		return query, errors.Wrapf(err, "could not build query for relationship %s", r.ReferencedTable)
-	}
-
-	subselectJoinStr, _, err := subselectJoin.ToSql()
-	if err != nil {
-		return query, errors.Wrapf(err, "could create SQL string for relationship %s", r.ReferencedTable)
-	}
-
-	subselectAlias := fmt.Sprintf("%s_%s", tableName, r.ReferencedTable)
-
-	return query.Join(fmt.Sprintf(
-		"(%s) AS %s ON %s = %s",
-		subselectJoinStr,
-		subselectAlias,
-		fmt.Sprintf("%s.%s", s.QuoteIdentifier(tableName), s.QuoteIdentifier(r.ForeignKey)),
-		fmt.Sprintf("%s.%s", s.QuoteIdentifier(subselectAlias), s.QuoteIdentifier(r.ReferencedKey)),
-	)), nil
-}
-
 // FormatColumn returns a escaped table+column string
-func (s *sqlReader) FormatColumn(tableName string, columnName string) string {
-	return fmt.Sprintf("%s.%s", s.QuoteIdentifier(tableName), s.QuoteIdentifier(columnName))
+func (s *SqlReader) FormatColumn(tableName string, columnName string) string {
+	return fmt.Sprintf(
+		"%s.%s",
+		s.QuoteIdentifier(tableName),
+		s.QuoteIdentifier(columnName),
+	)
 }
 
-func (s *sqlReader) publishRows(rows *sql.Rows, rowChan chan<- database.Row) error {
-	// this ensures that there is no more jobs to be done
-	defer close(rowChan)
+func (s *SqlReader) publishRows(rows *sql.Rows, rowChan chan<- database.Row, tableName string) error {
 	defer rows.Close()
 
 	columnTypes, err := rows.ColumnTypes()
@@ -196,9 +177,8 @@ func (s *sqlReader) publishRows(rows *sql.Rows, rowChan chan<- database.Row) err
 			fieldPointers[i] = &fields[i]
 		}
 
-		err := rows.Scan(fieldPointers...)
-		if err != nil {
-			log.WithError(err).Warning("Failed to fetch row")
+		if err := rows.Scan(fieldPointers...); err != nil {
+			log.WithError(err).Warn("failed to fetch row")
 			continue
 		}
 
@@ -212,7 +192,7 @@ func (s *sqlReader) publishRows(rows *sql.Rows, rowChan chan<- database.Row) err
 	return nil
 }
 
-func (s *sqlReader) formatColumns(tableName string, columns []string) []string {
+func (s *SqlReader) formatColumns(tableName string, columns []string) []string {
 	formatted := make([]string, len(columns))
 	for i, c := range columns {
 		formatted[i] = s.FormatColumn(tableName, c)

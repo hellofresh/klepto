@@ -12,25 +12,25 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// Storage ...
 type storage struct {
-	connection *sql.DB
+	conn *sql.DB
 }
 
 // NewStorage ...
 func NewStorage(conn *sql.DB) reader.Reader {
-	return generic.NewSqlReader(&storage{connection: conn})
+	return generic.NewSqlReader(&storage{conn})
 }
 
+// GetConnection return the connection
 func (s *storage) GetConnection() *sql.DB {
-	return s.connection
+	return s.conn
 }
 
 // GetTables gets a list of all tables in the database
 func (s *storage) GetTables() ([]string, error) {
 	log.Debug("Fetching table list")
 
-	rows, err := s.connection.Query("SHOW FULL TABLES")
+	rows, err := s.conn.Query("SHOW FULL TABLES")
 	if err != nil {
 		return nil, err
 	}
@@ -54,7 +54,7 @@ func (s *storage) GetTables() ([]string, error) {
 
 // GetColumns returns the columns in the specified database table
 func (s *storage) GetColumns(tableName string) ([]string, error) {
-	rows, err := s.connection.Query(
+	rows, err := s.conn.Query(
 		"SELECT `column_name` FROM `information_schema`.`columns` WHERE table_schema=DATABASE() AND table_name=?",
 		tableName,
 	)
@@ -92,7 +92,7 @@ func (s *storage) GetStructure() (string, error) {
 	buf.WriteString("SET FOREIGN_KEY_CHECKS=0;\n")
 	for _, tableName := range tables {
 		var stmtTableName, tableStmt string
-		err := s.connection.QueryRow(fmt.Sprintf("SHOW CREATE TABLE %s", s.QuoteIdentifier(tableName))).Scan(&stmtTableName, &tableStmt)
+		err := s.conn.QueryRow(fmt.Sprintf("SHOW CREATE TABLE %s", s.QuoteIdentifier(tableName))).Scan(&stmtTableName, &tableStmt)
 		if err != nil {
 			return "", err
 		}
@@ -111,7 +111,7 @@ func (s *storage) QuoteIdentifier(name string) string {
 }
 
 func (s *storage) Close() error {
-	return s.connection.Close()
+	return s.conn.Close()
 }
 
 // getPreamble puts a big old comment at the top of the database dump.
@@ -131,16 +131,14 @@ SET FOREIGN_KEY_CHECKS = 0;
 
 `
 	var hostname string
-	row := s.connection.QueryRow("SELECT @@hostname")
-	err := row.Scan(&hostname)
-	if err != nil {
+	row := s.conn.QueryRow("SELECT @@hostname")
+	if err := row.Scan(&hostname); err != nil {
 		return "", err
 	}
 
 	var db string
-	row = s.connection.QueryRow("SELECT DATABASE()")
-	err = row.Scan(&db)
-	if err != nil {
+	row = s.conn.QueryRow("SELECT DATABASE()")
+	if err := row.Scan(&db); err != nil {
 		return "", err
 	}
 

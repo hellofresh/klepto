@@ -39,17 +39,25 @@ func RunInit() {
 	err = e.Encode(config.Spec{
 		Tables: []*config.Table{
 			{
-				Name: "orders",
+				Name: "users",
 				Filter: config.Filter{
-					Limit: 100,
+					Match: "users.active = TRUE",
 					Sorts: map[string]string{"orderNr": "asc"},
+					Limit: 100,
 				},
 				Anonymise: map[string]string{"firstName": "FirstName", "email": "EmailAddress"},
+			},
+			{
+				Name: "orders",
+				Filter: config.Filter{
+					Match: "users.active = TRUE",
+					Limit: 10,
+				},
 				Relationships: []*config.Relationship{
 					{
-						ReferencedTable: "customers",
+						ReferencedTable: "users",
 						ReferencedKey:   "id",
-						ForeignKey:      "customer_id",
+						ForeignKey:      "user_id",
 					},
 				},
 			},

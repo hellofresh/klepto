@@ -24,13 +24,10 @@ type myDumper struct {
 }
 
 func NewDumper(conn *sql.DB, rdr reader.Reader) dumper.Dumper {
-	return generic.NewSqlDumper(
-		rdr,
-		&myDumper{
-			conn:   conn,
-			reader: rdr,
-		},
-	)
+	return generic.NewSqlDumper(rdr, &myDumper{
+		conn:   conn,
+		reader: rdr,
+	})
 }
 
 func (p *myDumper) DumpStructure(sql string) error {

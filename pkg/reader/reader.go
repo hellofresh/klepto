@@ -3,7 +3,6 @@ package reader
 import (
 	"time"
 
-	"github.com/hellofresh/klepto/pkg/config"
 	"github.com/hellofresh/klepto/pkg/database"
 )
 
@@ -25,7 +24,7 @@ type (
 		// FormatColumn returns a escaped table.column string
 		FormatColumn(tableName string, columnName string) string
 		// ReadTable returns a channel with all database rows
-		ReadTable(string, chan<- database.Row, ReadTableOpt, config.Tables) error
+		ReadTable(string, chan<- database.Row, ReadTableOpt) error
 		// Close closes the reader resources and releases them.
 		Close() error
 	}

@@ -126,7 +126,7 @@ func (p *sqlDumper) readAndDumpTables(done chan<- struct{}, configTables config.
 				}
 			}
 
-			if err := p.reader.ReadTable(tableName, rowChan, opts, configTables); err != nil {
+			if err := p.reader.ReadTable(tableName, rowChan, opts); err != nil {
 				log.WithError(err).WithField("table", tableName).Error("Failed to read table")
 			}
 		}(tbl, rowChan)

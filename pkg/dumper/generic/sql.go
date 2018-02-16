@@ -79,8 +79,6 @@ func (p *sqlDumper) readAndDumpTables(done chan<- struct{}, configTables config.
 	semChan := make(chan struct{}, concurrency)
 
 	var wg sync.WaitGroup
-	wg.Add(len(tables))
-
 	go func() {
 		// Wait for all table to be dumped
 		wg.Wait()
@@ -97,39 +95,45 @@ func (p *sqlDumper) readAndDumpTables(done chan<- struct{}, configTables config.
 	}()
 
 	for _, tbl := range tables {
-		semChan <- struct{}{}
+		logger := log.WithField("table", tbl)
+		tableConfig, err := configTables.FindByName(tbl)
+		if err != nil {
+			logger.WithError(err).Debug("no configuration found for table")
+		}
 
+		var opts reader.ReadTableOpt
+		if tableConfig != nil {
+			if tableConfig.IgnoreData {
+				logger.Debug("ignoring data to dump")
+				continue
+			}
+
+			opts = reader.ReadTableOpt{
+				Match:         tableConfig.Filter.Match,
+				Limit:         tableConfig.Filter.Limit,
+				Relationships: p.relationshipConfigToOptions(tableConfig.Relationships),
+			}
+		}
+
+		wg.Add(1)
 		// Create read/write chanel
 		rowChan := make(chan database.Row)
+		semChan <- struct{}{}
 
-		go func(tableName string, rowChan <-chan database.Row) {
+		go func(tableName string, rowChan <-chan database.Row, logger *log.Entry) {
 			defer wg.Done()
 			defer func(semChan <-chan struct{}) { <-semChan }(semChan)
 
 			if err := p.DumpTable(tableName, rowChan); err != nil {
-				log.WithError(err).WithField("table", tableName).Error("Failed to dump table")
+				logger.WithError(err).Error("Failed to dump table")
 			}
-		}(tbl, rowChan)
+		}(tbl, rowChan, logger)
 
-		go func(tableName string, rowChan chan<- database.Row) {
-			tableConfig, err := configTables.FindByName(tableName)
-			if err != nil {
-				log.WithError(err).WithField("table", tableName).Debug("no configuration found for table")
-			}
-
-			var opts reader.ReadTableOpt
-			if tableConfig != nil {
-				opts = reader.ReadTableOpt{
-					Match:         tableConfig.Filter.Match,
-					Limit:         tableConfig.Filter.Limit,
-					Relationships: p.relationshipConfigToOptions(tableConfig.Relationships),
-				}
-			}
-
+		go func(tableName string, rowChan chan<- database.Row, opts reader.ReadTableOpt, logger *log.Entry) {
 			if err := p.reader.ReadTable(tableName, rowChan, opts); err != nil {
-				log.WithError(err).WithField("table", tableName).Error("Failed to read table")
+				logger.WithError(err).Error("Failed to read table")
 			}
-		}(tbl, rowChan)
+		}(tbl, rowChan, opts, logger)
 	}
 
 	return nil

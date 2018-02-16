@@ -78,7 +78,7 @@ func (d *textDumper) Dump(done chan<- struct{}, configTables config.Tables, conc
 			}
 		}(tbl)
 
-		if err := d.reader.ReadTable(tbl, rowChan, opts, configTables); err != nil {
+		if err := d.reader.ReadTable(tbl, rowChan, opts); err != nil {
 			log.WithError(err).WithField("table", tbl).Error("error while reading table")
 		}
 	}

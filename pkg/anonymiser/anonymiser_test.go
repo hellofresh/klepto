@@ -60,7 +60,7 @@ func testWhenAnonymiserIsNotInitialized(t *testing.T, opts reader.ReadTableOpt, 
 	rowChan := make(chan database.Row, 1)
 	defer close(rowChan)
 
-	err := anonymiser.ReadTable("test", rowChan, opts, tables)
+	err := anonymiser.ReadTable("test", rowChan, opts)
 	require.NoError(t, err)
 }
 
@@ -70,7 +70,7 @@ func testWhenTableIsNotSetInConfig(t *testing.T, opts reader.ReadTableOpt, table
 	rowChan := make(chan database.Row, 1)
 	defer close(rowChan)
 
-	err := anonymiser.ReadTable("other_table", rowChan, opts, tables)
+	err := anonymiser.ReadTable("other_table", rowChan, opts)
 	require.NoError(t, err)
 }
 
@@ -80,7 +80,7 @@ func testWhenColumnIsAnonymised(t *testing.T, opts reader.ReadTableOpt, tables c
 	rowChan := make(chan database.Row)
 	defer close(rowChan)
 
-	err := anonymiser.ReadTable("test", rowChan, opts, tables)
+	err := anonymiser.ReadTable("test", rowChan, opts)
 	require.NoError(t, err)
 
 	for {
@@ -96,7 +96,7 @@ func testWhenColumnIsAnonymisedWithLiteral(t *testing.T, opts reader.ReadTableOp
 	rowChan := make(chan database.Row)
 	defer close(rowChan)
 
-	err := anonymiser.ReadTable("test", rowChan, opts, tables)
+	err := anonymiser.ReadTable("test", rowChan, opts)
 	require.NoError(t, err)
 
 	for {
@@ -116,7 +116,7 @@ func (m *mockReader) Close() error                        { return nil }
 func (m *mockReader) FormatColumn(tbl string, col string) string {
 	return fmt.Sprintf("%s.%s", strconv.Quote(tbl), strconv.Quote(col))
 }
-func (m *mockReader) ReadTable(tableName string, rowChan chan<- database.Row, opts reader.ReadTableOpt, configTables config.Tables) error {
+func (m *mockReader) ReadTable(tableName string, rowChan chan<- database.Row, opts reader.ReadTableOpt) error {
 	row := make(database.Row)
 	row["column_test"] = "to_be_anonimised"
 	rowChan <- row

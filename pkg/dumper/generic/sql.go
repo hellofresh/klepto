@@ -79,21 +79,6 @@ func (p *sqlDumper) readAndDumpTables(done chan<- struct{}, configTables config.
 	semChan := make(chan struct{}, concurrency)
 
 	var wg sync.WaitGroup
-	go func() {
-		// Wait for all table to be dumped
-		wg.Wait()
-		close(semChan)
-
-		// Trigger post dump tables
-		if adv, ok := p.SqlEngine.(SqlEngineAdvanced); ok {
-			if err := adv.PostDumpTables(tables); err != nil {
-				log.WithError(err).Error("Post dump tables failed")
-			}
-		}
-
-		done <- struct{}{}
-	}()
-
 	for _, tbl := range tables {
 		logger := log.WithField("table", tbl)
 		tableConfig, err := configTables.FindByName(tbl)
@@ -115,26 +100,41 @@ func (p *sqlDumper) readAndDumpTables(done chan<- struct{}, configTables config.
 			}
 		}
 
-		wg.Add(1)
 		// Create read/write chanel
 		rowChan := make(chan database.Row)
 		semChan <- struct{}{}
+		wg.Add(1)
 
-		go func(tableName string, rowChan <-chan database.Row, logger *log.Entry) {
+		go func(tableName string, rowChan <-chan database.Row, semChan <-chan struct{}, logger *log.Entry) {
 			defer wg.Done()
 			defer func(semChan <-chan struct{}) { <-semChan }(semChan)
 
 			if err := p.DumpTable(tableName, rowChan); err != nil {
 				logger.WithError(err).Error("Failed to dump table")
 			}
-		}(tbl, rowChan, logger)
+		}(tbl, rowChan, semChan, logger)
 
-		go func(tableName string, rowChan chan<- database.Row, opts reader.ReadTableOpt, logger *log.Entry) {
+		go func(tableName string, opts reader.ReadTableOpt, rowChan chan<- database.Row, logger *log.Entry) {
 			if err := p.reader.ReadTable(tableName, rowChan, opts); err != nil {
 				logger.WithError(err).Error("Failed to read table")
 			}
-		}(tbl, rowChan, opts, logger)
+		}(tbl, opts, rowChan, logger)
 	}
+
+	go func() {
+		// Wait for all table to be dumped
+		wg.Wait()
+		close(semChan)
+
+		// Trigger post dump tables
+		if adv, ok := p.SqlEngine.(SqlEngineAdvanced); ok {
+			if err := adv.PostDumpTables(tables); err != nil {
+				log.WithError(err).Error("Post dump tables failed")
+			}
+		}
+
+		done <- struct{}{}
+	}()
 
 	return nil
 }

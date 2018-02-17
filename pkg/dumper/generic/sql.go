@@ -105,14 +105,14 @@ func (p *sqlDumper) readAndDumpTables(done chan<- struct{}, configTables config.
 		semChan <- struct{}{}
 		wg.Add(1)
 
-		go func(tableName string, rowChan <-chan database.Row, semChan <-chan struct{}, logger *log.Entry) {
+		go func(tableName string, rowChan <-chan database.Row, logger *log.Entry) {
 			defer wg.Done()
 			defer func(semChan <-chan struct{}) { <-semChan }(semChan)
 
 			if err := p.DumpTable(tableName, rowChan); err != nil {
 				logger.WithError(err).Error("Failed to dump table")
 			}
-		}(tbl, rowChan, semChan, logger)
+		}(tbl, rowChan, logger)
 
 		go func(tableName string, opts reader.ReadTableOpt, rowChan chan<- database.Row, logger *log.Entry) {
 			if err := p.reader.ReadTable(tableName, rowChan, opts); err != nil {

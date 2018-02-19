@@ -13,6 +13,7 @@ type (
 	// Table represents a klepto table definition
 	Table struct {
 		Name          string
+		IgnoreData    bool
 		Filter        Filter
 		Anonymise     map[string]string
 		Relationships []*Relationship

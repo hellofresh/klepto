@@ -154,6 +154,15 @@ $ go get github.com/ungerik/pkgreflect
 $ fake master pkgreflect -notypes -novars -norecurs vendor/github.com/icrowley/fake/
 ```
 
+## Ignore data
+
+Additionally you can dump the database structure without importing data
+```toml
+[[Tables]]
+ Name = "logs"
+ IgnoreData = true
+```
+
 ## Contributing
 
 Please read [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduct, and the process for submitting pull requests to us.

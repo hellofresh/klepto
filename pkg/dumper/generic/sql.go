@@ -94,6 +94,7 @@ func (p *sqlDumper) readAndDumpTables(done chan<- struct{}, configTables config.
 			}
 
 			opts = reader.ReadTableOpt{
+				PrimaryKey:    tableConfig.PrimaryKey,
 				Match:         tableConfig.Filter.Match,
 				Limit:         tableConfig.Filter.Limit,
 				Relationships: p.relationshipConfigToOptions(tableConfig.Relationships),
@@ -144,6 +145,7 @@ func (p *sqlDumper) relationshipConfigToOptions(relationshipsConfig []*config.Re
 
 	for _, r := range relationshipsConfig {
 		opts = append(opts, &reader.RelationshipOpt{
+			Table:           r.Table,
 			ReferencedTable: r.ReferencedTable,
 			ReferencedKey:   r.ReferencedKey,
 			ForeignKey:      r.ForeignKey,

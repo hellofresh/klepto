@@ -117,20 +117,25 @@ func (s *SqlReader) buildQuery(tableName string, opts reader.ReadTableOpt) (sq.S
 	var query sq.SelectBuilder
 
 	query = sq.Select(opts.Columns...).From(s.QuoteIdentifier(tableName))
-
 	for _, r := range opts.Relationships {
+		if r.Table == "" {
+			r.Table = tableName
+		}
 		query = query.Join(fmt.Sprintf(
 			"%s ON %s.%s = %s.%s",
 			r.ReferencedTable,
-			tableName,
-			r.ForeignKey,
 			r.ReferencedTable,
 			r.ReferencedKey,
+			r.Table,
+			r.ForeignKey,
 		))
 	}
 
 	if len(opts.Relationships) > 0 {
-		query = query.GroupBy(fmt.Sprintf("%s.id", tableName))
+		if opts.PrimaryKey == "" {
+			opts.PrimaryKey = "id"
+		}
+		query = query.GroupBy(fmt.Sprintf("%s.%s", tableName, opts.PrimaryKey))
 	}
 
 	if opts.Match != "" {

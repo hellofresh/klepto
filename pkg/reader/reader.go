@@ -31,6 +31,8 @@ type (
 
 	// ReadTableOpt represents the read table options
 	ReadTableOpt struct {
+		// PrimaryKey is the primary key
+		PrimaryKey string
 		// Columns contains the (quoted) column of the table
 		Columns []string
 		// Match is a condition field to dump only certain amount data
@@ -43,9 +45,10 @@ type (
 
 	// RelationshipOpt represents the relationships options
 	RelationshipOpt struct {
+		Table           string
+		ForeignKey      string
 		ReferencedTable string
 		ReferencedKey   string
-		ForeignKey      string
 	}
 
 	// ConnOpts are the options to create a connection

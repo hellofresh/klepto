@@ -1,0 +1,16 @@
+[[Tables]]
+  # Dump the database structure without importing data
+  Name = "user_history"
+  IgnoreData = true
+
+[[Tables]]
+  Name = "users"
+  [Tables.Anonymise]
+    email = "EmailAddress"
+    username = "FirstName"
+    password = "SimplePassword"
+  [Tables.Filter]
+    # import the last 100 created users
+    Limit = 100
+    [Tables.Filter.Sorts]
+      created_at = "desc"

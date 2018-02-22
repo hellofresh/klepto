@@ -27,6 +27,8 @@ Here is an example of how the config file should look like:
       created_at = "desc"
 ```
 
+In this configuration klepto will dump the lastest 10 created active users
+
 After you have created the file just run:
 
 Postgres:

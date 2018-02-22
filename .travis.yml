@@ -30,4 +30,4 @@ script:
   - if [ "$TRAVIS_SECURE_ENV_VARS" == "true" ]; then bash <(curl -s https://codecov.io/bash) -f overalls.coverprofile; fi
 
 after_success:
-  - test -n "$TRAVIS_TAG" && curl -sL https://git.io/goreleaser | bash
+  - test -n "$TRAVIS_TAG" && go get github.com/goreleaser/goreleaser && goreleaser --skip-validation

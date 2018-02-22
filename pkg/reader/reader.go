@@ -37,6 +37,8 @@ type (
 		Columns []string
 		// Match is a condition field to dump only certain amount data
 		Match string
+		// Sort the results
+		Sorts map[string]string
 		// Defines a limit of results to be fetched
 		Limit uint64
 		// Relationships defines an slice of relationship definitions

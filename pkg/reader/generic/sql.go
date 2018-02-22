@@ -142,6 +142,10 @@ func (s *SqlReader) buildQuery(tableName string, opts reader.ReadTableOpt) (sq.S
 		query = query.Where(opts.Match)
 	}
 
+	for k, v := range opts.Sorts {
+		query = query.OrderBy(fmt.Sprintf("%s %s", k, v))
+	}
+
 	if opts.Limit > 0 {
 		query = query.Limit(opts.Limit)
 	}

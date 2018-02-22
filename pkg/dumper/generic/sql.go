@@ -96,6 +96,7 @@ func (p *sqlDumper) readAndDumpTables(done chan<- struct{}, configTables config.
 			opts = reader.ReadTableOpt{
 				PrimaryKey:    tableConfig.PrimaryKey,
 				Match:         tableConfig.Filter.Match,
+				Sorts:         tableConfig.Filter.Sorts,
 				Limit:         tableConfig.Filter.Limit,
 				Relationships: p.relationshipConfigToOptions(tableConfig.Relationships),
 			}

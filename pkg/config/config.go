@@ -13,6 +13,7 @@ type (
 	// Table represents a klepto table definition
 	Table struct {
 		Name          string
+		PrimaryKey    string
 		IgnoreData    bool
 		Filter        Filter
 		Anonymise     map[string]string
@@ -28,9 +29,10 @@ type (
 
 	// Relationship represents a relationship definition
 	Relationship struct {
+		Table           string
+		ForeignKey      string
 		ReferencedTable string
 		ReferencedKey   string
-		ForeignKey      string
 	}
 )
 

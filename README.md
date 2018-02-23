@@ -13,59 +13,21 @@ All you need to have is a simple configuration file where you're going to define
 
 Here is an example of how the config file should look like:
 
-Dump all users based on the `match` field and use it for dumping their related orders:
 ```toml
 [[Tables]]
-  # Dump only matching users
   Name = "users"
+  [Tables.Anonymise]
+    email = "EmailAddress"
+    username = "FirstName"
+    password = "SimplePassword"
   [Tables.Filter]
-    # Behind the scenes it will generate the following sql query:
-    # SELECT users.* FROM users
-    # WHERE users.id IN ('39240e9f-ae09-4e95-9fd0-a712035c8ad7', '66a45c1b-19af-4ab5-8747-1b0e2d79339d')
-    Match = "users.id IN ('39240e9f-ae09-4e95-9fd0-a712035c8ad7', '66a45c1b-19af-4ab5-8747-1b0e2d79339d')"
-
-[[Tables]]
-  # Dump only orders which are related to the matching users
-  Name = "orders"
-  [Tables.Filter]
-    # Behind the scenes it will generate the following sql query:
-    # SELECT orders.* FROM orders
-    # JOIN users ON orders.user_id = users.id
-    # WHERE users.id IN ('39240e9f-ae09-4e95-9fd0-a712035c8ad7', '66a45c1b-19af-4ab5-8747-1b0e2d79339d')
-    # GROUP BY orders.id
-    Match = "users.id IN ('39240e9f-ae09-4e95-9fd0-a712035c8ad7', '66a45c1b-19af-4ab5-8747-1b0e2d79339d')"
-  [[Tables.Relationships]]
-    ReferencedTable = "users"
-    ReferencedKey = "id"
-    ForeignKey = "user_id"
+    Match = "users.status = 'active'"
+    Limit = 10
+    [Tables.Filter.Sorts]
+      created_at = "desc"
 ```
 
-Additionally you can dump all orders based on the `match` field and use it for dumping all related users:
-```toml
-[[Tables]]
-  # Dump only matching orders
-  Name = "orders"
-  [Tables.Filter]
-    # Behind the scenes it will generate the following query:
-    # SELECT orders.* FROM orders
-    # WHERE orders.created_at BETWEEN '2018-01-01' AND now()
-    Match = "orders.created_at BETWEEN '2018-01-01' AND now()"
-
-[[Tables]]
-  # Dump only users which are related to the orders
-  Name = "users"
-  [Tables.Filter]
-    # Behind the scenes it will generate the following query:
-    # SELECT users.* FROM users
-    # JOIN orders ON users.id = orders.user_id
-    # WHERE orders.created_at BETWEEN '2018-01-01' AND now()
-    # GROUP BY users.id
-    Match = "orders.created_at BETWEEN '2018-01-01' AND now()"
-  [[Tables.Relationships]]
-    ReferencedTable = "users"
-    ReferencedKey = "id"
-    ForeignKey = "user_id"
-```
+In this configuration klepto will dump the lastest 10 created active users
 
 After you have created the file just run:
 
@@ -87,6 +49,41 @@ klepto steal \
 --concurrency=4 \
 --read-max-conns=8
 ```
+
+## Ignore data
+
+Additionally you can dump the database structure without importing data
+```toml
+[[Tables]]
+ Name = "logs"
+ IgnoreData = true
+```
+
+## Relationships
+
+Dump the latest 100 users with it's orders
+```toml
+[[Tables]]
+  Name = "users"
+  [Tables.Filter]
+    Limit = 100
+    [Tables.Filter.Sorts]
+      created_at = "desc"
+
+[[Tables]]
+  Name = "orders"
+  PrimaryKey = "id"
+  [[Tables.Relationships]]
+    ForeignKey = "user_id"
+    ReferencedTable = "users"
+    ReferencedKey = "id"
+  [Tables.Filter]
+    Limit = 100
+    [Tables.Filter.Sorts]
+      created_at = "desc"
+```
+
+See [examples](./examples) for more.
 
 ## Prerequisites
 
@@ -152,15 +149,6 @@ We generate the file with the following:
 ```sh
 $ go get github.com/ungerik/pkgreflect
 $ fake master pkgreflect -notypes -novars -norecurs vendor/github.com/icrowley/fake/
-```
-
-## Ignore data
-
-Additionally you can dump the database structure without importing data
-```toml
-[[Tables]]
- Name = "logs"
- IgnoreData = true
 ```
 
 ## Contributing

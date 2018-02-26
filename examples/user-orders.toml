@@ -14,16 +14,13 @@
 [[Tables]]
   # Dump only orders which are related to the matching users
   Name = "orders"
-  PrimaryKey = "id"
   # Behind the scenes it will generate the following sql query:
   # SELECT orders.* FROM orders
   # JOIN users ON users.id = orders.user_id 
   # WHERE users.status = 'active'
   # ORDER BY created_at DESC
-  # GROUP BY order_items.id
   [[Tables.Relationships]]
     Table = "orders"
-    ForeignKey = "user_id"
     ReferencedTable = "users"
     ReferencedKey = "id"
   [Tables.Filter]
@@ -35,22 +32,18 @@
 [[Tables]]
   # Dump only order items which are related to the matching users orders
   Name = "order_items"
-  PrimaryKey = "id"
   # Behind the scenes it will generate the following sql query:
   # SELECT order_items.* FROM order_items
   # JOIN orders ON orders.id = order_items.order_id
   # JOIN users ON users.id = orders.user_id 
   # WHERE users.status = 'active'
   # ORDER BY created_at DESC
-  # GROUP BY order_items.id
   [[Tables.Relationships]]
     Table = "order_items"
-    ForeignKey = "order_id"
     ReferencedTable = "orders"
     ReferencedKey = "id"
   [[Tables.Relationships]]
     Table = "orders"
-    ForeignKey = "user_id"
     ReferencedTable = "users"
     ReferencedKey = "id"
   [Tables.Filter]

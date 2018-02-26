@@ -148,6 +148,7 @@ func (p *sqlDumper) relationshipConfigToOptions(relationshipsConfig []*config.Re
 			Table:           r.Table,
 			ReferencedTable: r.ReferencedTable,
 			ReferencedKey:   r.ReferencedKey,
+			ForeignKey:      r.ForeignKey,
 		})
 	}
 

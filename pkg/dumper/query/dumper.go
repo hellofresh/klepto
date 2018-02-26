@@ -159,6 +159,7 @@ func (d *textDumper) relationshipConfigToOptions(relationshipsConfig []*config.R
 		opts = append(opts, &reader.RelationshipOpt{
 			ReferencedTable: r.ReferencedTable,
 			ReferencedKey:   r.ReferencedKey,
+			ForeignKey:      r.ForeignKey,
 		})
 	}
 

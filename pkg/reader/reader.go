@@ -46,6 +46,7 @@ type (
 	// RelationshipOpt represents the relationships options
 	RelationshipOpt struct {
 		Table           string
+		ForeignKey      string
 		ReferencedTable string
 		ReferencedKey   string
 	}

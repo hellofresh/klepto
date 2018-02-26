@@ -21,6 +21,7 @@
   # ORDER BY created_at DESC
   [[Tables.Relationships]]
     Table = "orders"
+    ForeignKey = "user_id"
     ReferencedTable = "users"
     ReferencedKey = "id"
   [Tables.Filter]
@@ -40,10 +41,12 @@
   # ORDER BY created_at DESC
   [[Tables.Relationships]]
     Table = "order_items"
+    ForeignKey = "order_id"
     ReferencedTable = "orders"
     ReferencedKey = "id"
   [[Tables.Relationships]]
     Table = "orders"
+    ForeignKey = "user_id"
     ReferencedTable = "users"
     ReferencedKey = "id"
   [Tables.Filter]

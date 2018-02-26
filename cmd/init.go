@@ -42,7 +42,7 @@ func RunInit() {
 				Name: "users",
 				Filter: config.Filter{
 					Match: "users.active = TRUE",
-					Sorts: map[string]string{"orderNr": "asc"},
+					Sorts: map[string]string{"user.id": "asc"},
 					Limit: 100,
 				},
 				Anonymise: map[string]string{"firstName": "FirstName", "email": "EmailAddress"},

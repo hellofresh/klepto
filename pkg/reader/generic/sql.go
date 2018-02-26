@@ -131,13 +131,6 @@ func (s *SqlReader) buildQuery(tableName string, opts reader.ReadTableOpt) (sq.S
 		))
 	}
 
-	if len(opts.Relationships) > 0 {
-		if opts.PrimaryKey == "" {
-			opts.PrimaryKey = "id"
-		}
-		query = query.GroupBy(fmt.Sprintf("%s.%s", tableName, opts.PrimaryKey))
-	}
-
 	if opts.Match != "" {
 		query = query.Where(opts.Match)
 	}

@@ -72,7 +72,6 @@ Dump the latest 100 users with it's orders
 
 [[Tables]]
   Name = "orders"
-  PrimaryKey = "id"
   [[Tables.Relationships]]
     ForeignKey = "user_id"
     ReferencedTable = "users"

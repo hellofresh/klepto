@@ -9,15 +9,15 @@ Klepto helps you keep the data in your environment as consistent as it can by co
 
 ## Prerequisites
 
-Klepto tries to keep external dependencies to a minimum, but some functionalities requires some dependencies. Here is a list:
+Klepto tries to keep external dependencies to a minimum, but some functionality requires some dependencies. Here is a list:
 
-- Postgres: If you are using klepto to steal data from postgres databases you will need `pg_dump` installed
+- Postgres: If you are using Klepto to steal data from postgres databases you will need `pg_dump` installed
 
 ## Getting Started
 
-All you need to have is a simple configuration file where you're going to define your table definition. Klepto can also try to figure that out for you (as long as your database is normalized properly).
+All you need to have is a simple configuration file where you're going to define your table structure. Klepto can also try to figure that out for you (as long as your database is normalized properly).
 
-Here is an example of how the config file should look like:
+Here is an example of how the config file should look:
 
 ```toml
 [[Tables]]
@@ -33,7 +33,7 @@ Here is an example of how the config file should look like:
       created_at = "desc"
 ```
 
-In this configuration klepto will dump the lastest 10 created active users
+In this configuration Klepto will dump the latest 10 created active users
 
 After you have created the file just run:
 
@@ -76,9 +76,9 @@ By specifying anonymisation config in your `.klepto.toml` file, you can define w
     password = "literal:1234"
 ```
 
-This would replace these 4 columns from the `customer` and `users` tables and run `faker.Email` and `faker.FirstName` against them respectively. We can use `literal:[some-constant-value]` to specify a constant we want to write for a column. In this case, `password: literal:1234` would write `1234` for every row in the password column of the customer table.
+This would replace these 4 columns from the `customer` and `users` tables and run `fake.EmailAddress` and `fake.FirstName` against them respectively. We can use `literal:[some-constant-value]` to specify a constant we want to write for a column. In this case, `password = "literal:1234"` would write `1234` for every row in the password column of the users table.
 
-#### Available data types for anonymisation
+### Available data types for anonymisation
 
 Available data types can be found in [fake.go](pkg/anonymiser/fake.go). This file is generated from https://github.com/icrowley/fake (it must be generated because it is written in such a way that Go cannot reflect upon it).
 
@@ -91,7 +91,7 @@ $ fake master pkgreflect -notypes -novars -norecurs vendor/github.com/icrowley/f
 
 ## Relationships
 
-Dump the latest 100 users with it's orders
+Dump the latest 100 users with their orders:
 ```toml
 [[Tables]]
   Name = "users"
@@ -133,7 +133,7 @@ Klepto is written in Go with support for multiple platforms. Pre-built binaries 
 
 You can download the binary for your platform of choice from the [releases page](https://github.com/hellofresh/klepto/releases).
 
-Once downloaded, the binary can be run from anywhere. Ideally, though, you should move it into your $PATH for easy use. `/usr/local/bin` is a popular location for this.
+Once downloaded, the binary can be run from anywhere. Ideally, though, you should move it into your `$PATH` for easy use. `/usr/local/bin` is a popular location for this.
 
 ## Supported Databases
 

@@ -203,7 +203,7 @@ func (s *SqlReader) publishRows(rows *sql.Rows, rowChan chan<- database.Row, tab
 		}
 
 		if err := rows.Scan(fieldPointers...); err != nil {
-			log.WithError(err).Warn("failed to fetch row")
+			log.WithError(err).WithField("table", tableName).Warn("failed to fetch row")
 			continue
 		}
 

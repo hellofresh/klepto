@@ -111,8 +111,8 @@ func (s *SqlReader) ReadTable(tableName string, rowChan chan<- database.Row, opt
 	defer cancel()
 
 	errchan := make(chan error)
-	defer close(errchan)
 	go func() {
+		defer close(errchan)
 		rows, err = query.RunWith(s.GetConnection()).QueryContext(ctx)
 		errchan <- err
 	}()

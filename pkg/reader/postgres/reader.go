@@ -18,12 +18,12 @@ type storage struct {
 }
 
 // NewStorage ...
-func NewStorage(conn *sql.DB, dumper PgDump, t time.Duration) reader.Reader {
+func NewStorage(conn *sql.DB, dumper PgDump, timeout time.Duration) reader.Reader {
 	s := &storage{
 		PgDump:     dumper,
 		connection: conn,
 	}
-	return generic.NewSqlReader(s, t)
+	return generic.NewSqlReader(s, timeout)
 }
 
 func (s *storage) GetConnection() *sql.DB {

@@ -8,6 +8,7 @@ import (
 	"os"
 	"path"
 	"testing"
+	"time"
 
 	"strconv"
 
@@ -21,11 +22,10 @@ import (
 
 type PostgresTestSuite struct {
 	suite.Suite
-
 	rootDSN        string
 	rootConnection *sql.DB
-
-	databases []string
+	databases      []string
+	timeout        time.Duration
 }
 
 type tableInfo struct {
@@ -35,7 +35,8 @@ type tableInfo struct {
 }
 
 func TestPostgresTestSuite(t *testing.T) {
-	suite.Run(t, new(PostgresTestSuite))
+	s := &PostgresTestSuite{timeout: time.Second * 3}
+	suite.Run(t, s)
 }
 
 func (s *PostgresTestSuite) TestExample() {
@@ -44,7 +45,7 @@ func (s *PostgresTestSuite) TestExample() {
 
 	s.loadFixture(readDSN, "pg_simple.sql")
 
-	rdr, err := reader.Connect(reader.ConnOpts{DSN: readDSN})
+	rdr, err := reader.Connect(reader.ConnOpts{DSN: readDSN, Timeout: s.timeout})
 	s.Require().NoError(err, "Unable to create reader")
 	defer rdr.Close()
 

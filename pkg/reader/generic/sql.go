@@ -1,9 +1,11 @@
 package generic
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"sync"
+	"time"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/hellofresh/klepto/pkg/database"
@@ -20,6 +22,8 @@ type (
 		tables []string
 		// columns is a cache variable for tables and there columns in the db
 		columns sync.Map
+		// timeout is the sql read operation timeout
+		timeout time.Duration
 	}
 
 	SqlEngine interface {
@@ -44,8 +48,8 @@ type (
 )
 
 // NewSqlReader creates a new sql reader
-func NewSqlReader(se SqlEngine) *SqlReader {
-	return &SqlReader{SqlEngine: se}
+func NewSqlReader(se SqlEngine, t time.Duration) *SqlReader {
+	return &SqlReader{SqlEngine: se, timeout: t}
 }
 
 // GetTables gets a list of all tables in the database
@@ -93,20 +97,40 @@ func (s *SqlReader) ReadTable(tableName string, rowChan chan<- database.Row, opt
 		opts.Columns = s.formatColumns(tableName, columns)
 	}
 
-	query, err := s.buildQuery(tableName, opts)
+	var (
+		query sq.SelectBuilder
+		err   error
+	)
+	query, err = s.buildQuery(tableName, opts)
 	if err != nil {
 		return errors.Wrapf(err, "failed to build query for %s", tableName)
 	}
 
-	rows, err := query.RunWith(s.GetConnection()).Query()
-	if err != nil {
-		querySQL, queryParams, _ := query.ToSql()
-		logger.WithFields(log.Fields{
-			"query":  querySQL,
-			"params": queryParams,
-		}).Warn("failed to query rows")
+	var rows *sql.Rows
+	ctx, cancel := context.WithTimeout(context.Background(), s.timeout)
+	defer cancel()
 
-		return errors.Wrap(err, "failed to query rows")
+	errchan := make(chan error)
+	defer close(errchan)
+	go func() {
+		rows, err = query.RunWith(s.GetConnection()).QueryContext(ctx)
+		errchan <- err
+	}()
+
+	select {
+	case <-ctx.Done():
+		return errors.Wrapf(ctx.Err(), fmt.Sprintf("timeout during read %s table", tableName))
+	case err := <-errchan:
+		if err != nil {
+			querySQL, queryParams, _ := query.ToSql()
+			logger.WithError(err).
+				WithFields(log.Fields{
+					"query":  querySQL,
+					"params": queryParams,
+				}).Warn("failed to query rows")
+			return errors.Wrap(err, "failed to query rows")
+		}
+		break
 	}
 
 	return s.publishRows(rows, rowChan, tableName)

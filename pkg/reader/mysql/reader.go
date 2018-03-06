@@ -17,8 +17,8 @@ type storage struct {
 }
 
 // NewStorage ...
-func NewStorage(conn *sql.DB) reader.Reader {
-	return generic.NewSqlReader(&storage{conn})
+func NewStorage(conn *sql.DB, t time.Duration) reader.Reader {
+	return generic.NewSqlReader(&storage{conn}, t)
 }
 
 // GetConnection return the connection

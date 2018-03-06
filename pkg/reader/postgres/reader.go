@@ -3,6 +3,7 @@ package postgres
 import (
 	"database/sql"
 	"strconv"
+	"time"
 
 	"github.com/hellofresh/klepto/pkg/reader"
 	"github.com/hellofresh/klepto/pkg/reader/generic"
@@ -17,13 +18,12 @@ type storage struct {
 }
 
 // NewStorage ...
-func NewStorage(conn *sql.DB, dumper PgDump) reader.Reader {
-	return generic.NewSqlReader(
-		&storage{
-			PgDump:     dumper,
-			connection: conn,
-		},
-	)
+func NewStorage(conn *sql.DB, dumper PgDump, t time.Duration) reader.Reader {
+	s := &storage{
+		PgDump:     dumper,
+		connection: conn,
+	}
+	return generic.NewSqlReader(s, t)
 }
 
 func (s *storage) GetConnection() *sql.DB {

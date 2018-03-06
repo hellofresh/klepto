@@ -29,7 +29,7 @@ func (m *driver) NewConnection(opts reader.ConnOpts) (reader.Reader, error) {
 		return nil, err
 	}
 
-	return NewStorage(conn, dump), nil
+	return NewStorage(conn, dump, opts.Timeout), nil
 }
 
 func init() {

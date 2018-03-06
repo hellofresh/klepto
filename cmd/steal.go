@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"runtime"
 	"time"
 
 	"github.com/hellofresh/klepto/pkg/anonymiser"
@@ -36,8 +37,7 @@ type (
 
 // NewStealCmd creates a new steal command
 func NewStealCmd() *cobra.Command {
-	opts := &StealOptions{}
-
+	opts := new(StealOptions)
 	cmd := &cobra.Command{
 		Use:     "steal",
 		Short:   "Steals and anonymises databases",
@@ -49,14 +49,14 @@ func NewStealCmd() *cobra.Command {
 
 	cmd.PersistentFlags().StringVarP(&opts.from, "from", "f", "root:root@tcp(localhost:3306)/klepto", "Database dsn to steal from")
 	cmd.PersistentFlags().StringVarP(&opts.to, "to", "t", "os://stdout/", "Database to output to (default writes to stdOut)")
-	cmd.PersistentFlags().IntVar(&opts.concurrency, "concurrency", 4, "Sets the amount of dumps to be performed concurrently")
+	cmd.PersistentFlags().IntVar(&opts.concurrency, "concurrency", runtime.NumCPU(), "Sets the amount of dumps to be performed concurrently")
 	cmd.PersistentFlags().StringVar(&opts.readOpts.timeout, "read-timeout", "5m", "Sets the timeout for read operations")
 	cmd.PersistentFlags().StringVar(&opts.writeOpts.timeout, "write-timeout", "30s", "Sets the timeout for write operations")
 	cmd.PersistentFlags().StringVar(&opts.readOpts.maxConnLifetime, "read-conn-lifetime", "0", "Sets the maximum amount of time a connection may be reused on the read database")
-	cmd.PersistentFlags().IntVar(&opts.readOpts.maxConns, "read-max-conns", 10, "Sets the maximum number of open connections to the read database")
+	cmd.PersistentFlags().IntVar(&opts.readOpts.maxConns, "read-max-conns", 5, "Sets the maximum number of open connections to the read database")
 	cmd.PersistentFlags().IntVar(&opts.readOpts.maxIdleConns, "read-max-idle-conns", 0, "Sets the maximum number of connections in the idle connection pool for the read database")
 	cmd.PersistentFlags().StringVar(&opts.writeOpts.maxConnLifetime, "write-conn-lifetime", "0", "Sets the maximum amount of time a connection may be reused on the write database")
-	cmd.PersistentFlags().IntVar(&opts.writeOpts.maxConns, "write-max-conns", 10, "Sets the maximum number of open connections to the write database")
+	cmd.PersistentFlags().IntVar(&opts.writeOpts.maxConns, "write-max-conns", 5, "Sets the maximum number of open connections to the write database")
 	cmd.PersistentFlags().IntVar(&opts.writeOpts.maxIdleConns, "write-max-idle-conns", 0, "Sets the maximum number of connections in the idle connection pool for the write database")
 	return cmd
 }

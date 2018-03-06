@@ -28,7 +28,7 @@ func (m *driver) NewConnection(opts reader.ConnOpts) (reader.Reader, error) {
 	conn.SetMaxIdleConns(opts.MaxIdleConns)
 	conn.SetConnMaxLifetime(opts.MaxConnLifetime)
 
-	return NewStorage(conn), nil
+	return NewStorage(conn, opts.Timeout), nil
 }
 
 func init() {

@@ -7,6 +7,7 @@ import (
 	"os"
 	"path"
 	"testing"
+	"time"
 
 	"github.com/go-sql-driver/mysql"
 	"github.com/hellofresh/klepto/pkg/config"
@@ -19,15 +20,15 @@ import (
 
 type MysqlTestSuite struct {
 	suite.Suite
-
 	rootDSN        string
 	rootConnection *sql.DB
-
-	databases []string
+	databases      []string
+	timeout        time.Duration
 }
 
 func TestMysqlTestSuite(t *testing.T) {
-	suite.Run(t, new(MysqlTestSuite))
+	s := &MysqlTestSuite{timeout: time.Second * 3}
+	suite.Run(t, s)
 }
 
 func (s *MysqlTestSuite) TestExample() {
@@ -36,7 +37,7 @@ func (s *MysqlTestSuite) TestExample() {
 
 	s.loadFixture(readDSN, "mysql_simple.sql")
 
-	rdr, err := reader.Connect(reader.ConnOpts{DSN: readDSN})
+	rdr, err := reader.Connect(reader.ConnOpts{DSN: readDSN, Timeout: s.timeout})
 	s.Require().NoError(err, "Unable to create reader")
 	defer rdr.Close()
 

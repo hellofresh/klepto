@@ -12,7 +12,6 @@ import (
 
 	"strconv"
 
-	"github.com/hellofresh/klepto/pkg/config"
 	"github.com/hellofresh/klepto/pkg/dumper"
 	_ "github.com/hellofresh/klepto/pkg/dumper/postgres"
 	"github.com/hellofresh/klepto/pkg/reader"
@@ -55,7 +54,7 @@ func (s *PostgresTestSuite) TestExample() {
 
 	done := make(chan struct{})
 	defer close(done)
-	s.Require().NoError(dmp.Dump(done, config.Tables{}, 4), "Failed to dump")
+	s.Require().NoError(dmp.Dump(done, 4), "Failed to dump")
 
 	<-done
 

@@ -5,8 +5,13 @@ import "errors"
 type (
 	// Spec represents the global app configuration
 	Spec struct {
-		Tables Tables
+		Matchers
+		Tables
 	}
+
+	// Matchers are variables to replace placeolders in filter
+	Matchers map[string]string
+
 	// Tables are an array of table
 	Tables []*Table
 

@@ -7,10 +7,9 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"strconv"
 	"testing"
 	"time"
-
-	"strconv"
 
 	"github.com/hellofresh/klepto/pkg/config"
 	"github.com/hellofresh/klepto/pkg/dumper"
@@ -55,7 +54,7 @@ func (s *PostgresTestSuite) TestExample() {
 
 	done := make(chan struct{})
 	defer close(done)
-	s.Require().NoError(dmp.Dump(done, config.Tables{}, 4), "Failed to dump")
+	s.Require().NoError(dmp.Dump(done, new(config.Spec), 4), "Failed to dump")
 
 	<-done
 

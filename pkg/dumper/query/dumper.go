@@ -29,7 +29,7 @@ func NewDumper(output io.Writer, rdr reader.Reader) dumper.Dumper {
 	}
 }
 
-func (d *textDumper) Dump(done chan<- struct{}, configTables config.Tables, concurrency int) error {
+func (d *textDumper) Dump(done chan<- struct{}, spec *config.Spec, concurrency int) error {
 	tables, err := d.reader.GetTables()
 	if err != nil {
 		return errors.Wrap(err, "could not get tables")
@@ -44,7 +44,7 @@ func (d *textDumper) Dump(done chan<- struct{}, configTables config.Tables, conc
 	for _, tbl := range tables {
 		var opts reader.ReadTableOpt
 
-		table, err := configTables.FindByName(tbl)
+		table, err := spec.Tables.FindByName(tbl)
 		if err != nil {
 			log.WithError(err).WithField("table", tbl).Debug("no configuration found for table")
 		}
@@ -78,7 +78,7 @@ func (d *textDumper) Dump(done chan<- struct{}, configTables config.Tables, conc
 			}
 		}(tbl)
 
-		if err := d.reader.ReadTable(tbl, rowChan, opts); err != nil {
+		if err := d.reader.ReadTable(tbl, rowChan, opts, spec.Matchers); err != nil {
 			log.WithError(err).WithField("table", tbl).Error("error while reading table")
 		}
 	}

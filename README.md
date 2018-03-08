@@ -50,10 +50,67 @@ klepto steal \
 MySQL:
 ```sh
 klepto steal \
---from 'user:pass@tcp(localhost:3306)/fromDB?sslmode=disable' \
---to 'user:pass@tcp(localhost:3306)/toDB?sslmode=disable' \
+--from="user:pass@tcp(localhost:3306)/fromDB?sslmode=disable" \
+--to="user:pass@tcp(localhost:3306)/toDB?sslmode=disable" \
 --concurrency=4 \
 --read-max-conns=8
+```
+
+## Relationships
+
+Dump the latest 100 users with their orders:
+```toml
+[[Tables]]
+  Name = "users"
+  [Tables.Filter]
+    Limit = 100
+    [Tables.Filter.Sorts]
+      created_at = "desc"
+
+[[Tables]]
+  Name = "orders"
+  [[Tables.Relationships]]
+    # behind the scenes klepto will create a inner join between orders and users
+    ForeignKey = "user_id"
+    ReferencedTable = "users"
+    ReferencedKey = "id"
+  [Tables.Filter]
+    Limit = 100
+    [Tables.Filter.Sorts]
+      created_at = "desc"
+```
+
+## Matchers
+
+You can declare a filter once and reuse it among tables:
+```toml
+[[Matchers]]
+  Latest100Users = "ORDER BY users.created_at DESC LIMIT 100"
+
+[[Tables]]
+  Name = "users"
+  [Tables.Filter]
+    Match = "Latest100Users"
+
+[[Tables]]
+  Name = "orders"
+  [[Tables.Relationships]]
+    ForeignKey = "user_id"
+    ReferencedTable = "users"
+    ReferencedKey = "id"
+  [Tables.Filter]
+    Match = "Latest100Users"
+```
+
+See [examples](./examples) for more.
+
+## Ignore data
+
+Additionally you can dump the database structure without importing data
+```toml
+[[Tables]]
+ Name = "logs"
+ IgnoreData = true
 ```
 
 ## Anonymisation
@@ -89,39 +146,6 @@ $ go get github.com/ungerik/pkgreflect
 $ fake master pkgreflect -notypes -novars -norecurs vendor/github.com/icrowley/fake/
 ```
 
-## Relationships
-
-Dump the latest 100 users with their orders:
-```toml
-[[Tables]]
-  Name = "users"
-  [Tables.Filter]
-    Limit = 100
-    [Tables.Filter.Sorts]
-      created_at = "desc"
-
-[[Tables]]
-  Name = "orders"
-  [[Tables.Relationships]]
-    ForeignKey = "user_id"
-    ReferencedTable = "users"
-    ReferencedKey = "id"
-  [Tables.Filter]
-    Limit = 100
-    [Tables.Filter.Sorts]
-      created_at = "desc"
-```
-
-See [examples](./examples) for more.
-
-## Ignore data
-
-Additionally you can dump the database structure without importing data
-```toml
-[[Tables]]
- Name = "logs"
- IgnoreData = true
-```
 
 ## Installing 
 

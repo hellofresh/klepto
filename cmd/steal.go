@@ -101,7 +101,7 @@ func RunSteal(opts *StealOptions) (err error) {
 	done := make(chan struct{})
 	defer close(done)
 	start := time.Now()
-	failOnError(target.Dump(done, globalConfig.Tables, opts.concurrency), "Error while dumping")
+	failOnError(target.Dump(done, globalConfig, opts.concurrency), "Error while dumping")
 
 	<-done
 	log.WithField("total_time", time.Since(start)).Info("Done!")

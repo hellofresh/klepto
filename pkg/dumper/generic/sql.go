@@ -40,12 +40,12 @@ func NewSqlDumper(rdr reader.Reader, engine SqlEngine) dumper.Dumper {
 	}
 }
 
-func (p *sqlDumper) Dump(done chan<- struct{}, configTables config.Tables, concurrency int) error {
+func (p *sqlDumper) Dump(done chan<- struct{}, spec *config.Spec, concurrency int) error {
 	if err := p.readAndDumpStructure(); err != nil {
 		return err
 	}
 
-	return p.readAndDumpTables(done, configTables, concurrency)
+	return p.readAndDumpTables(done, spec, concurrency)
 }
 
 func (p *sqlDumper) readAndDumpStructure() error {
@@ -63,7 +63,7 @@ func (p *sqlDumper) readAndDumpStructure() error {
 	return nil
 }
 
-func (p *sqlDumper) readAndDumpTables(done chan<- struct{}, configTables config.Tables, concurrency int) error {
+func (p *sqlDumper) readAndDumpTables(done chan<- struct{}, spec *config.Spec, concurrency int) error {
 	tables, err := p.reader.GetTables()
 	if err != nil {
 		return err
@@ -81,7 +81,7 @@ func (p *sqlDumper) readAndDumpTables(done chan<- struct{}, configTables config.
 	var wg sync.WaitGroup
 	for _, tbl := range tables {
 		logger := log.WithField("table", tbl)
-		tableConfig, err := configTables.FindByName(tbl)
+		tableConfig, err := spec.Tables.FindByName(tbl)
 		if err != nil {
 			logger.WithError(err).Debug("no configuration found for table")
 		}
@@ -116,7 +116,7 @@ func (p *sqlDumper) readAndDumpTables(done chan<- struct{}, configTables config.
 		}(tbl, rowChan, logger)
 
 		go func(tableName string, opts reader.ReadTableOpt, rowChan chan<- database.Row, logger *log.Entry) {
-			if err := p.reader.ReadTable(tableName, rowChan, opts); err != nil {
+			if err := p.reader.ReadTable(tableName, rowChan, opts, spec.Matchers); err != nil {
 				logger.WithError(err).Error("Failed to read table")
 			}
 		}(tbl, opts, rowChan, logger)

@@ -220,7 +220,7 @@ $ fake master pkgreflect -notypes -novars -norecurs vendor/github.com/icrowley/f
 <a name="examples"></a>
 ## Examples
 
-Example configuration files for intfood and the ordering tool can be found on [Klepto Examples](klepto-examples-confluence) on Confluence.
+Example configuration files for intfood and the ordering tool can be found on [Klepto Examples][klepto-examples-confluence] on Confluence.
 
 <a name="contributing"></a>
 ## Contributing

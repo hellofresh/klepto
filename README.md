@@ -128,7 +128,7 @@ You can set a number of keys in the configuration file.
 ### Relationships
 The `Relationships` key represents a relationship definition between tables.
 
-### Example
+#### Example
 Dump the latest 100 users with their orders:
 ```toml
 [[Tables]]

@@ -110,7 +110,7 @@ Behind the scenes Klepto will establishes the connection with the source and tar
 The available options can be seen by running `klepto steal -h`
 
 <p align="left">  
-  <img height="400px" src="./klepto-steal-help"  alt="Klepto Steal Help" title="Klepto Steal Help">
+  <img height="400px" src="./klepto-steal-help.png"  alt="Klepto Steal Help" title="Klepto Steal Help">
 </p>
 
 We recommend to always set the following parameters:

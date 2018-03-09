@@ -1,23 +1,77 @@
-Klepto
-=====
+<p align="center">  
+  <img height="200px" src="./klepto_logo.png"  alt="Klepto" title="Klepto">
+</p>
+
+# Klepto
 
 [![](https://travis-ci.org/hellofresh/klepto.svg?branch=master)](https://travis-ci.org/hellofresh/klepto)
 
 > Klepto is a tool for copying and anonymising data
 
-Klepto helps you keep the data in your environment as consistent as it can by copying it from another environment's database. The reason for this is that you might have production data that you'd like to use for testing but you don't want to use the real customer information for your testing or local debugging. That's when Klepto comes very handy and will deal with that for you!
+Klepto is a tool that copies and anonymises data from other sources.
 
-## Prerequisites
+- [Readme Languages](#)
+	- [English (Default)](#)
+- [Intro](#intro)
+	- [Features](#features)
+	- [Supported Databases](#supported-databases)
+- [Requirements](#requirements)
+- [Installation](#installation)
+- [Usage](#usage)
+- [Steal Options](#steal-options)
+- [Configuration File Options](#configuration-file-options)
+  - [Relationships](#relationships)
+  - [Matchers](#matchers)
+  - [Anonymisation](#anonymisation)
+- [Examples](#examples)
+- [Contributing](#contributing)
+- [License](#licence)
 
-Klepto tries to keep external dependencies to a minimum, but some functionality requires some dependencies. Here is a list:
+<a name="intro"></a>
+## Intro
 
-- Postgres: If you are using Klepto to steal data from postgres databases you will need `pg_dump` installed
+Klepto helps you to keep the data in your environment as consistent as possible by copying it from another environment's database.
 
-## Getting Started
+You can use Klepto to get production data but without sensitive customer information for your testing or local debugging.
 
-All you need to have is a simple configuration file where you're going to define your table structure. Klepto can also try to figure that out for you (as long as your database is normalized properly).
+<a name="features"></a>
+### Features
+- Copy data to your local database or to stdout, stderr
+- Filter the source data
+- Anonymise the source data
 
-Here is an example of how the config file should look:
+<a name="supperted-databases"></a>
+### Supported Databases
+- PostgreSQL
+- MySQL
+
+>If you need to get data from a database type that you don't see here, build it yourself and add it to this list. Contributions are welcomed :)
+
+<a name="requirements"></a>
+## Requirements
+
+- Active connection to the IT VPN
+- Latest version of [pg_dump][pg_dump-docs] installed (_Only required when working with PostgreSQL databases_)
+
+<a name="installation"></a>
+## Installation
+
+Klepto is written in Go with support for multiple platforms. Pre-built binaries are provided for the following:
+
+- macOS (Darwin) for x64, i386, and ARM architectures
+- Windows
+- Linux
+
+You can download the binary for your platform of choice from the [releases page](klepto-releases).
+
+Once downloaded, the binary can be run from anywhere. We recommend that you move it into your `$PATH` for easy use, which is usually at `/usr/local/bin`.
+
+<a name="usage"></a>
+## Usage
+
+Klepto uses a configuration file called `.klepto.toml` to define your table structure. If your table is normalized, the structure can be detected automatically.
+
+For dumping the last 10 created active users, your file will look like this:
 
 ```toml
 [[Tables]]
@@ -33,18 +87,13 @@ Here is an example of how the config file should look:
       created_at = "desc"
 ```
 
-In this configuration Klepto will dump the latest 10 created active users
-
-After you have created the file just run:
+After you have created the file, run:
 
 Postgres:
 ```sh
 klepto steal \
 --from="postgres://user:pass@localhost/fromDB?sslmode=disable" \
 --to="postgres://user:pass@localhost/toDB?sslmode=disable" \
---concurrency=6 \
---read-max-conns=10 \
---read-max-idle-conns=4
 ```
 
 MySQL:
@@ -52,12 +101,34 @@ MySQL:
 klepto steal \
 --from="user:pass@tcp(localhost:3306)/fromDB?sslmode=disable" \
 --to="user:pass@tcp(localhost:3306)/toDB?sslmode=disable" \
---concurrency=4 \
---read-max-conns=8
 ```
 
-## Relationships
+Behind the scenes Klepto will establishes the connection with the source and target databases with the given parameters passed, and will dump the tables.
 
+
+<a name="steal-options"></a>
+## Steal Options
+The available options can be seen by running `klepto steal -h`
+
+<p align="left">  
+  <img src="./klepto-steal-help.png"  alt="Klepto Steal Help" title="Klepto Steal Help">
+</p>
+
+We recommend to always set the following parameters:
+- `concurrency` to alleviate the pressure over both the source and target databases.
+- `read-max-conns` to limit the number of open connections, so that the source database does not get overloaded.
+
+
+<a name="configuration-file-options"></a>
+## Configuration File Options
+You can set a number of keys in the configuration file.
+
+
+<a name="relationships"></a>
+### Relationships
+The `Relationships` key represents a relationship definition between tables.
+
+#### Example
 Dump the latest 100 users with their orders:
 ```toml
 [[Tables]]
@@ -80,9 +151,9 @@ Dump the latest 100 users with their orders:
       created_at = "desc"
 ```
 
-## Matchers
-
-You can declare a filter once and reuse it among tables:
+<a name="matchers"></a>
+### Matchers
+Matchers are variables to store filter data. You can declare a filter once and reuse it among tables:
 ```toml
 [[Matchers]]
   Latest100Users = "ORDER BY users.created_at DESC LIMIT 100"
@@ -104,20 +175,20 @@ You can declare a filter once and reuse it among tables:
 
 See [examples](./examples) for more.
 
-## Ignore data
+<a name="ignore-data"></a>
+### Ignore data
 
-Additionally you can dump the database structure without importing data
+You can dump the database structure without importing data by setting the `IgnoreData` value to `true`.
 ```toml
 [[Tables]]
  Name = "logs"
  IgnoreData = true
 ```
 
-## Anonymisation
+<a name="anonymisation"></a>
+### Anonymisation
 
-Each column can be set to anonymise. Anonymisation is performed by running a Faker against the specified column.
-
-By specifying anonymisation config in your `.klepto.toml` file, you can define which tables' fields require anonymisation. This is done as follows:
+You can anonymise specific columns in your table using the `Anonymise` key. Anonymisation is performed by running a Faker against the specified column.
 
 ```toml
 [[Tables]]
@@ -135,7 +206,7 @@ By specifying anonymisation config in your `.klepto.toml` file, you can define w
 
 This would replace these 4 columns from the `customer` and `users` tables and run `fake.EmailAddress` and `fake.FirstName` against them respectively. We can use `literal:[some-constant-value]` to specify a constant we want to write for a column. In this case, `password = "literal:1234"` would write `1234` for every row in the password column of the users table.
 
-### Available data types for anonymisation
+#### Available data types for anonymisation
 
 Available data types can be found in [fake.go](pkg/anonymiser/fake.go). This file is generated from https://github.com/icrowley/fake (it must be generated because it is written in such a way that Go cannot reflect upon it).
 
@@ -146,38 +217,23 @@ $ go get github.com/ungerik/pkgreflect
 $ fake master pkgreflect -notypes -novars -norecurs vendor/github.com/icrowley/fake/
 ```
 
+<a name="examples"></a>
+## Examples
 
-## Installing 
+Example configuration files for intfood and the ordering tool can be found on [Klepto Examples][klepto-examples-confluence] on Confluence.
 
-Klepto is written in Go with support for multiple platforms. Pre-built binaries are provided for the following:
-
-- macOS (Darwin) for x64, i386, and ARM architectures
-- Windows
-- Linux
-
-You can download the binary for your platform of choice from the [releases page](https://github.com/hellofresh/klepto/releases).
-
-Once downloaded, the binary can be run from anywhere. Ideally, though, you should move it into your `$PATH` for easy use. `/usr/local/bin` is a popular location for this.
-
-## Supported Databases
-
-At the moment we only support 2 RDBMS which are `postgres` and `mysql`.
-
-### Input
-- Postgres
-- MySQL
-
-
-### Output
-- Postgres
-- MySQL
-- Stdout
-- Stderr
-
+<a name="contributing"></a>
 ## Contributing
 
 Please read [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduct, and the process for submitting pull requests to us.
 
+<a name="licence"></a>
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details
+
+
+
+[pg_dump-docs]: https://www.postgresql.org/docs/10/static/app-pgdump.html "pg_dump docs"
+[klepto-releases]: https://github.com/hellofresh/klepto/releases "Klepto releases page"
+[klepto-examples-confluence]: https://hellofresh.atlassian.net/wiki/spaces/PLAT/pages/204505400/Klepto+Examples "Klepto examples confluence"

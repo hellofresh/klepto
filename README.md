@@ -1,5 +1,5 @@
 <p align="center">  
-  <img height="100px" src="./klepto_logo.png"  alt="Klepto" title="Klepto">
+  <img height="200px" src="./klepto_logo.png"  alt="Klepto" title="Klepto">
 </p>
 
 # Klepto

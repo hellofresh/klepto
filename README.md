@@ -23,6 +23,7 @@ Klepto is a tool that copies and anonymises data from other sources.
   - [Relationships](#relationships)
   - [Matchers](#matchers)
   - [Anonymisation](#anonymisation)
+- [Examples](#examples)
 - [Contributing](#contributing)
 - [License](#licence)
 
@@ -216,6 +217,11 @@ $ go get github.com/ungerik/pkgreflect
 $ fake master pkgreflect -notypes -novars -norecurs vendor/github.com/icrowley/fake/
 ```
 
+<a name="examples"></a>
+## Examples
+
+Example configuration files for intfood and the ordering tool can be found on [Klepto Examples](klepto-examples-confluence) on Confluence.
+
 <a name="contributing"></a>
 ## Contributing
 
@@ -230,3 +236,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 [pg_dump-docs]: https://www.postgresql.org/docs/10/static/app-pgdump.html "pg_dump docs"
 [klepto-releases]: https://github.com/hellofresh/klepto/releases "Klepto releases page"
+[klepto-examples-confluence]: https://hellofresh.atlassian.net/wiki/spaces/PLAT/pages/204505400/Klepto+Examples "Klepto examples confluence"

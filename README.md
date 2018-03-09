@@ -18,8 +18,8 @@ Klepto is a tool that copies and anonymises data from other sources.
 - [Requirements](#requirements)
 - [Installation](#installation)
 - [Usage](#usage)
+- [Steal Options](#steal-options)
 - [Configuration File Options](#configuration-file-options)
-- [Examples](#examples)
   - [Relationships](#relationships)
   - [Matchers](#matchers)
   - [Anonymisation](#anonymisation)
@@ -68,7 +68,7 @@ Once downloaded, the binary can be run from anywhere. We recommend that you move
 <a name="usage"></a>
 ## Usage
 
-Klepto uses a `toml` configuration file to define your table structure. If your table is normalized, the structure can be detected automatically.
+Klepto uses a configuration file called `.klepto.toml` to define your table structure. If your table is normalized, the structure can be detected automatically.
 
 For dumping the last 10 created active users, your file will look like this:
 
@@ -93,9 +93,6 @@ Postgres:
 klepto steal \
 --from="postgres://user:pass@localhost/fromDB?sslmode=disable" \
 --to="postgres://user:pass@localhost/toDB?sslmode=disable" \
---concurrency=6 \
---read-max-conns=10 \
---read-max-idle-conns=4
 ```
 
 MySQL:
@@ -103,30 +100,34 @@ MySQL:
 klepto steal \
 --from="user:pass@tcp(localhost:3306)/fromDB?sslmode=disable" \
 --to="user:pass@tcp(localhost:3306)/toDB?sslmode=disable" \
---concurrency=4 \
---read-max-conns=8
 ```
 
-Behind the scenes Klepto will establishes the connection with the source and target databases with the given parameters passed, and will dump 4 the tables.
+Behind the scenes Klepto will establishes the connection with the source and target databases with the given parameters passed, and will dump the tables.
+
+
+<a name="steal-options"></a>
+## Steal Options
+The available options can be seen by running `klepto steal -h`
+
+<p align="left">  
+  <img height="400px" src="./klepto-steal-help"  alt="Klepto Steal Help" title="Klepto Steal Help">
+</p>
 
 We recommend to always set the following parameters:
 - `concurrency` to alleviate the pressure over both the source and target databases.
 - `read-max-conns` to limit the number of open connections, so that the source database does not get overloaded.
 
+
 <a name="configuration-file-options"></a>
 ## Configuration File Options
+You can set a number of keys in the configuration file.
 
-You can set the following fields in the file:
-* Tables
-* Matchers
-* more?
-
-<a name="examples"></a>
-## Examples
 
 <a name="relationships"></a>
 ### Relationships
+The `Relationships` key represents a relationship definition between tables.
 
+### Example
 Dump the latest 100 users with their orders:
 ```toml
 [[Tables]]
@@ -151,8 +152,7 @@ Dump the latest 100 users with their orders:
 
 <a name="matchers"></a>
 ### Matchers
-
-You can declare a filter once and reuse it among tables:
+Matchers are variables to store filter data. You can declare a filter once and reuse it among tables:
 ```toml
 [[Matchers]]
   Latest100Users = "ORDER BY users.created_at DESC LIMIT 100"
@@ -177,7 +177,7 @@ See [examples](./examples) for more.
 <a name="ignore-data"></a>
 ### Ignore data
 
-Additionally you can dump the database structure without importing data
+You can dump the database structure without importing data by setting the `IgnoreData` value to `true`.
 ```toml
 [[Tables]]
  Name = "logs"
@@ -187,9 +187,7 @@ Additionally you can dump the database structure without importing data
 <a name="anonymisation"></a>
 ### Anonymisation
 
-Each column can be set to anonymise. Anonymisation is performed by running a Faker against the specified column.
-
-By specifying anonymisation config in your `.klepto.toml` file, you can define which tables' fields require anonymisation. This is done as follows:
+You can anonymise specific columns in your table using the `Anonymise` key. Anonymisation is performed by running a Faker against the specified column.
 
 ```toml
 [[Tables]]

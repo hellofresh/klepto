@@ -9,6 +9,7 @@ import (
 
 type driver struct{}
 
+// IsSupported checks if the given dsn connection string is supported.
 func (m *driver) IsSupported(dsn string) bool {
 	if dsn == "" {
 		return false
@@ -18,6 +19,7 @@ func (m *driver) IsSupported(dsn string) bool {
 	return err == nil
 }
 
+// NewConnection creates a new mysql connection and retrieves a new mysql reader.
 func (m *driver) NewConnection(opts reader.ConnOpts) (reader.Reader, error) {
 	conn, err := sql.Open("mysql", opts.DSN)
 	if err != nil {

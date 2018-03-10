@@ -12,12 +12,15 @@ import (
 type (
 	// Driver is a driver interface used to support multiple drivers
 	Driver interface {
+		// IsSupported checks if the given dsn connection string is supported.
 		IsSupported(dsn string) bool
+		// NewConnection creates a new database connection and retrieves a dumper implementation.
 		NewConnection(ConnOpts, reader.Reader) (Dumper, error)
 	}
 
 	// A Dumper writes a database's stucture to the provided stream.
 	Dumper interface {
+		// Dump executes the dump process.
 		Dump(chan<- struct{}, *config.Spec, int) error
 		// Close closes the dumper resources and releases them.
 		Close() error
@@ -25,11 +28,16 @@ type (
 
 	// ConnOpts are the options to create a connection
 	ConnOpts struct {
-		DSN             string
-		Timeout         time.Duration
+		// DSN is the connection address.
+		DSN string
+		// Timeout is the timeout for dump operations.
+		Timeout time.Duration
+		// MaxConnLifetime is the maximum amount of time a connection may be reused on the read database.
 		MaxConnLifetime time.Duration
-		MaxConns        int
-		MaxIdleConns    int
+		// MaxConns is the maximum number of open connections to the target database.
+		MaxConns int
+		// MaxIdleConns is the maximum number of connections in the idle connection pool for the write database.
+		MaxIdleConns int
 	}
 )
 
@@ -40,7 +48,7 @@ func NewDumper(opts ConnOpts, rdr reader.Reader) (dumper Dumper, err error) {
 		if !ok || !driver.IsSupported(opts.DSN) {
 			return true
 		}
-		log.WithField("driver", key).Debug("Found driver")
+		log.WithField("driver", key).Debug("found driver")
 
 		dumper, err = driver.NewConnection(opts, rdr)
 		return false

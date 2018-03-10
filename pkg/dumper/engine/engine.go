@@ -1,4 +1,4 @@
-package generic
+package engine
 
 import (
 	"sync"
@@ -12,72 +12,77 @@ import (
 )
 
 type (
-	sqlDumper struct {
-		SqlEngine
-
+	// Engine is the engine which dispatches and orchestrates a dump.
+	Engine struct {
+		Dumper
 		reader reader.Reader
 	}
 
-	SqlEngine interface {
+	// Dumper is the dump engine.
+	Dumper interface {
+		// DumpStructure dumps database structure given a sql.
 		DumpStructure(sql string) error
-
+		// DumpTable dumps a table by name.
 		DumpTable(tableName string, rowChan <-chan database.Row) error
-
 		// Close closes the dumper resources and releases them.
 		Close() error
 	}
 
-	SqlEngineAdvanced interface {
+	// Hooker are the actions you perform before or after a specified database operation.
+	Hooker interface {
+		// PreDumpTables performs a action before dumping tables before dumping tables.
 		PreDumpTables([]string) error
+		// PostDumpTables performs a action after dumping tables before dumping tables.
 		PostDumpTables([]string) error
 	}
 )
 
-func NewSqlDumper(rdr reader.Reader, engine SqlEngine) dumper.Dumper {
-	return &sqlDumper{
-		SqlEngine: engine,
-		reader:    rdr,
+// New creates a new engine given the reader and dumper.
+func New(rdr reader.Reader, dumper Dumper) dumper.Dumper {
+	return &Engine{
+		Dumper: dumper,
+		reader: rdr,
 	}
 }
 
-func (p *sqlDumper) Dump(done chan<- struct{}, spec *config.Spec, concurrency int) error {
-	if err := p.readAndDumpStructure(); err != nil {
+// Dump executes the dump process.
+func (e *Engine) Dump(done chan<- struct{}, spec *config.Spec, concurrency int) error {
+	if err := e.readAndDumpStructure(); err != nil {
 		return err
 	}
 
-	return p.readAndDumpTables(done, spec, concurrency)
+	return e.readAndDumpTables(done, spec, concurrency)
 }
 
-func (p *sqlDumper) readAndDumpStructure() error {
-	log.Debug("Dumping structure...")
-	structureSQL, err := p.reader.GetStructure()
+func (e *Engine) readAndDumpStructure() error {
+	log.Debug("dumping structure...")
+	sql, err := e.reader.GetStructure()
 	if err != nil {
 		return errors.Wrap(err, "failed to get structure")
 	}
 
-	if err := p.DumpStructure(structureSQL); err != nil {
+	if err := e.DumpStructure(sql); err != nil {
 		return errors.Wrap(err, "failed to dump structure")
 	}
 
-	log.Debug("Structure dumped")
+	log.Debug("structure was dumped")
 	return nil
 }
 
-func (p *sqlDumper) readAndDumpTables(done chan<- struct{}, spec *config.Spec, concurrency int) error {
-	tables, err := p.reader.GetTables()
+func (e *Engine) readAndDumpTables(done chan<- struct{}, spec *config.Spec, concurrency int) error {
+	tables, err := e.reader.GetTables()
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed to read and dump tables")
 	}
 
 	// Trigger pre dump tables
-	if adv, ok := p.SqlEngine.(SqlEngineAdvanced); ok {
+	if adv, ok := e.Dumper.(Hooker); ok {
 		if err := adv.PreDumpTables(tables); err != nil {
-			return err
+			return errors.Wrap(err, "failed to execute pre dump tables")
 		}
 	}
 
 	semChan := make(chan struct{}, concurrency)
-
 	var wg sync.WaitGroup
 	for _, tbl := range tables {
 		logger := log.WithField("table", tbl)
@@ -97,7 +102,7 @@ func (p *sqlDumper) readAndDumpTables(done chan<- struct{}, spec *config.Spec, c
 				Match:         tableConfig.Filter.Match,
 				Sorts:         tableConfig.Filter.Sorts,
 				Limit:         tableConfig.Filter.Limit,
-				Relationships: p.relationshipConfigToOptions(tableConfig.Relationships),
+				Relationships: e.relationshipConfigToOptions(tableConfig.Relationships),
 			}
 		}
 
@@ -110,13 +115,13 @@ func (p *sqlDumper) readAndDumpTables(done chan<- struct{}, spec *config.Spec, c
 			defer wg.Done()
 			defer func(semChan <-chan struct{}) { <-semChan }(semChan)
 
-			if err := p.DumpTable(tableName, rowChan); err != nil {
+			if err := e.DumpTable(tableName, rowChan); err != nil {
 				logger.WithError(err).Error("Failed to dump table")
 			}
 		}(tbl, rowChan, logger)
 
 		go func(tableName string, opts reader.ReadTableOpt, rowChan chan<- database.Row, logger *log.Entry) {
-			if err := p.reader.ReadTable(tableName, rowChan, opts, spec.Matchers); err != nil {
+			if err := e.reader.ReadTable(tableName, rowChan, opts, spec.Matchers); err != nil {
 				logger.WithError(err).Error("Failed to read table")
 			}
 		}(tbl, opts, rowChan, logger)
@@ -128,9 +133,9 @@ func (p *sqlDumper) readAndDumpTables(done chan<- struct{}, spec *config.Spec, c
 		close(semChan)
 
 		// Trigger post dump tables
-		if adv, ok := p.SqlEngine.(SqlEngineAdvanced); ok {
+		if adv, ok := e.Dumper.(Hooker); ok {
 			if err := adv.PostDumpTables(tables); err != nil {
-				log.WithError(err).Error("Post dump tables failed")
+				log.WithError(err).Error("post dump tables failed")
 			}
 		}
 
@@ -140,7 +145,7 @@ func (p *sqlDumper) readAndDumpTables(done chan<- struct{}, spec *config.Spec, c
 	return nil
 }
 
-func (p *sqlDumper) relationshipConfigToOptions(relationshipsConfig []*config.Relationship) []*reader.RelationshipOpt {
+func (e *Engine) relationshipConfigToOptions(relationshipsConfig []*config.Relationship) []*reader.RelationshipOpt {
 	var opts []*reader.RelationshipOpt
 
 	for _, r := range relationshipsConfig {

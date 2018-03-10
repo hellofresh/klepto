@@ -18,8 +18,8 @@ import (
 	_ "github.com/hellofresh/klepto/pkg/reader/postgres"
 )
 
-// StealOptions represents the command options
 type (
+	// StealOptions represents the command options
 	StealOptions struct {
 		from        string
 		to          string

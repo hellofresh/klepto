@@ -10,7 +10,9 @@ import (
 type (
 	// Driver is a driver interface used to support multiple drivers
 	Driver interface {
+		// IsSupported checks if the driver is supported.
 		IsSupported(string) bool
+		// NewConnection takes the connection options and returns a new Reader.
 		NewConnection(ConnOpts) (Reader, error)
 	}
 
@@ -38,7 +40,7 @@ type (
 		Match string
 		// Sort the results
 		Sorts map[string]string
-		// Defines a limit of results to be fetched
+		// Limit defines a limit of results to be fetched
 		Limit uint64
 		// Relationships defines an slice of relationship definitions
 		Relationships []*RelationshipOpt
@@ -46,19 +48,28 @@ type (
 
 	// RelationshipOpt represents the relationships options
 	RelationshipOpt struct {
-		Table           string
-		ForeignKey      string
+		// Table is the table name.
+		Table string
+		// ForeignKey is the table name foreign key.
+		ForeignKey string
+		// ReferencedTable is the referenced table name.
 		ReferencedTable string
-		ReferencedKey   string
+		// ReferencedKey is the referenced table primary key name.
+		ReferencedKey string
 	}
 
 	// ConnOpts are the options to create a connection
 	ConnOpts struct {
-		DSN             string
-		Timeout         time.Duration
+		// DSN is the connection address.
+		DSN string
+		// Timeout is the timeout for read operations.
+		Timeout time.Duration
+		// MaxConnLifetime is the maximum amount of time a connection may be reused on the read database.
 		MaxConnLifetime time.Duration
-		MaxConns        int
-		MaxIdleConns    int
+		// MaxConns is the maximum number of open connections to the read database.
+		MaxConns int
+		// MaxIdleConns is the maximum number of connections in the idle connection pool for the read database.
+		MaxIdleConns int
 	}
 )
 

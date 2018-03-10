@@ -6,34 +6,35 @@ import (
 	"time"
 
 	"github.com/hellofresh/klepto/pkg/reader"
-	"github.com/hellofresh/klepto/pkg/reader/generic"
+	"github.com/hellofresh/klepto/pkg/reader/engine"
+	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 )
 
-// Storage ...
-type storage struct {
-	PgDump
-
-	connection *sql.DB
-}
-
-// NewStorage ...
-func NewStorage(conn *sql.DB, dumper PgDump, timeout time.Duration) reader.Reader {
-	s := &storage{
-		PgDump:     dumper,
-		connection: conn,
+type (
+	storage struct {
+		PgDumper
+		conn *sql.DB
 	}
-	return generic.NewSqlReader(s, timeout)
-}
 
-func (s *storage) GetConnection() *sql.DB {
-	return s.connection
+	// PgDump executes the pg dump command.
+	PgDumper interface {
+		GetStructure() (stmt string, err error)
+	}
+)
+
+// NewStorage creates a new postgres storage reader.
+func NewStorage(conn *sql.DB, dumper PgDumper, timeout time.Duration) reader.Reader {
+	return engine.New(&storage{
+		PgDumper: dumper,
+		conn:     conn,
+	}, timeout)
 }
 
 // GetTables gets a list of all tables in the database
 func (s *storage) GetTables() ([]string, error) {
-	log.Debug("Fetching table list")
-	rows, err := s.connection.Query(
+	log.Debug("fetching table list")
+	rows, err := s.conn.Query(
 		`SELECT table_name FROM information_schema.tables
 		 WHERE table_catalog=current_database() AND table_schema NOT IN ('pg_catalog', 'information_schema')`,
 	)
@@ -52,15 +53,14 @@ func (s *storage) GetTables() ([]string, error) {
 		tables = append(tables, tableName)
 	}
 
-	log.WithField("tables", tables).Debug("Fetched table list")
+	log.WithField("tables", tables).Debug("fetched table list")
 
 	return tables, nil
 }
 
-// GetColumns returns the columns in the specified database table
 func (s *storage) GetColumns(table string) ([]string, error) {
-	log.WithField("table", table).Debug("Fetching table columns")
-	rows, err := s.connection.Query(
+	log.WithField("table", table).Debug("fetching table columns")
+	rows, err := s.conn.Query(
 		"SELECT column_name FROM information_schema.columns WHERE table_catalog=current_database() AND table_name=$1",
 		table,
 	)
@@ -82,10 +82,18 @@ func (s *storage) GetColumns(table string) ([]string, error) {
 	return columns, nil
 }
 
+// QuoteIdentifier returns a double-quoted name.
 func (s *storage) QuoteIdentifier(name string) string {
 	return strconv.Quote(name)
 }
 
+// Close closes the postgres connection reader.
 func (s *storage) Close() error {
-	return s.connection.Close()
+	if err := s.conn.Close(); err != nil {
+		return errors.Wrap(err, "failed to close postgres connection reader")
+	}
+	return nil
 }
+
+// Conn retrieves the postgres reader connection.
+func (s *storage) Conn() *sql.DB { return s.conn }

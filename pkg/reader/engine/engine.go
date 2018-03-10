@@ -1,4 +1,4 @@
-package generic
+package engine
 
 import (
 	"context"
@@ -15,10 +15,10 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// sqlReader is a base class for sql related readers
 type (
-	SqlReader struct {
-		SqlEngine
+	// Engine is responsible for sql related read operations.
+	Engine struct {
+		Storage
 		// tables is a cache variable for all tables in the db
 		tables []string
 		// columns is a cache variable for tables and there columns in the db
@@ -27,94 +27,90 @@ type (
 		timeout time.Duration
 	}
 
-	SqlEngine interface {
-		// GetConnection return the sql.DB connection
-		GetConnection() *sql.DB
-
+	// Storage is the read storage database interface.
+	Storage interface {
 		// GetStructure returns the SQL used to create the database tables
 		GetStructure() (string, error)
-
 		// GetTables return a list of all database tables
 		GetTables() ([]string, error)
-
 		// GetColumns return a list of all columns for a given table
 		GetColumns(string) ([]string, error)
-
 		// QuoteIdentifier returns a quoted instance of a identifier (table, column etc.)
 		QuoteIdentifier(string) string
-
-		// Close closes the connection and other resources and releases them.
+		// Conn return the sql.DB connection
+		Conn() *sql.DB
+		// Close closes the reader resources and releases them.
 		Close() error
 	}
 )
 
-// NewSqlReader creates a new sql reader
-func NewSqlReader(se SqlEngine, t time.Duration) *SqlReader {
-	return &SqlReader{SqlEngine: se, timeout: t}
+// New creates a new sql reader engine.
+func New(s Storage, timeout time.Duration) *Engine {
+	return &Engine{Storage: s, timeout: timeout}
 }
 
 // GetTables gets a list of all tables in the database
-func (s *SqlReader) GetTables() ([]string, error) {
-	if s.tables == nil {
-		tables, err := s.SqlEngine.GetTables()
+func (e *Engine) GetTables() ([]string, error) {
+	if e.tables == nil {
+		tables, err := e.Storage.GetTables()
 		if err != nil {
 			return nil, err
 		}
 
-		s.tables = tables
+		e.tables = tables
 	}
 
-	return s.tables, nil
+	return e.tables, nil
 }
 
 // GetColumns returns the columns in the specified database table
-func (s *SqlReader) GetColumns(tableName string) ([]string, error) {
-	columns, ok := s.columns.Load(tableName)
+func (e *Engine) GetColumns(tableName string) ([]string, error) {
+	columns, ok := e.columns.Load(tableName)
 	if !ok {
 		var err error
-		columns, err = s.SqlEngine.GetColumns(tableName)
+		columns, err = e.Storage.GetColumns(tableName)
 		if err != nil {
 			return nil, err
 		}
 
-		s.columns.Store(tableName, columns)
+		e.columns.Store(tableName, columns)
 	}
 
 	return columns.([]string), nil
 }
 
 // ReadTable returns a list of all rows in a table
-func (s *SqlReader) ReadTable(tableName string, rowChan chan<- database.Row, opts reader.ReadTableOpt, matchers config.Matchers) error {
+func (e *Engine) ReadTable(tableName string, rowChan chan<- database.Row, opts reader.ReadTableOpt, matchers config.Matchers) error {
 	defer close(rowChan)
 
 	logger := log.WithField("table", tableName)
 	logger.Debug("reading table data")
 
 	if len(opts.Columns) == 0 {
-		columns, err := s.GetColumns(tableName)
+		columns, err := e.GetColumns(tableName)
 		if err != nil {
 			return errors.Wrap(err, "failed to get columns")
 		}
-		opts.Columns = s.formatColumns(tableName, columns)
+		opts.Columns = e.formatColumns(tableName, columns)
 	}
 
 	var (
 		query sq.SelectBuilder
 		err   error
 	)
-	query, err = s.buildQuery(tableName, opts, matchers)
+	query, err = e.buildQuery(tableName, opts, matchers)
 	if err != nil {
 		return errors.Wrapf(err, "failed to build query for %s", tableName)
 	}
 
 	var rows *sql.Rows
-	ctx, cancel := context.WithTimeout(context.Background(), s.timeout)
+	ctx, cancel := context.WithTimeout(context.Background(), e.timeout)
 	defer cancel()
 
 	errchan := make(chan error)
 	go func() {
 		defer close(errchan)
-		rows, err = query.RunWith(s.GetConnection()).QueryContext(ctx)
+		rows, err = query.RunWith(e.Conn()).QueryContext(ctx)
 		errchan <- err
 	}()
 
@@ -134,14 +130,14 @@ func (s *SqlReader) ReadTable(tableName string, rowChan chan<- database.Row, opt
 		break
 	}
 
-	return s.publishRows(rows, rowChan, tableName)
+	return e.publishRows(rows, rowChan, tableName)
 }
 
 // BuildQuery builds the query that will be used to read the table
-func (s *SqlReader) buildQuery(tableName string, opts reader.ReadTableOpt, matchers map[string]string) (sq.SelectBuilder, error) {
+func (e *Engine) buildQuery(tableName string, opts reader.ReadTableOpt, matchers map[string]string) (sq.SelectBuilder, error) {
 	var query sq.SelectBuilder
 
-	query = sq.Select(opts.Columns...).From(s.QuoteIdentifier(tableName))
+	query = sq.Select(opts.Columns...).From(e.QuoteIdentifier(tableName))
 	for _, r := range opts.Relationships {
 		if r.Table == "" {
 			r.Table = tableName
@@ -176,21 +172,22 @@ func (s *SqlReader) buildQuery(tableName string, opts reader.ReadTableOpt, match
 }
 
 // FormatColumn returns a escaped table+column string
-func (s *SqlReader) FormatColumn(tableName string, columnName string) string {
+func (e *Engine) FormatColumn(tableName string, columnName string) string {
 	return fmt.Sprintf(
 		"%s.%s",
-		s.QuoteIdentifier(tableName),
-		s.QuoteIdentifier(columnName),
+		e.QuoteIdentifier(tableName),
+		e.QuoteIdentifier(columnName),
 	)
 }
 
-func (s *SqlReader) publishRows(rows *sql.Rows, rowChan chan<- database.Row, tableName string) error {
+func (e *Engine) publishRows(rows *sql.Rows, rowChan chan<- database.Row, tableName string) error {
 	defer rows.Close()
 
 	columnTypes, err := rows.ColumnTypes()
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed to get column types")
 	}
+
 	columnCount := len(columnTypes)
 	columns := make([]string, columnCount)
 	for i, col := range columnTypes {
@@ -222,10 +219,10 @@ func (s *SqlReader) publishRows(rows *sql.Rows, rowChan chan<- database.Row, tab
 	return nil
 }
 
-func (s *SqlReader) formatColumns(tableName string, columns []string) []string {
+func (e *Engine) formatColumns(tableName string, columns []string) []string {
 	formatted := make([]string, len(columns))
 	for i, c := range columns {
-		formatted[i] = s.FormatColumn(tableName, c)
+		formatted[i] = e.FormatColumn(tableName, c)
 	}
 
 	return formatted

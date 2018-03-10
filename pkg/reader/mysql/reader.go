@@ -8,27 +8,31 @@ import (
 	"time"
 
 	"github.com/hellofresh/klepto/pkg/reader"
-	"github.com/hellofresh/klepto/pkg/reader/generic"
+	"github.com/hellofresh/klepto/pkg/reader/engine"
+	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 )
 
-type storage struct {
-	conn *sql.DB
-}
+const (
+	baseTable = "BASE TABLE"
+)
 
-// NewStorage ...
+type (
+	storage struct {
+		conn *sql.DB
+	}
+)
+
+// NewStorage creates a new mysql reader.
 func NewStorage(conn *sql.DB, timeout time.Duration) reader.Reader {
-	return generic.NewSqlReader(&storage{conn}, timeout)
+	return engine.New(&storage{
+		conn: conn,
+	}, timeout)
 }
 
-// GetConnection return the connection
-func (s *storage) GetConnection() *sql.DB {
-	return s.conn
-}
-
-// GetTables gets a list of all tables in the database
+// GetTables gets a list of all tables in the database.
 func (s *storage) GetTables() ([]string, error) {
-	log.Debug("Fetching table list")
+	log.Debug("fetching table list")
 
 	rows, err := s.conn.Query("SHOW FULL TABLES")
 	if err != nil {
@@ -42,12 +46,12 @@ func (s *storage) GetTables() ([]string, error) {
 		if err := rows.Scan(&tableName, &tableType); err != nil {
 			return nil, err
 		}
-		if tableType == "BASE TABLE" {
+		if tableType == baseTable {
 			tables = append(tables, tableName)
 		}
 	}
 
-	log.WithField("tables", tables).Debug("Fetched table list")
+	log.WithField("tables", tables).Debug("fetched table list")
 
 	return tables, nil
 }
@@ -76,7 +80,7 @@ func (s *storage) GetColumns(tableName string) ([]string, error) {
 	return columns, nil
 }
 
-// GetStructure returns the SQL used to create the database tables structure
+// GetStructure dumps the mysql database structure.
 func (s *storage) GetStructure() (string, error) {
 	tables, err := s.GetTables()
 	if err != nil {
@@ -106,13 +110,22 @@ func (s *storage) GetStructure() (string, error) {
 	return buf.String(), nil
 }
 
+// QuoteIdentifier ...
 func (s *storage) QuoteIdentifier(name string) string {
 	return fmt.Sprintf("`%s`", strings.Replace(name, "`", "``", -1))
 }
 
+// Close closes the mysql database connection.
 func (s *storage) Close() error {
-	return s.conn.Close()
+	err := s.conn.Close()
+	if err != nil {
+		return errors.Wrap(err, "failed to close mysql reader database connection")
+	}
+	return nil
 }
+
+// Conn retrieves the storage connection
+func (s *storage) Conn() *sql.DB { return s.conn }
 
 // getPreamble puts a big old comment at the top of the database dump.
 // Also acts as first query to check for errors.

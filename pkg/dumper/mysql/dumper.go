@@ -11,43 +11,54 @@ import (
 	"github.com/go-sql-driver/mysql"
 	"github.com/hellofresh/klepto/pkg/database"
 	"github.com/hellofresh/klepto/pkg/dumper"
-	"github.com/hellofresh/klepto/pkg/dumper/generic"
+	"github.com/hellofresh/klepto/pkg/dumper/engine"
 	"github.com/hellofresh/klepto/pkg/reader"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 )
 
-// myDumper dumps a database into a mysql db
-type myDumper struct {
-	conn   *sql.DB
-	reader reader.Reader
-}
+const (
+	null = "NULL"
+)
 
+type (
+	myDumper struct {
+		conn   *sql.DB
+		reader reader.Reader
+	}
+)
+
+// NewDumper returns a new mysql dumper.
 func NewDumper(conn *sql.DB, rdr reader.Reader) dumper.Dumper {
-	return generic.NewSqlDumper(rdr, &myDumper{
+	return engine.New(rdr, &myDumper{
 		conn:   conn,
 		reader: rdr,
 	})
 }
 
-func (p *myDumper) DumpStructure(sql string) error {
-	if _, err := p.conn.Exec(sql); err != nil {
+// DumpStructure dump the mysql database structure.
+func (d *myDumper) DumpStructure(sql string) error {
+	if _, err := d.conn.Exec(sql); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (p *myDumper) DumpTable(tableName string, rowChan <-chan database.Row) error {
-	txn, err := p.conn.Begin()
+// DumpTable dumps a mysql table.
+func (d *myDumper) DumpTable(tableName string, rowChan <-chan database.Row) error {
+	txn, err := d.conn.Begin()
 	if err != nil {
 		return errors.Wrap(err, "failed to open transaction")
 	}
 
-	insertedRows, err := p.insertIntoTable(txn, tableName, rowChan)
+	insertedRows, err := d.insertIntoTable(txn, tableName, rowChan)
 	if err != nil {
-		txn.Rollback()
-		return errors.Wrap(err, "failed to insert rows")
+		err = errors.Wrap(err, "failed to insert rows")
+		if err := txn.Rollback(); err != nil {
+			return errors.Wrap(err, "failed to rollback transaction")
+		}
+		return err
 	}
 
 	log.WithFields(log.Fields{
@@ -62,25 +73,29 @@ func (p *myDumper) DumpTable(tableName string, rowChan <-chan database.Row) erro
 	return nil
 }
 
-func (p *myDumper) Close() error {
-	return p.conn.Close()
+// Close closes the mysql database connection.
+func (d *myDumper) Close() error {
+	err := d.conn.Close()
+	if err != nil {
+		return errors.Wrap(err, "failed to close mysql connection")
+	}
+	return nil
 }
 
-func (p *myDumper) insertIntoTable(txn *sql.Tx, tableName string, rowChan <-chan database.Row) (int64, error) {
-	columns, err := p.reader.GetColumns(tableName)
+func (d *myDumper) insertIntoTable(txn *sql.Tx, tableName string, rowChan <-chan database.Row) (int64, error) {
+	columns, err := d.reader.GetColumns(tableName)
 	if err != nil {
-		return 0, err
+		return 0, errors.Wrap(err, "failed to get columns")
 	}
 
-	// Create query
 	columnsQuoted := make([]string, len(columns))
 	for i, column := range columns {
-		columnsQuoted[i] = p.quoteIdentifier(column)
+		columnsQuoted[i] = d.quoteIdentifier(column)
 	}
 	query := fmt.Sprintf(
 		"LOAD DATA LOCAL INFILE 'Reader::%s' INTO TABLE %s FIELDS TERMINATED BY ',' ENCLOSED BY '\"' ESCAPED BY '\"' (%s)",
 		tableName,
-		p.quoteIdentifier(tableName),
+		d.quoteIdentifier(tableName),
 		strings.Join(columnsQuoted, ","),
 	)
 
@@ -104,7 +119,7 @@ func (p *myDumper) insertIntoTable(txn *sql.Tx, tableName string, rowChan <-chan
 			for i, col := range columns {
 				switch v := row[col].(type) {
 				case nil:
-					rowValues[i] = "NULL"
+					rowValues[i] = null
 				case string:
 					rowValues[i] = row[col].(string)
 				case []uint8:
@@ -124,20 +139,20 @@ func (p *myDumper) insertIntoTable(txn *sql.Tx, tableName string, rowChan <-chan
 	}(rowWriter)
 
 	// Register the reader for reading the csv
-	mysql.RegisterReaderHandler(tableName, func() io.Reader {
-		return rowReader
-	})
+	mysql.RegisterReaderHandler(tableName, func() io.Reader { return rowReader })
 	defer mysql.DeregisterReaderHandler(tableName)
 
-	// Execute the query
-	txn.Exec("SET foreign_key_checks = 0;")
+	if _, err := txn.Exec("SET foreign_key_checks = 0;"); err != nil {
+		return 0, errors.Wrap(err, "failed to disable foreign key checks")
+	}
+
 	if _, err := txn.Exec(query); err != nil {
-		return 0, err
+		return 0, errors.Wrap(err, "failed to execute query")
 	}
 
 	return inserted, nil
 }
 
-func (p *myDumper) quoteIdentifier(name string) string {
+func (d *myDumper) quoteIdentifier(name string) string {
 	return fmt.Sprintf("`%s`", strings.Replace(name, "`", "``", -1))
 }

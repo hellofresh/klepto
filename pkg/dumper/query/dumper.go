@@ -15,13 +15,14 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// textDumper dumps a database's structure to a stream
-type textDumper struct {
-	reader reader.Reader
-	output io.Writer
-}
+type (
+	textDumper struct {
+		reader reader.Reader
+		output io.Writer
+	}
+)
 
-// NewDumper is the constructor for MySQLDumper
+// NewDumper returns a new text dumper implementation.
 func NewDumper(output io.Writer, rdr reader.Reader) dumper.Dumper {
 	return &textDumper{
 		reader: rdr,
@@ -29,10 +30,11 @@ func NewDumper(output io.Writer, rdr reader.Reader) dumper.Dumper {
 	}
 }
 
+// Dump executes the dump stream process.
 func (d *textDumper) Dump(done chan<- struct{}, spec *config.Spec, concurrency int) error {
 	tables, err := d.reader.GetTables()
 	if err != nil {
-		return errors.Wrap(err, "could not get tables")
+		return errors.Wrap(err, "failed to get tables")
 	}
 
 	structure, err := d.reader.GetStructure()
@@ -86,13 +88,17 @@ func (d *textDumper) Dump(done chan<- struct{}, spec *config.Spec, concurrency i
 	return nil
 }
 
+// Close closes the output stream.
 func (d *textDumper) Close() error {
 	closer, ok := d.output.(io.WriteCloser)
 	if ok {
-		closer.Close()
+		if err := closer.Close(); err != nil {
+			return errors.Wrap(err, "failed to close output stream")
+		}
+		return nil
 	}
 
-	return nil
+	return errors.New("unable to close output: wrong closer type")
 }
 
 func (d *textDumper) toSQLColumnMap(row database.Row) (map[string]interface{}, error) {

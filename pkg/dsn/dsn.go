@@ -14,6 +14,14 @@ var (
 	ErrEmptyDsn = errors.New("Empty string provided for dsn")
 	// ErrInvalidDsn defines error returned when the dsn is invalid
 	ErrInvalidDsn = errors.New("Invalid dsn")
+
+	// From https://github.com/go-sql-driver/mysql/blob/f4bf8e8e0aa93d4ead0c6473503ca2f5d5eb65a8/utils.go#L34
+	regex = regexp.MustCompile(
+		`^(?:(?P<Type>.*?)?://)?` + // [type://]
+			`(?:(?P<Username>.*?)(?::(?P<Password>.*))?@)?` + // [username[:password]@]
+			`(?:(?P<Protocol>[^\(]*)(?:\((?P<Address>[^\)]*)\))?)?` + // [protocol[(address)]]
+			`\/(?P<DataSource>.*?)` + // /datasource
+			`(?:\?(?P<Params>[^\?]*))?$`) // [?param1=value1]
 )
 
 // DSN describes how a DSN looks like
@@ -36,7 +44,7 @@ func Parse(s string) (*DSN, error) {
 		return nil, ErrEmptyDsn
 	}
 
-	dsn := &DSN{}
+	dsn := new(DSN)
 
 	matches := regex.FindStringSubmatch(s)
 	if len(matches) < 1 || len(matches) > 1 && matches[1] == "" {
@@ -74,17 +82,7 @@ func Parse(s string) (*DSN, error) {
 	return dsn, nil
 }
 
-var (
-	// From https://github.com/go-sql-driver/mysql/blob/f4bf8e8e0aa93d4ead0c6473503ca2f5d5eb65a8/utils.go#L34
-	regex = regexp.MustCompile(
-		`^(?:(?P<Type>.*?)?://)?` + // [type://]
-			`(?:(?P<Username>.*?)(?::(?P<Password>.*))?@)?` + // [username[:password]@]
-			`(?:(?P<Protocol>[^\(]*)(?:\((?P<Address>[^\)]*)\))?)?` + // [protocol[(address)]]
-			`\/(?P<DataSource>.*?)` + // /datasource
-			`(?:\?(?P<Params>[^\?]*))?$`) // [?param1=value1]
-)
-
-// Converts a DSN struct into its string representation.
+// String converts a DSN struct into its string representation.
 func (d DSN) String() string {
 	str := ""
 

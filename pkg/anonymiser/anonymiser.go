@@ -22,18 +22,19 @@ const (
 	password      = "Password"
 )
 
-// anonymiser is responsible for anonymising columns
-type anonymiser struct {
-	reader.Reader
-	tables config.Tables
-}
+type (
+	anonymiser struct {
+		reader.Reader
+		tables config.Tables
+	}
+)
 
-// NewAnonymiser returns an initialised instance of MySQLAnonymiser
+// NewAnonymiser returns a new anonymiser reader.
 func NewAnonymiser(source reader.Reader, tables config.Tables) reader.Reader {
 	return &anonymiser{source, tables}
 }
 
-// ReadTable wraps reader.ReadTable method for anonymising rows published from the reader.Reader
+// ReadTable decorates reader.ReadTable method for anonymising rows published from the reader.Reader
 func (a *anonymiser) ReadTable(tableName string, rowChan chan<- database.Row, opts reader.ReadTableOpt, matchers config.Matchers) error {
 	logger := log.WithField("table", tableName)
 	logger.Debug("Loading anonymiser config")

@@ -30,5 +30,4 @@ func getOutputWriter(dsn string) (io.Writer, error) {
 	default:
 		return nil, fmt.Errorf("Unknown output writer type: %v", config.Type)
 	}
-
 }

@@ -6,11 +6,13 @@ import (
 	"github.com/go-sql-driver/mysql"
 	"github.com/hellofresh/klepto/pkg/dumper"
 	"github.com/hellofresh/klepto/pkg/reader"
+	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 )
 
 type driver struct{}
 
+// IsSupported checks if the given dsn connection string is supported.
 func (m *driver) IsSupported(dsn string) bool {
 	if dsn == "" {
 		return false
@@ -20,11 +22,13 @@ func (m *driver) IsSupported(dsn string) bool {
 	return err == nil
 }
 
+// NewConnection creates a new mysql connection and retrieves a new mysql dumper.
 func (m *driver) NewConnection(opts dumper.ConnOpts, rdr reader.Reader) (dumper.Dumper, error) {
 	dsnCfg, err := mysql.ParseDSN(opts.DSN)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to parse mysql dsn")
 	}
+
 	if !dsnCfg.MultiStatements {
 		log.WithField("help", "https://github.com/go-sql-driver/mysql#multistatements").
 			Warning("MYSQL dumper forcing multistatements!")
@@ -33,7 +37,7 @@ func (m *driver) NewConnection(opts dumper.ConnOpts, rdr reader.Reader) (dumper.
 
 	conn, err := sql.Open("mysql", dsnCfg.FormatDSN())
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to open mysql connection")
 	}
 
 	conn.SetMaxOpenConns(opts.MaxConns)

@@ -8,49 +8,55 @@ import (
 	"github.com/hellofresh/klepto/pkg/config"
 	"github.com/hellofresh/klepto/pkg/database"
 	"github.com/hellofresh/klepto/pkg/dumper"
-	"github.com/hellofresh/klepto/pkg/dumper/generic"
+	"github.com/hellofresh/klepto/pkg/dumper/engine"
 	"github.com/hellofresh/klepto/pkg/reader"
 	"github.com/lib/pq"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 )
 
-// pgDumper dumps a database into a postgres db
-type pgDumper struct {
-	conn   *sql.DB
-	reader reader.Reader
-}
+type (
+	pgDumper struct {
+		conn   *sql.DB
+		reader reader.Reader
+	}
+)
 
+// NewDumper returns a new postgres dumper.
 func NewDumper(conn *sql.DB, rdr reader.Reader) dumper.Dumper {
-	return generic.NewSqlDumper(
-		rdr,
-		&pgDumper{
-			conn:   conn,
-			reader: rdr,
-		},
-	)
+	return engine.New(rdr, &pgDumper{
+		conn:   conn,
+		reader: rdr,
+	})
 }
 
-func (p *pgDumper) DumpStructure(sql string) error {
-	if _, err := p.conn.Exec(sql); err != nil {
+// DumpStructure dump the mysql database structure.
+func (d *pgDumper) DumpStructure(sql string) error {
+	if _, err := d.conn.Exec(sql); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (p *pgDumper) DumpTable(tableName string, rowChan <-chan database.Row) error {
-	txn, err := p.conn.Begin()
+// DumpTable dumps a postgres table.
+func (d *pgDumper) DumpTable(tableName string, rowChan <-chan database.Row) error {
+	txn, err := d.conn.Begin()
 	if err != nil {
 		return errors.Wrap(err, "failed to open transaction")
 	}
 
-	insertedRows, err := p.insertIntoTable(txn, tableName, rowChan)
+	insertedRows, err := d.insertIntoTable(txn, tableName, rowChan)
 	if err != nil {
-		txn.Rollback()
-		return errors.Wrap(err, "failed to insert rows")
+		err = errors.Wrap(err, "failed to insert rows")
+		if err := txn.Rollback(); err != nil {
+			return errors.Wrap(err, "failed to rollback transaction")
+		}
 	}
-	log.WithField("table", tableName).WithField("inserted", insertedRows).Debug("inserted rows")
+	log.WithFields(log.Fields{
+		"table":    tableName,
+		"inserted": insertedRows,
+	}).Debug("inserted rows")
 
 	if err := txn.Commit(); err != nil {
 		return errors.Wrap(err, "failed to commit transaction")
@@ -60,11 +66,11 @@ func (p *pgDumper) DumpTable(tableName string, rowChan <-chan database.Row) erro
 }
 
 // PreDumpTables Disable triggers on all tables to avoid foreign key constraints
-func (p *pgDumper) PreDumpTables(tables []string) error {
+func (d *pgDumper) PreDumpTables(tables []string) error {
 	// We can't use `SET session_replication_role = replica` because multiple connections and stuff
 	for _, tbl := range tables {
 		query := fmt.Sprintf("ALTER TABLE %s DISABLE TRIGGER ALL", strconv.Quote(tbl))
-		if _, err := p.conn.Exec(query); err != nil {
+		if _, err := d.conn.Exec(query); err != nil {
 			return errors.Wrapf(err, "Failed to disable triggers for %s", tbl)
 		}
 	}
@@ -72,34 +78,39 @@ func (p *pgDumper) PreDumpTables(tables []string) error {
 	return nil
 }
 
-// PostDumpTables Enable triggers on all tables to enforce foreign key constraints
-func (p *pgDumper) PostDumpTables(tables []string) error {
+// PostDumpTables enable triggers on all tables to enforce foreign key constraints
+func (d *pgDumper) PostDumpTables(tables []string) error {
 	// We can't use `SET session_replication_role = DEFAULT` because multiple connections and stuff
 	for _, tbl := range tables {
 		query := fmt.Sprintf("ALTER TABLE %s ENABLE TRIGGER ALL", strconv.Quote(tbl))
-		if _, err := p.conn.Exec(query); err != nil {
-			return errors.Wrap(err, "Failed to enable triggers")
+		if _, err := d.conn.Exec(query); err != nil {
+			return errors.Wrapf(err, "Failed to anble triggers for %s", tbl)
 		}
 	}
 
 	return nil
 }
 
-func (p *pgDumper) Close() error {
-	return p.conn.Close()
+// Close closes the postgres database connection.
+func (d *pgDumper) Close() error {
+	err := d.conn.Close()
+	if err != nil {
+		return errors.Wrap(err, "failed to close postgres connection")
+	}
+	return nil
 }
 
-func (p *pgDumper) insertIntoTable(txn *sql.Tx, tableName string, rowChan <-chan database.Row) (int64, error) {
-	columns, err := p.reader.GetColumns(tableName)
+func (d *pgDumper) insertIntoTable(txn *sql.Tx, tableName string, rowChan <-chan database.Row) (int64, error) {
+	columns, err := d.reader.GetColumns(tableName)
 	if err != nil {
-		return 0, err
+		return 0, errors.Wrap(err, "failed to get columns")
 	}
 
 	logger := log.WithFields(log.Fields{
 		"table":   tableName,
 		"columns": columns,
 	})
-	logger.Debug("Preparing copy in")
+	logger.Debug("preparing copy in")
 
 	stmt, err := txn.Prepare(pq.CopyIn(tableName, columns...))
 	if err != nil {
@@ -141,7 +152,7 @@ func (p *pgDumper) insertIntoTable(txn *sql.Tx, tableName string, rowChan <-chan
 		inserted++
 	}
 
-	logger.Debug("Executing copy in")
+	logger.Debug("executing copy in")
 	if _, err := stmt.Exec(); err != nil {
 		return 0, errors.Wrap(err, "failed to exec copy in")
 	}
@@ -149,7 +160,7 @@ func (p *pgDumper) insertIntoTable(txn *sql.Tx, tableName string, rowChan <-chan
 	return inserted, nil
 }
 
-func (p *pgDumper) relationshipConfigToOptions(relationshipsConfig []*config.Relationship) []*reader.RelationshipOpt {
+func (d *pgDumper) relationshipConfigToOptions(relationshipsConfig []*config.Relationship) []*reader.RelationshipOpt {
 	var opts []*reader.RelationshipOpt
 
 	for _, r := range relationshipsConfig {

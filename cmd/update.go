@@ -11,15 +11,16 @@ const (
 	githubRepo  = "klepto"
 )
 
-// UpdateOptions are the command flags
-type UpdateOptions struct {
-	token string
-}
+type (
+	// UpdateOptions are the command flags
+	UpdateOptions struct {
+		token string
+	}
+)
 
 // NewUpdateCmd creates a new update command
 func NewUpdateCmd() *cobra.Command {
-	opts := &UpdateOptions{}
-
+	opts := new(UpdateOptions)
 	cmd := &cobra.Command{
 		Use:   "update",
 		Short: "Check for new versions of kepto",

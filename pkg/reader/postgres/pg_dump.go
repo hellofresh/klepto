@@ -8,32 +8,29 @@ import (
 )
 
 type (
-	PgDump interface {
-		GetStructure() (stmt string, err error)
-	}
-
-	pgDump struct {
+	// PgDump is responsible for executing the pg dump command.
+	PgDump struct {
 		command string
 		dsn     string
 	}
 )
 
-func NewPgDump(dsn string) (PgDump, error) {
-	pgDumpPath, err := exec.LookPath("pg_dump")
+// NewPgDump creates a new PgDump.
+func NewPgDump(dsn string) (*PgDump, error) {
+	path, err := exec.LookPath("pg_dump")
 	if err != nil {
 		return nil, err
 	}
 
-	return &pgDump{
-		command: pgDumpPath,
+	return &PgDump{
+		command: path,
 		dsn:     dsn,
 	}, nil
 }
 
-func (p *pgDump) GetStructure() (string, error) {
-	logger := log.WithFields(log.Fields{
-		"command": p.command,
-	})
+// GetStructure executes the pg dump command.
+func (p *PgDump) GetStructure() (string, error) {
+	logger := log.WithField("command", p.command)
 
 	cmd := exec.Command(
 		p.command,
@@ -43,7 +40,7 @@ func (p *pgDump) GetStructure() (string, error) {
 		"--no-owner",
 	)
 
-	logger.Debug("Loading schema for table")
+	logger.Debug("loading schema for table")
 	cmdErr := logger.WriterLevel(log.WarnLevel)
 	defer cmdErr.Close()
 
@@ -54,7 +51,7 @@ func (p *pgDump) GetStructure() (string, error) {
 	cmd.Stdout = buf
 
 	if err := cmd.Run(); err != nil {
-		logger.Error("Failed to load schema for table")
+		logger.Error("failed to load schema for table")
 	}
 
 	return buf.String(), nil

@@ -123,8 +123,21 @@ We recommend to always set the following parameters:
 
 <a name="configuration-file-options"></a>
 ## Configuration File Options
-You can set a number of keys in the configuration file.
-
+You can set a number of keys in the configuration file. Here is the list of all configuration options:
+- `Matchers` are variables to store filter data, you can declare a filter once and reuse it among tables.
+- `Tables` represents a klepto table definition.
+  - `Name` is the table name.
+  - `IgnoreData` if set to true, it will dump the table structure without importing data.
+  - `Filter` represents the way you want to filter the results.
+    - `Match` is a condition field to dump only certain amount data.
+    - `Limit` defines a limit of results to be fetched.
+    - `Sorts` is the sort condition for the table.
+  - `Anonymise` anonymise columns.
+  - `Relationships` represents the relationship between the table and referenced table.
+    - `Table` is the table name.
+    - `ForeignKey` is the table name foreign key.
+    - `ReferencedTable` is the referenced table name.
+    - `ReferencedKey` is the referenced table primary key name.
 
 <a name="relationships"></a>
 ### Relationships

@@ -22,9 +22,10 @@ Klepto is a tool that copies and anonymises data from other sources.
 - [Usage](#usage)
 - [Steal Options](#steal-options)
 - [Configuration File Options](#configuration-file-options)
-  - [Relationships](#relationships)
+  - [IgnoreData](#ignoredata)
   - [Matchers](#matchers)
-  - [Anonymisation](#anonymisation)
+  - [Anonymise](#anonymise)
+  - [Relationships](#relationships)
 - [Examples](#examples)
 - [Contributing](#contributing)
 - [License](#licence)
@@ -123,47 +124,33 @@ We recommend to always set the following parameters:
 
 <a name="configuration-file-options"></a>
 ## Configuration File Options
-You can set a number of keys in the configuration file. Here is the list of all configuration options:
-- `Matchers` are variables to store filter data, you can declare a filter once and reuse it among tables.
-- `Tables` represents a klepto table definition.
-  - `Name` is the table name.
-  - `IgnoreData` if set to true, it will dump the table structure without importing data.
-  - `Filter` represents the way you want to filter the results.
-    - `Match` is a condition field to dump only certain amount data.
-    - `Limit` defines a limit of results to be fetched.
-    - `Sorts` is the sort condition for the table.
-  - `Anonymise` anonymise columns.
-  - `Relationships` represents the relationship between the table and referenced table.
-    - `Table` is the table name.
-    - `ForeignKey` is the table name foreign key.
-    - `ReferencedTable` is the referenced table name.
-    - `ReferencedKey` is the referenced table primary key name.
+You can set a number of keys in the configuration file. Below is a list of all configuration options, followed by some examples of specific keys.
 
-<a name="relationships"></a>
-### Relationships
-The `Relationships` key represents a relationship definition between tables.
+- `Matchers` - Variables to store filter data. You can declare a filter once and reuse it among tables.
+- `Tables` - A Klepto table definition.
+  - `Name` - The table name.
+  - `IgnoreData` - A flag to indicate whether data should be imported or not. If set to true, it will dump the table structure without importing data.
+  - `Filter` - A Klepto definition to filter results.
+    - `Match` - A condition field to dump only certain amount data. The value should correspond to an existing `Matchers` definition.
+    - `Limit` - The number of results to be fetched.
+    - `Sorts` - Defines how the table is sorted.
+  - `Anonymise` - Indicates which columns to anonymise.
+  - `Relationships` - Represents a relationship between the table and referenced table.
+    - `Table` - The table name.
+    - `ForeignKey` - The table's foreign key.
+    - `ReferencedTable` - The referenced table name.
+    - `ReferencedKey` - The referenced table primary key.
 
-#### Example
-Dump the latest 100 users with their orders:
+
+
+<a name="ignoredata"></a>
+### IgnoreData
+
+You can dump the database structure without importing data by setting the `IgnoreData` value to `true`.
 ```toml
 [[Tables]]
-  Name = "users"
-  [Tables.Filter]
-    Limit = 100
-    [Tables.Filter.Sorts]
-      created_at = "desc"
-
-[[Tables]]
-  Name = "orders"
-  [[Tables.Relationships]]
-    # behind the scenes klepto will create a inner join between orders and users
-    ForeignKey = "user_id"
-    ReferencedTable = "users"
-    ReferencedKey = "id"
-  [Tables.Filter]
-    Limit = 100
-    [Tables.Filter.Sorts]
-      created_at = "desc"
+ Name = "logs"
+ IgnoreData = true
 ```
 
 <a name="matchers"></a>
@@ -190,18 +177,9 @@ Matchers are variables to store filter data. You can declare a filter once and r
 
 See [examples](./examples) for more.
 
-<a name="ignore-data"></a>
-### Ignore data
 
-You can dump the database structure without importing data by setting the `IgnoreData` value to `true`.
-```toml
-[[Tables]]
- Name = "logs"
- IgnoreData = true
-```
-
-<a name="anonymisation"></a>
-### Anonymisation
+<a name="anonymise"></a>
+### Anonymise
 
 You can anonymise specific columns in your table using the `Anonymise` key. Anonymisation is performed by running a Faker against the specified column.
 
@@ -231,6 +209,34 @@ We generate the file with the following:
 $ go get github.com/ungerik/pkgreflect
 $ fake master pkgreflect -notypes -novars -norecurs vendor/github.com/icrowley/fake/
 ```
+
+<a name="relationships"></a>
+### Relationships
+The `Relationships` key represents a relationship between the table and referenced table.
+
+To dump the latest 100 users with their orders:
+```toml
+[[Tables]]
+  Name = "users"
+  [Tables.Filter]
+    Limit = 100
+    [Tables.Filter.Sorts]
+      created_at = "desc"
+
+[[Tables]]
+  Name = "orders"
+  [[Tables.Relationships]]
+    # behind the scenes klepto will create a inner join between orders and users
+    ForeignKey = "user_id"
+    ReferencedTable = "users"
+    ReferencedKey = "id"
+  [Tables.Filter]
+    Limit = 100
+    [Tables.Filter.Sorts]
+      created_at = "desc"
+```
+
+
 
 <a name="examples"></a>
 ## Examples

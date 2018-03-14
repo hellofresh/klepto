@@ -137,7 +137,7 @@ You can set a number of keys in the configuration file. Below is a list of all c
   - `Anonymise` - Indicates which columns to anonymise.
   - `Relationships` - Represents a relationship between the table and referenced table.
     - `Table` - The table name.
-    - `ForeignKey` - The table's foreign key.
+    - `ForeignKey` - The table's foreign key. 
     - `ReferencedTable` - The referenced table name.
     - `ReferencedKey` - The referenced table primary key.
 

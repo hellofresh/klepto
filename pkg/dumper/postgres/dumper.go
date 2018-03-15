@@ -48,10 +48,12 @@ func (d *pgDumper) DumpTable(tableName string, rowChan <-chan database.Row) erro
 
 	insertedRows, err := d.insertIntoTable(txn, tableName, rowChan)
 	if err != nil {
+		defer func() {
+			if err := txn.Rollback(); err != nil {
+				log.WithError(err).Error("failed to rollback")
+			}
+		}()
 		err = errors.Wrap(err, "failed to insert rows")
-		if rErr := txn.Rollback(); rErr != nil {
-			return errors.Wrap(rErr, "failed to insert rows, failed to rollback inserts")
-		}
 		return err
 	}
 

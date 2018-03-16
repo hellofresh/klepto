@@ -18,7 +18,7 @@ type (
 		NewConnection(ConnOpts, reader.Reader) (Dumper, error)
 	}
 
-	// A Dumper writes a database's stucture to the provided stream.
+	// A Dumper writes a database's structure to the provided stream.
 	Dumper interface {
 		// Dump executes the dump process.
 		Dump(chan<- struct{}, *config.Spec, int) error

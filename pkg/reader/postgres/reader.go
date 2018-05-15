@@ -36,7 +36,7 @@ func (s *storage) GetTables() ([]string, error) {
 	log.Debug("fetching table list")
 	rows, err := s.conn.Query(
 		`SELECT table_name FROM information_schema.tables
-		 WHERE table_catalog=current_database() AND table_schema NOT IN ('pg_catalog', 'information_schema')`,
+		 WHERE table_type='BASE TABLE' AND table_catalog=current_database() AND table_schema NOT IN ('pg_catalog', 'information_schema')`,
 	)
 	if err != nil {
 		return nil, err

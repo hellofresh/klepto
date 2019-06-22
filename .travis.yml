@@ -26,7 +26,7 @@ install:
 
 script:
   - make test
-  - $GOPATH/bin/overalls -project=github.com/hellofresh/klepto -covermode=count
+  - $GOPATH/bin/overalls -project=github.com/usoban/klepto -covermode=count
   - if [ "$TRAVIS_SECURE_ENV_VARS" == "true" ]; then bash <(curl -s https://codecov.io/bash) -f overalls.coverprofile; fi
 
   # calls goreleaser

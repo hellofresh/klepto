@@ -4,18 +4,18 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/hellofresh/klepto/pkg/anonymiser"
-	"github.com/hellofresh/klepto/pkg/dumper"
-	"github.com/hellofresh/klepto/pkg/reader"
+	"github.com/usoban/klepto/pkg/anonymiser"
+	"github.com/usoban/klepto/pkg/dumper"
+	"github.com/usoban/klepto/pkg/reader"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 
 	// imports dumpers and readers
-	_ "github.com/hellofresh/klepto/pkg/dumper/mysql"
-	_ "github.com/hellofresh/klepto/pkg/dumper/postgres"
-	_ "github.com/hellofresh/klepto/pkg/dumper/query"
-	_ "github.com/hellofresh/klepto/pkg/reader/mysql"
-	_ "github.com/hellofresh/klepto/pkg/reader/postgres"
+	_ "github.com/usoban/klepto/pkg/dumper/mysql"
+	_ "github.com/usoban/klepto/pkg/dumper/postgres"
+	_ "github.com/usoban/klepto/pkg/dumper/query"
+	_ "github.com/usoban/klepto/pkg/reader/mysql"
+	_ "github.com/usoban/klepto/pkg/reader/postgres"
 )
 
 type (

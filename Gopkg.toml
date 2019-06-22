@@ -64,3 +64,7 @@
 [[constraint]]
   name = "github.com/Masterminds/squirrel"
   version = "1.0.0"
+
+[[constraint]]
+  name = "github.com/antonmedv/expr"
+  version = "1.1.4"

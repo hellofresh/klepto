@@ -10,4 +10,4 @@ builds:
     env:
       - CGO_ENABLED=0
 
-    ldflags: -s -w -X github.com/hellofresh/klepto/cmd.version={{.Version}}
+    ldflags: -s -w -X github.com/usoban/klepto/cmd.version={{.Version}}

@@ -3,8 +3,8 @@ package cmd
 import (
 	"os"
 
-	"github.com/hellofresh/klepto/pkg/config"
-	"github.com/hellofresh/klepto/pkg/formatter"
+	"github.com/usoban/klepto/pkg/config"
+	"github.com/usoban/klepto/pkg/formatter"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"

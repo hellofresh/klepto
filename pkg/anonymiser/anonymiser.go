@@ -7,16 +7,19 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/hellofresh/klepto/pkg/config"
-	"github.com/hellofresh/klepto/pkg/database"
-	"github.com/hellofresh/klepto/pkg/reader"
+	"github.com/usoban/klepto/pkg/config"
+	"github.com/usoban/klepto/pkg/database"
+	"github.com/usoban/klepto/pkg/reader"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
+	expr "github.com/antonmedv/expr"
 )
 
 const (
 	// literalPrefix defines the constant we use to prefix literals
 	literalPrefix = "literal:"
+	conditionalPrefix = "cond:"
+	noAnonymisation = "__DO_NOT_ANONYMIZE__"
 	email         = "EmailAddress"
 	username      = "UserName"
 	password      = "Password"
@@ -66,26 +69,47 @@ func (a *anonymiser) ReadTable(tableName string, rowChan chan<- database.Row, op
 					continue
 				}
 
-				for name, faker := range Functions {
-					if fakerType != name {
+				if strings.HasPrefix(fakerType, conditionalPrefix) {
+
+					env := map[string]interface{}{
+						"row": row,
+						"column": row[column],
+						"Value": func(row database.Row, key string) string {
+							str := row[key].([]uint8)
+							return string(str)
+						},
+						"Anon": func(fakerType string) string {
+							return Anonymise(fakerType)
+						},
+						"Skip": func() string {
+							return noAnonymisation
+						},
+					}
+
+					conditionExpr := strings.TrimPrefix(fakerType, conditionalPrefix)
+					// fmt.Println(row)
+					// fmt.Println(conditionExpr)
+
+					program, err := expr.Compile(conditionExpr, expr.Env(env))
+					if err != nil {
+						logger.WithError(err).Error("Eval rule compilation error")
 						continue
 					}
 
-					var value string
-					switch name {
-					case email, username:
-						b := make([]byte, 2)
-						rand.Read(b)
-						value = fmt.Sprintf(
-							"%s.%s",
-							faker.Call([]reflect.Value{})[0].String(),
-							hex.EncodeToString(b),
-						)
-					default:
-						value = faker.Call([]reflect.Value{})[0].String()
+					output, err := expr.Run(program, env)
+					if err != nil {
+						logger.WithError(err).Error("Eval rule runtime error")
+						continue
 					}
-					row[column] = value
+
+					if output != noAnonymisation {
+						row[column] = output
+					}
+
+					continue
 				}
+
+				row[column] = Anonymise(fakerType)
 			}
 
 			rowChan <- row
@@ -97,4 +121,29 @@ func (a *anonymiser) ReadTable(tableName string, rowChan chan<- database.Row, op
 	}
 
 	return nil
+}
+
+func Anonymise(fakerType string) string {
+	var value string
+
+	for name, faker := range Functions {
+		if fakerType != name {
+			continue
+		}
+
+		switch name {
+		case email, username:
+			b := make([]byte, 2)
+			rand.Read(b)
+			value = fmt.Sprintf(
+				"%s.%s",
+				faker.Call([]reflect.Value{})[0].String(),
+				hex.EncodeToString(b),
+			)
+		default:
+			value = faker.Call([]reflect.Value{})[0].String()
+		}
+	}
+
+	return value
 }

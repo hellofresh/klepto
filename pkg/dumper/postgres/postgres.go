@@ -4,8 +4,8 @@ import (
 	"database/sql"
 	"strings"
 
-	"github.com/hellofresh/klepto/pkg/dumper"
-	"github.com/hellofresh/klepto/pkg/reader"
+	"github.com/usoban/klepto/pkg/dumper"
+	"github.com/usoban/klepto/pkg/reader"
 )
 
 type driver struct{}

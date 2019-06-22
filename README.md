@@ -5,8 +5,8 @@
 # Klepto
 
 [![Build Status](https://travis-ci.org/hellofresh/klepto.svg?branch=master)](https://travis-ci.org/hellofresh/klepto)
-[![Go Report Card](https://goreportcard.com/badge/github.com/hellofresh/klepto)](https://goreportcard.com/report/github.com/hellofresh/klepto)
-[![Go Doc](https://godoc.org/github.com/hellofresh/klepto?status.svg)](https://godoc.org/github.com/hellofresh/klepto)
+[![Go Report Card](https://goreportcard.com/badge/github.com/usoban/klepto)](https://goreportcard.com/report/github.com/usoban/klepto)
+[![Go Doc](https://godoc.org/github.com/usoban/klepto?status.svg)](https://godoc.org/github.com/usoban/klepto)
 
 > Klepto is a tool for copying and anonymising data
 
@@ -256,5 +256,5 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 
 [pg_dump-docs]: https://www.postgresql.org/docs/10/static/app-pgdump.html "pg_dump docs"
-[klepto-releases]: https://github.com/hellofresh/klepto/releases "Klepto releases page"
+[klepto-releases]: https://github.com/usoban/klepto/releases "Klepto releases page"
 [klepto-examples-confluence]: https://hellofresh.atlassian.net/wiki/spaces/PLAT/pages/204505400/Klepto+Examples "Klepto examples confluence"

@@ -10,11 +10,11 @@ import (
 	"time"
 
 	"github.com/go-sql-driver/mysql"
-	"github.com/hellofresh/klepto/pkg/config"
-	"github.com/hellofresh/klepto/pkg/dumper"
-	_ "github.com/hellofresh/klepto/pkg/dumper/mysql"
-	"github.com/hellofresh/klepto/pkg/reader"
-	_ "github.com/hellofresh/klepto/pkg/reader/mysql"
+	"github.com/usoban/klepto/pkg/config"
+	"github.com/usoban/klepto/pkg/dumper"
+	_ "github.com/usoban/klepto/pkg/dumper/mysql"
+	"github.com/usoban/klepto/pkg/reader"
+	_ "github.com/usoban/klepto/pkg/reader/mysql"
 	"github.com/stretchr/testify/suite"
 )
 

@@ -10,7 +10,7 @@ These are just guidelines, not rules. Use your best judgment, and feel free to p
 
 This project adheres to the Contributor Covenant [code of conduct](CODE_OF_CONDUCT.md). By participating, you are expected to uphold this code. Please report unacceptable behavior to [engineering@hellofresh.com](mailto:engineering@hellofresh.com).
 
-We accept contributions via Pull Requests on [Github](https://github.com/hellofresh/klepto/pulls).
+We accept contributions via Pull Requests on [Github](https://github.com/usoban/klepto/pulls).
 
 ## How Can I Contribute?
 

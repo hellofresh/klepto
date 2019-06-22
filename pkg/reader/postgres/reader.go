@@ -5,8 +5,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/hellofresh/klepto/pkg/reader"
-	"github.com/hellofresh/klepto/pkg/reader/engine"
+	"github.com/usoban/klepto/pkg/reader"
+	"github.com/usoban/klepto/pkg/reader/engine"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 )

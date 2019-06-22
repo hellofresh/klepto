@@ -3,8 +3,8 @@ package dumper
 import (
 	"time"
 
-	"github.com/hellofresh/klepto/pkg/config"
-	"github.com/hellofresh/klepto/pkg/reader"
+	"github.com/usoban/klepto/pkg/config"
+	"github.com/usoban/klepto/pkg/reader"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 )

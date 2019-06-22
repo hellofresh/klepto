@@ -11,11 +11,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hellofresh/klepto/pkg/config"
-	"github.com/hellofresh/klepto/pkg/dumper"
-	_ "github.com/hellofresh/klepto/pkg/dumper/postgres"
-	"github.com/hellofresh/klepto/pkg/reader"
-	_ "github.com/hellofresh/klepto/pkg/reader/postgres"
+	"github.com/usoban/klepto/pkg/config"
+	"github.com/usoban/klepto/pkg/dumper"
+	_ "github.com/usoban/klepto/pkg/dumper/postgres"
+	"github.com/usoban/klepto/pkg/reader"
+	_ "github.com/usoban/klepto/pkg/reader/postgres"
 	"github.com/stretchr/testify/suite"
 )
 

@@ -1,9 +1,9 @@
 package query
 
 import (
-	parser "github.com/hellofresh/klepto/pkg/dsn"
-	"github.com/hellofresh/klepto/pkg/dumper"
-	"github.com/hellofresh/klepto/pkg/reader"
+	parser "github.com/usoban/klepto/pkg/dsn"
+	"github.com/usoban/klepto/pkg/dumper"
+	"github.com/usoban/klepto/pkg/reader"
 )
 
 type driver struct{}

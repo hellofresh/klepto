@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hellofresh/klepto/pkg/reader"
-	"github.com/hellofresh/klepto/pkg/reader/engine"
+	"github.com/usoban/klepto/pkg/reader"
+	"github.com/usoban/klepto/pkg/reader/engine"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 )
@@ -133,7 +133,7 @@ func (s *storage) getPreamble() (string, error) {
 	preamble := `# *******************************
 # This database was nicked by Klepto™.
 #
-# https://github.com/hellofresh/klepto
+# https://github.com/usoban/klepto
 # Host: %s
 # Database: %s
 # Dumped at: %s

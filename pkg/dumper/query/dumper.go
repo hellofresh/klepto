@@ -7,10 +7,10 @@ import (
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
-	"github.com/hellofresh/klepto/pkg/config"
-	"github.com/hellofresh/klepto/pkg/database"
-	"github.com/hellofresh/klepto/pkg/dumper"
-	"github.com/hellofresh/klepto/pkg/reader"
+	"github.com/usoban/klepto/pkg/config"
+	"github.com/usoban/klepto/pkg/database"
+	"github.com/usoban/klepto/pkg/dumper"
+	"github.com/usoban/klepto/pkg/reader"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 )

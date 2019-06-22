@@ -9,10 +9,10 @@ import (
 	"sync/atomic"
 
 	"github.com/go-sql-driver/mysql"
-	"github.com/hellofresh/klepto/pkg/database"
-	"github.com/hellofresh/klepto/pkg/dumper"
-	"github.com/hellofresh/klepto/pkg/dumper/engine"
-	"github.com/hellofresh/klepto/pkg/reader"
+	"github.com/usoban/klepto/pkg/database"
+	"github.com/usoban/klepto/pkg/dumper"
+	"github.com/usoban/klepto/pkg/dumper/engine"
+	"github.com/usoban/klepto/pkg/reader"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 )

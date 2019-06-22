@@ -5,7 +5,7 @@ import (
 	"io"
 	"os"
 
-	parser "github.com/hellofresh/klepto/pkg/dsn"
+	parser "github.com/usoban/klepto/pkg/dsn"
 )
 
 func getOsWriter(address string) io.Writer {

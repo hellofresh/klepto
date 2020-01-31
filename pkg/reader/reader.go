@@ -1,6 +1,7 @@
 package reader
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/hellofresh/klepto/pkg/config"
@@ -84,6 +85,10 @@ func Connect(opts ConnOpts) (reader Reader, err error) {
 		reader, err = driver.NewConnection(opts)
 		return false
 	})
+
+	if reader == nil {
+		err = fmt.Errorf("unsupported dsn %q", opts.DSN)
+	}
 
 	return
 }

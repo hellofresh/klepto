@@ -1,7 +1,13 @@
 package cmd
 
 import (
-	"github.com/italolelis/goupdater"
+	"fmt"
+	"os"
+	"runtime"
+	"strings"
+
+	"github.com/hellofresh/updater-go"
+	"github.com/palantir/stacktrace"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -11,40 +17,104 @@ const (
 	githubRepo  = "klepto"
 )
 
-type (
-	// UpdateOptions are the command flags
-	UpdateOptions struct {
-		token string
-	}
-)
+// UpdateOptions are the command flags
+type UpdateOptions struct {
+	token   string
+	version string
+	dryRun  bool
+}
 
 // NewUpdateCmd creates a new update command
 func NewUpdateCmd() *cobra.Command {
 	opts := new(UpdateOptions)
 	cmd := &cobra.Command{
-		Use:   "update",
-		Short: "Check for new versions of kepto",
+		Use:     "update",
+		Aliases: []string{"self-update"},
+		Short:   "Check for new versions of kepto",
 		Run: func(cmd *cobra.Command, args []string) {
 			RunUpdate(opts)
 		},
 	}
 
-	cmd.PersistentFlags().StringVar(&opts.token, "token", "", "the github token that will be used to check for new versions")
+	cmd.PersistentFlags().StringVar(&opts.token, "token", "", "Github token that will be used to check for Klepto! versions. If not set GITHUB_TOKEN environment variable value is used.")
+	cmd.PersistentFlags().StringVar(&opts.version, "version", "", "Update to specific version instead of the latest stable.")
+	cmd.PersistentFlags().BoolVar(&opts.dryRun, "dry-run", false, "check the version available but do not run actual update")
 
 	return cmd
 }
 
 // RunUpdate runs the update command
 func RunUpdate(opts *UpdateOptions) {
-	resolver, err := goupdater.NewGithub(opts.token, githubOwner, githubRepo)
-	failOnError(err, "could not create the updater client")
+	log.Info("Checking for new versions of Klepto!")
 
-	updated, err := goupdater.Update(resolver, version)
-	failOnError(err, "could not update binary")
-
-	if updated {
-		log.Info("You are now using the latest version of klepto")
-	} else {
-		log.Info("You already have the latest version of klepto")
+	if opts.token == "" {
+		opts.token = os.Getenv("GITHUB_TOKEN")
 	}
+
+	// Check to which version we need to update
+	versionFilter := updater.StableRelease
+	updateToVersion := opts.version
+	if updateToVersion != "" {
+		versionFilter = func(name string, _ bool, _ bool) bool {
+			return updateToVersion == name
+		}
+	}
+
+	// Create release locator
+	locator := newReleaseLocator(opts.token, versionFilter)
+
+	// Find the release
+	updateTo, err := locateRelease(locator, updateToVersion)
+	if rootErr := stacktrace.RootCause(err); rootErr == updater.ErrNoRepository {
+		// fatal exits with code 1
+		log.Fatal("Unable to access the Klepto! repository.")
+	}
+	failOnError(err, "failed to retrieve the update release")
+
+	if updateTo.Name != version {
+		// Fetch the release and update
+		if !opts.dryRun {
+			err = updater.SelfUpdate(updateTo)
+			failOnError(err, "failed to update to version %s")
+		}
+
+		log.Infof("Klepto! updated to version %s", updateTo.Name)
+	} else {
+		log.Infof("No updates available for your version %s", version)
+	}
+}
+
+func newReleaseLocator(token string, filter updater.ReleaseFilter) updater.ReleaseLocator {
+	return updater.NewGithubClient(
+		githubOwner,
+		githubRepo,
+		token,
+		filter,
+		func(asset string) bool {
+			return strings.Contains(asset, fmt.Sprintf("_%s_%s", runtime.GOOS, runtime.GOARCH))
+		},
+	)
+}
+func locateRelease(locator updater.ReleaseLocator, version string) (updater.Release, error) {
+	// No specific version use the latest
+	if version == "" {
+		return updater.LatestRelease(locator)
+	}
+
+	// Find a specific release
+	var release updater.Release
+	updates, err := locator.ListReleases(1)
+	if err != nil {
+		return release, err
+	}
+
+	if len(updates) == 0 {
+		return release, fmt.Errorf("unable to locate release %s", version)
+	}
+
+	if len(updates) > 1 {
+		return release, fmt.Errorf("multiple releases locate for %s", version)
+	}
+
+	return updates[0], nil
 }

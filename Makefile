@@ -22,7 +22,13 @@ build:
 
 test:
 	@/bin/sh -c "./build/test.sh $(allpackages)"
-	
+
+test-docker:
+	docker-compose up -d
+	@TEST_POSTGRES="postgres://hello:fresh@localhost:8050/klepto?sslmode=disable" \
+	TEST_MYSQL="root:hellofresh@tcp(localhost:8052)/" \
+	/bin/sh -c "./build/test.sh $(allpackages)"
+
 # Cleans our project: deletes binaries
 clean:
 	@echo "$(OK_COLOR)==> Cleaning project$(NO_COLOR)"

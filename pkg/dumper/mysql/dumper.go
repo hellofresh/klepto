@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"sync"
 	"sync/atomic"
 
 	"github.com/go-sql-driver/mysql"
@@ -23,8 +24,10 @@ const (
 
 type (
 	myDumper struct {
-		conn   *sql.DB
-		reader reader.Reader
+		conn                *sql.DB
+		reader              reader.Reader
+		setGlobalInline     sync.Once
+		disableGlobalInline bool
 	}
 )
 
@@ -47,6 +50,27 @@ func (d *myDumper) DumpStructure(sql string) error {
 
 // DumpTable dumps a mysql table.
 func (d *myDumper) DumpTable(tableName string, rowChan <-chan database.Row) error {
+	var err error
+	d.setGlobalInline.Do(func() {
+		var allowLocalInline bool
+		r := d.conn.QueryRow("SELECT @@GLOBAL.local_infile")
+		if err = r.Scan(&allowLocalInline); err != nil {
+			return
+		}
+
+		if allowLocalInline {
+			return
+		}
+
+		if _, err = d.conn.Exec("SET GLOBAL local_infile=1"); err != nil {
+			return
+		}
+		d.disableGlobalInline = true
+	})
+	if err != nil {
+		return err
+	}
+
 	txn, err := d.conn.Begin()
 	if err != nil {
 		return errors.Wrap(err, "failed to open transaction")
@@ -77,10 +101,24 @@ func (d *myDumper) DumpTable(tableName string, rowChan <-chan database.Row) erro
 
 // Close closes the mysql database connection.
 func (d *myDumper) Close() error {
+	var errGlobalInline error
+	if d.disableGlobalInline {
+		_, errGlobalInline = d.conn.Exec("SET GLOBAL local_infile=0")
+	}
+
 	err := d.conn.Close()
 	if err != nil {
+		if errGlobalInline != nil {
+			return errors.Wrap(errGlobalInline, "failed to close mysql connection and `SET GLOBAL local_infile=0`")
+		}
+
 		return errors.Wrap(err, "failed to close mysql connection")
 	}
+
+	if errGlobalInline != nil {
+		return errors.Wrap(errGlobalInline, "failed `SET GLOBAL local_infile=0` please do this manually!")
+	}
+
 	return nil
 }
 
@@ -94,6 +132,7 @@ func (d *myDumper) insertIntoTable(txn *sql.Tx, tableName string, rowChan <-chan
 	for i, column := range columns {
 		columnsQuoted[i] = d.quoteIdentifier(column)
 	}
+
 	query := fmt.Sprintf(
 		"LOAD DATA LOCAL INFILE 'Reader::%s' INTO TABLE %s FIELDS TERMINATED BY ',' ENCLOSED BY '\"' ESCAPED BY '\"' (%s)",
 		tableName,

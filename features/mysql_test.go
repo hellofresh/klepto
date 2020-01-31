@@ -89,9 +89,6 @@ func (s *MysqlTestSuite) createDatabase(name string) string {
 	dbUrl, _ := mysql.ParseDSN(s.rootDSN)
 	dbUrl.DBName = name
 
-	_, err = s.rootConnection.Exec(fmt.Sprintf("GRANT ALL PRIVILEGES ON %s.* TO '%s'@'%%'", name, dbUrl.User))
-	s.Require().NoError(err, "Unable to grant db permissions")
-
 	return dbUrl.FormatDSN()
 }
 

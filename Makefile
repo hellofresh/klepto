@@ -13,8 +13,7 @@ all: clean deps build
 deps:
 	@echo "$(OK_COLOR)==> Installing dependencies$(NO_COLOR)"
 	@go get github.com/goreleaser/goreleaser
-	@go get -u github.com/golang/dep/cmd/dep
-	@dep ensure
+	@go mod vendor
 
 # Builds the project
 build:

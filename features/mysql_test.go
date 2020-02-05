@@ -89,9 +89,6 @@ func (s *MysqlTestSuite) createDatabase(name string) string {
 	dbUrl, _ := mysql.ParseDSN(s.rootDSN)
 	dbUrl.DBName = name
 
-	_, err = s.rootConnection.Exec(fmt.Sprintf("GRANT ALL PRIVILEGES ON %s.* TO '%s'@'%%'", name, dbUrl.User))
-	s.Require().NoError(err, "Unable to grant db permissions")
-
 	return dbUrl.FormatDSN()
 }
 
@@ -133,7 +130,7 @@ func (s *MysqlTestSuite) fetchTableRowCount(db *sql.DB) []tableInfo {
 	tableRows, err := db.Query(
 		`SELECT
 		  t.TABLE_NAME AS name,
-		  t.TABLE_ROWS AS count,
+		  SUM(t.TABLE_ROWS) AS count,
 		  COUNT(c.COLUMN_NAME) AS columnCount
 		FROM information_schema.TABLES AS t
 		  LEFT JOIN information_schema.COLUMNS AS c ON

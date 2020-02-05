@@ -139,6 +139,7 @@ func (s *storage) getPreamble() (string, error) {
 # Dumped at: %s
 # *******************************
 
+SET SQL_MODE = '%s';
 SET NAMES utf8;
 SET FOREIGN_KEY_CHECKS = 0;
 
@@ -155,5 +156,11 @@ SET FOREIGN_KEY_CHECKS = 0;
 		return "", err
 	}
 
-	return fmt.Sprintf(preamble, hostname, db, time.Now().Format(time.RFC1123Z)), nil
+	var sqlMode string
+	row = s.conn.QueryRow("SELECT @@GLOBAL.SQL_MODE")
+	if err := row.Scan(&sqlMode); err != nil {
+		return "", err
+	}
+
+	return fmt.Sprintf(preamble, hostname, db, time.Now().Format(time.RFC1123Z), sqlMode), nil
 }

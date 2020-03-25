@@ -5,7 +5,7 @@ import (
 
 	"github.com/hellofresh/klepto/pkg/config"
 	"github.com/hellofresh/klepto/pkg/formatter"
-	"github.com/pkg/errors"
+	wErrors "github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -55,32 +55,25 @@ func initConfig(c *cobra.Command, args []string) error {
 		// Use config file from the flag.
 		viper.SetConfigFile(configFile)
 	} else {
+		cwd, err := os.Getwd()
+		if err != nil {
+			return wErrors.Wrap(err, "can't find current working directory")
+		}
+
 		viper.SetConfigName(".klepto")
-		viper.AddConfigPath(workingDir())
+		viper.AddConfigPath(cwd)
 		viper.AddConfigPath(".")
 	}
 
 	err := viper.ReadInConfig()
 	if err != nil {
-		return errors.Wrap(err, "Could not read configurations")
+		return wErrors.Wrap(err, "could not read configurations")
 	}
 
 	err = viper.Unmarshal(&globalConfig)
 	if err != nil {
-		return errors.Wrap(err, "Could not unmarshal config file")
+		return wErrors.Wrap(err, "could not unmarshal config file")
 	}
 
 	return nil
-}
-func workingDir() string {
-	cwd, err := os.Getwd()
-	failOnError(err, "Can't find the working directory")
-
-	return cwd
-}
-
-func failOnError(err error, message string) {
-	if err != nil {
-		log.WithError(err).Fatal(message)
-	}
 }

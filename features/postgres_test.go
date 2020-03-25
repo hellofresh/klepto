@@ -92,9 +92,9 @@ func (s *PostgresTestSuite) createDatabase(name string) string {
 	_, err := s.rootConnection.Exec(fmt.Sprintf("CREATE DATABASE %s", name))
 	s.Require().NoError(err, "Unable to create db")
 
-	dbUrl, _ := url.Parse(s.rootDSN)
-	dbUrl.Path = name
-	return dbUrl.String()
+	dbURL, _ := url.Parse(s.rootDSN)
+	dbURL.Path = name
+	return dbURL.String()
 }
 
 func (s *PostgresTestSuite) dropDatabase(name string) {

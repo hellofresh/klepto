@@ -17,7 +17,7 @@ type (
 		conn *sql.DB
 	}
 
-	// PgDump executes the pg dump command.
+	// PgDumper executes the pg dump command.
 	PgDumper interface {
 		GetStructure() (stmt string, err error)
 	}

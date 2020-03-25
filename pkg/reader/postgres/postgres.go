@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/hellofresh/klepto/pkg/reader"
-	_ "github.com/lib/pq"
+	_ "github.com/lib/pq" // import postgres driver
 )
 
 type driver struct{}

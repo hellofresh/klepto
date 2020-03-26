@@ -32,7 +32,10 @@ after_success:
 # calls goreleaser
 deploy:
   - provider: script
-    skip_cleanup: true
+    # run the clean up as tests install some extra-tools required for coverage and linting
+    skip_cleanup: false
     script: curl -sL http://git.io/goreleaser | bash
     on:
       tags: true
+      # build only on stable go version
+      go: "stable"

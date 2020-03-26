@@ -7,6 +7,7 @@ import (
 	"github.com/hellofresh/klepto/pkg/anonymiser"
 	"github.com/hellofresh/klepto/pkg/dumper"
 	"github.com/hellofresh/klepto/pkg/reader"
+	wErrors "github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 
@@ -64,16 +65,24 @@ func NewStealCmd() *cobra.Command {
 // RunSteal is the handler for the rootCmd.
 func RunSteal(opts *StealOptions) (err error) {
 	readTimeout, err := time.ParseDuration(opts.readOpts.timeout)
-	failOnError(err, "Failed to parse read timeout duration")
+	if err != nil {
+		return wErrors.Wrap(err, "Failed to parse read timeout duration")
+	}
 
 	writeTimeout, err := time.ParseDuration(opts.readOpts.timeout)
-	failOnError(err, "Failed to parse write timeout duration")
+	if err != nil {
+		return wErrors.Wrap(err, "Failed to parse write timeout duration")
+	}
 
 	readMaxConnLifetime, err := time.ParseDuration(opts.readOpts.maxConnLifetime)
-	failOnError(err, "Failed to parse the timeout duration")
+	if err != nil {
+		return wErrors.Wrap(err, "Failed to parse write timeout duration")
+	}
 
 	writeMaxConnLifetime, err := time.ParseDuration(opts.writeOpts.maxConnLifetime)
-	failOnError(err, "Failed to parse the timeout duration")
+	if err != nil {
+		return wErrors.Wrap(err, "Failed to parse the timeout duration")
+	}
 
 	source, err := reader.Connect(reader.ConnOpts{
 		DSN:             opts.from,
@@ -82,7 +91,9 @@ func RunSteal(opts *StealOptions) (err error) {
 		MaxConns:        opts.readOpts.maxConns,
 		MaxIdleConns:    opts.readOpts.maxIdleConns,
 	})
-	failOnError(err, "Error connecting to reader")
+	if err != nil {
+		return wErrors.Wrap(err, "Could not connecting to reader")
+	}
 	defer source.Close()
 
 	source = anonymiser.NewAnonymiser(source, globalConfig.Tables)
@@ -93,7 +104,9 @@ func RunSteal(opts *StealOptions) (err error) {
 		MaxConns:        opts.writeOpts.maxConns,
 		MaxIdleConns:    opts.writeOpts.maxIdleConns,
 	}, source)
-	failOnError(err, "Error creating dumper")
+	if err != nil {
+		return wErrors.Wrap(err, "Error creating dumper")
+	}
 	defer target.Close()
 
 	log.Info("Stealing...")
@@ -101,7 +114,9 @@ func RunSteal(opts *StealOptions) (err error) {
 	done := make(chan struct{})
 	defer close(done)
 	start := time.Now()
-	failOnError(target.Dump(done, globalConfig, opts.concurrency), "Error while dumping")
+	if err := target.Dump(done, globalConfig, opts.concurrency); err != nil {
+		return wErrors.Wrap(err, "Error while dumping")
+	}
 
 	<-done
 	log.WithField("total_time", time.Since(start)).Info("Done!")

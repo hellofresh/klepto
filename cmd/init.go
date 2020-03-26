@@ -5,9 +5,11 @@ import (
 	"os"
 
 	"github.com/BurntSushi/toml"
-	"github.com/hellofresh/klepto/pkg/config"
+	wErrors "github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+
+	"github.com/hellofresh/klepto/pkg/config"
 )
 
 // NewInitCmd creates a new init command
@@ -15,8 +17,8 @@ func NewInitCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "init",
 		Short: "Create a fresh config file",
-		Run: func(cmd *cobra.Command, args []string) {
-			RunInit()
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return RunInit()
 		},
 	}
 
@@ -24,7 +26,7 @@ func NewInitCmd() *cobra.Command {
 }
 
 // RunInit runs the init command
-func RunInit() {
+func RunInit() error {
 	log.Infof("Initializing %s", configFileName)
 
 	_, err := os.Stat(configFileName)
@@ -33,7 +35,9 @@ func RunInit() {
 	}
 
 	f, err := os.Create(configFileName)
-	failOnError(err, "Could not create the file")
+	if err != nil {
+		return wErrors.Wrap(err, "could not create file")
+	}
 
 	e := toml.NewEncoder(bufio.NewWriter(f))
 	err = e.Encode(config.Spec{
@@ -67,7 +71,11 @@ func RunInit() {
 			},
 		},
 	})
-	failOnError(err, "Could not encode config")
+	if err != nil {
+		return wErrors.Wrap(err, "could not encode config")
+	}
 
 	log.Infof("Created %s!", configFileName)
+
+	return nil
 }

@@ -12,6 +12,7 @@ klepto
 /dist
 debug
 .klepto.toml
+coverage.txt
 
 # Vendor stuff
 .glide/

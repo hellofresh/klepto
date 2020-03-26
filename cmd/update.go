@@ -8,6 +8,7 @@ import (
 
 	"github.com/hellofresh/updater-go"
 	"github.com/palantir/stacktrace"
+	wErrors "github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -31,8 +32,8 @@ func NewUpdateCmd() *cobra.Command {
 		Use:     "update",
 		Aliases: []string{"self-update"},
 		Short:   "Check for new versions of kepto",
-		Run: func(cmd *cobra.Command, args []string) {
-			RunUpdate(opts)
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return RunUpdate(opts)
 		},
 	}
 
@@ -44,7 +45,7 @@ func NewUpdateCmd() *cobra.Command {
 }
 
 // RunUpdate runs the update command
-func RunUpdate(opts *UpdateOptions) {
+func RunUpdate(opts *UpdateOptions) error {
 	log.Info("Checking for new versions of Klepto!")
 
 	if opts.token == "" {
@@ -69,19 +70,24 @@ func RunUpdate(opts *UpdateOptions) {
 		// fatal exits with code 1
 		log.Fatal("Unable to access the Klepto! repository.")
 	}
-	failOnError(err, "failed to retrieve the update release")
+	if err != nil {
+		return wErrors.Wrap(err, "failed to retrieve the update release")
+	}
 
 	if updateTo.Name != version {
 		// Fetch the release and update
 		if !opts.dryRun {
-			err = updater.SelfUpdate(updateTo)
-			failOnError(err, "failed to update to version %s")
+			if err := updater.SelfUpdate(updateTo); err != nil {
+				return wErrors.Wrapf(err, "failed to update to version %s", updateTo.Name)
+			}
 		}
 
 		log.Infof("Klepto! updated to version %s", updateTo.Name)
 	} else {
 		log.Infof("No updates available for your version %s", version)
 	}
+
+	return nil
 }
 
 func newReleaseLocator(token string, filter updater.ReleaseFilter) updater.ReleaseLocator {

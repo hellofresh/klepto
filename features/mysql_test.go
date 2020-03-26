@@ -86,10 +86,10 @@ func (s *MysqlTestSuite) createDatabase(name string) string {
 	_, err := s.rootConnection.Exec(fmt.Sprintf("CREATE DATABASE %s", name))
 	s.Require().NoError(err, "Unable to create db")
 
-	dbUrl, _ := mysql.ParseDSN(s.rootDSN)
-	dbUrl.DBName = name
+	dbURL, _ := mysql.ParseDSN(s.rootDSN)
+	dbURL.DBName = name
 
-	return dbUrl.FormatDSN()
+	return dbURL.FormatDSN()
 }
 
 func (s *MysqlTestSuite) dropDatabase(name string) {

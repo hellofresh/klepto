@@ -12,7 +12,7 @@ all: clean deps build
 
 deps:
 	@echo "$(OK_COLOR)==> Installing dependencies$(NO_COLOR)"
-	@go get github.com/goreleaser/goreleaser
+	@go get -u golang.org/x/lint/golint
 	@go mod vendor
 
 # Builds the project
@@ -20,8 +20,21 @@ build:
 	@echo "$(OK_COLOR)==> Building... $(NO_COLOR)"
 	@goreleaser --snapshot --rm-dist --skip-validate
 
-test:
-	@/bin/sh -c "./build/test.sh $(allpackages)"
+test: lint format vet
+	@echo "$(OK_COLOR)==> Running tests$(NO_COLOR)"
+	@CGO_ENABLED=0 go test -cover ./... -coverprofile=coverage.txt -covermode=atomic
+
+lint:
+	@echo "$(OK_COLOR)==> Checking code style with 'golint' tool$(NO_COLOR)"
+	@go list ./... | xargs -n 1 golint -set_exit_status
+
+format:
+	@echo "$(OK_COLOR)==> Checking code formating with 'gofmt' tool$(NO_COLOR)"
+	@gofmt -l -s cmd pkg | grep ".*\.go"; if [ "$$?" = "0" ]; then exit 1; fi
+
+vet:
+	@echo "$(OK_COLOR)==> Checking code correctness with 'go vet' tool$(NO_COLOR)"
+	@go vet ./...
 
 test-docker:
 	docker-compose up -d

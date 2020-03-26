@@ -1,15 +1,13 @@
 package main
 
 import (
-	"fmt"
-	"os"
+	"log"
 
 	"github.com/hellofresh/klepto/cmd"
 )
 
 func main() {
 	if err := cmd.RootCmd.Execute(); err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		log.Fatal(err)
 	}
 }

@@ -56,11 +56,13 @@ func NewDumper(opts ConnOpts, rdr reader.Reader) (dumper Dumper, err error) {
 		return false
 	})
 
-	if dumper == nil && err == nil {
-		err = fmt.Errorf("no supported driver found for dumper DSN %q", opts.DSN)
+	if err != nil {
+		return nil, wErrors.Wrapf(err, "could not create dumper for DSN: %q", opts.DSN)
 	}
 
-	err = wErrors.Wrapf(err, "could not create dumper for DSN: %q", opts.DSN)
+	if dumper == nil {
+		return nil, fmt.Errorf("no supported driver found for dumper DSN %q", opts.DSN)
+	}
 
 	return
 }

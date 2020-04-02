@@ -50,9 +50,7 @@ func (d *textDumper) Dump(done chan<- struct{}, spec *config.Spec, concurrency i
 		tableConfig := spec.Tables.FindByName(tbl)
 		if tableConfig == nil {
 			log.WithField("table", tbl).Debug("no configuration found for table")
-		}
-
-		if tableConfig != nil {
+		} else {
 			opts = reader.NewReadTableOpt(tableConfig)
 		}
 

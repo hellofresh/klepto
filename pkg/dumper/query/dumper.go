@@ -7,12 +7,13 @@ import (
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
+	wErrors "github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
+
 	"github.com/hellofresh/klepto/pkg/config"
 	"github.com/hellofresh/klepto/pkg/database"
 	"github.com/hellofresh/klepto/pkg/dumper"
 	"github.com/hellofresh/klepto/pkg/reader"
-	"github.com/pkg/errors"
-	log "github.com/sirupsen/logrus"
 )
 
 type (
@@ -34,21 +35,21 @@ func NewDumper(output io.Writer, rdr reader.Reader) dumper.Dumper {
 func (d *textDumper) Dump(done chan<- struct{}, spec *config.Spec, concurrency int) error {
 	tables, err := d.reader.GetTables()
 	if err != nil {
-		return errors.Wrap(err, "failed to get tables")
+		return wErrors.Wrap(err, "failed to get tables")
 	}
 
 	structure, err := d.reader.GetStructure()
 	if err != nil {
-		return errors.Wrap(err, "could not get database structure")
+		return wErrors.Wrap(err, "could not get database structure")
 	}
 	io.WriteString(d.output, structure)
 
 	for _, tbl := range tables {
 		var opts reader.ReadTableOpt
 
-		table, err := spec.Tables.FindByName(tbl)
-		if err != nil {
-			log.WithError(err).WithField("table", tbl).Debug("no configuration found for table")
+		table := spec.Tables.FindByName(tbl)
+		if table == nil {
+			log.WithField("table", tbl).Debug("no configuration found for table")
 		}
 
 		if table != nil {
@@ -93,12 +94,12 @@ func (d *textDumper) Close() error {
 	closer, ok := d.output.(io.WriteCloser)
 	if ok {
 		if err := closer.Close(); err != nil {
-			return errors.Wrap(err, "failed to close output stream")
+			return wErrors.Wrap(err, "failed to close output stream")
 		}
 		return nil
 	}
 
-	return errors.New("unable to close output: wrong closer type")
+	return wErrors.New("unable to close output: wrong closer type")
 }
 
 func (d *textDumper) toSQLColumnMap(row database.Row) (map[string]interface{}, error) {
@@ -152,7 +153,7 @@ func (d *textDumper) toSQLStringValue(src interface{}) (string, error) {
 		}
 		return d.toSQLStringValue(*(src.(*interface{})))
 	default:
-		return "", errors.New("could not parse type")
+		return "", wErrors.New("could not parse type")
 	}
 
 	return "", nil

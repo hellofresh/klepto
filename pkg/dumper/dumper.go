@@ -1,12 +1,14 @@
 package dumper
 
 import (
+	"fmt"
 	"time"
+
+	wErrors "github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/hellofresh/klepto/pkg/config"
 	"github.com/hellofresh/klepto/pkg/reader"
-	"github.com/pkg/errors"
-	log "github.com/sirupsen/logrus"
 )
 
 type (
@@ -54,11 +56,13 @@ func NewDumper(opts ConnOpts, rdr reader.Reader) (dumper Dumper, err error) {
 		return false
 	})
 
-	if dumper == nil && err == nil {
-		err = errors.New("no supported driver found")
+	if err != nil {
+		return nil, wErrors.Wrapf(err, "could not create dumper for DSN: %q", opts.DSN)
 	}
 
-	err = errors.Wrapf(err, "could not create dumper for dsn: '%v'", opts.DSN)
+	if dumper == nil {
+		return nil, fmt.Errorf("no supported driver found for dumper DSN %q", opts.DSN)
+	}
 
 	return
 }

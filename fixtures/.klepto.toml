@@ -1,0 +1,34 @@
+[Matchers]
+  ActiveUsers = "users.active = TRUE"
+
+[[Tables]]
+  Name = "users"
+  IgnoreData = false
+  [Tables.Filter]
+    Match = "users.active = TRUE"
+    Limit = 100
+    [Tables.Filter.Sorts]
+      "user.id" = "asc"
+  [Tables.Anonymise]
+    email = "EmailAddress"
+    firstName = "FirstName"
+
+[[Tables]]
+  Name = "orders"
+  IgnoreData = false
+  [Tables.Filter]
+    Match = "ActiveUsers"
+    Limit = 10
+
+  [[Tables.Relationships]]
+    Table = ""
+    ForeignKey = "user_id"
+    ReferencedTable = "users"
+    ReferencedKey = "id"
+
+[[Tables]]
+  Name = "logs"
+  IgnoreData = true
+  [Tables.Filter]
+    Match = ""
+    Limit = 0

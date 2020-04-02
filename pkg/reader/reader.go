@@ -76,15 +76,15 @@ type (
 
 // NewReadTableOpt builds read table options from table config
 func NewReadTableOpt(tableCfg *config.Table) ReadTableOpt {
-	var rOpts []*RelationshipOpt
+	rOpts := make([]*RelationshipOpt, len(tableCfg.Relationships))
 
-	for _, r := range tableCfg.Relationships {
-		rOpts = append(rOpts, &RelationshipOpt{
+	for i, r := range tableCfg.Relationships {
+		rOpts[i] = &RelationshipOpt{
 			Table:           r.Table,
 			ReferencedTable: r.ReferencedTable,
 			ReferencedKey:   r.ReferencedKey,
 			ForeignKey:      r.ForeignKey,
-		})
+		}
 	}
 
 	return ReadTableOpt{

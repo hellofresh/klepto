@@ -10,12 +10,10 @@ klepto
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
 /dist
-debug
-.klepto.toml
+/*.klepto.toml
 coverage.txt
 
 # Vendor stuff
-.glide/
 vendor/
 
 *.coverprofile

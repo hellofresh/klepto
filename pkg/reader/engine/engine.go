@@ -8,7 +8,6 @@ import (
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
-	"github.com/hellofresh/klepto/pkg/config"
 	"github.com/hellofresh/klepto/pkg/database"
 	"github.com/hellofresh/klepto/pkg/reader"
 	"github.com/pkg/errors"
@@ -80,7 +79,7 @@ func (e *Engine) GetColumns(tableName string) ([]string, error) {
 }
 
 // ReadTable returns a list of all rows in a table
-func (e *Engine) ReadTable(tableName string, rowChan chan<- database.Row, opts reader.ReadTableOpt, matchers config.Matchers) error {
+func (e *Engine) ReadTable(tableName string, rowChan chan<- database.Row, opts reader.ReadTableOpt) error {
 	defer close(rowChan)
 
 	logger := log.WithField("table", tableName)
@@ -98,7 +97,7 @@ func (e *Engine) ReadTable(tableName string, rowChan chan<- database.Row, opts r
 		query sq.SelectBuilder
 		err   error
 	)
-	query, err = e.buildQuery(tableName, opts, matchers)
+	query, err = e.buildQuery(tableName, opts)
 	if err != nil {
 		return errors.Wrapf(err, "failed to build query for %s", tableName)
 	}
@@ -134,7 +133,7 @@ func (e *Engine) ReadTable(tableName string, rowChan chan<- database.Row, opts r
 }
 
 // BuildQuery builds the query that will be used to read the table
-func (e *Engine) buildQuery(tableName string, opts reader.ReadTableOpt, matchers map[string]string) (sq.SelectBuilder, error) {
+func (e *Engine) buildQuery(tableName string, opts reader.ReadTableOpt) (sq.SelectBuilder, error) {
 	var query sq.SelectBuilder
 
 	query = sq.Select(opts.Columns...).From(e.QuoteIdentifier(tableName))
@@ -153,11 +152,7 @@ func (e *Engine) buildQuery(tableName string, opts reader.ReadTableOpt, matchers
 	}
 
 	if opts.Match != "" {
-		if v, ok := matchers[opts.Match]; ok {
-			query = query.Where(v)
-		} else {
-			query = query.Where(opts.Match)
-		}
+		query = query.Where(opts.Match)
 	}
 
 	for k, v := range opts.Sorts {

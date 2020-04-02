@@ -27,20 +27,23 @@ func NewInitCmd() *cobra.Command {
 
 // RunInit runs the init command
 func RunInit() error {
-	log.Infof("Initializing %s", configFileName)
+	log.Infof("Initializing %s", config.DefaultConfigFileName)
 
-	_, err := os.Stat(configFileName)
+	_, err := os.Stat(config.DefaultConfigFileName)
 	if !os.IsNotExist(err) {
 		log.Fatal("Config file already exists, refusing to overwrite")
 	}
 
-	f, err := os.Create(configFileName)
+	f, err := os.Create(config.DefaultConfigFileName)
 	if err != nil {
 		return wErrors.Wrap(err, "could not create file")
 	}
 
 	e := toml.NewEncoder(bufio.NewWriter(f))
 	err = e.Encode(config.Spec{
+		Matchers: map[string]string{
+			"ActiveUsers": "users.active = TRUE",
+		},
 		Tables: []*config.Table{
 			{
 				Name: "users",
@@ -54,7 +57,7 @@ func RunInit() error {
 			{
 				Name: "orders",
 				Filter: config.Filter{
-					Match: "users.active = TRUE",
+					Match: "ActiveUsers",
 					Limit: 10,
 				},
 				Relationships: []*config.Relationship{
@@ -75,7 +78,7 @@ func RunInit() error {
 		return wErrors.Wrap(err, "could not encode config")
 	}
 
-	log.Infof("Created %s!", configFileName)
+	log.Infof("Created %s!", config.DefaultConfigFileName)
 
 	return nil
 }

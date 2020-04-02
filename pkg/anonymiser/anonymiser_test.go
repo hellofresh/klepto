@@ -17,9 +17,8 @@ func TestReadTable(t *testing.T) {
 
 	tests := []struct {
 		scenario string
-		function func(*testing.T, reader.ReadTableOpt, config.Tables, config.Matchers)
+		function func(*testing.T, reader.ReadTableOpt, config.Tables)
 		opts     reader.ReadTableOpt
-		matchers config.Matchers
 		config   config.Tables
 	}{
 		{
@@ -27,65 +26,61 @@ func TestReadTable(t *testing.T) {
 			function: testWhenAnonymiserIsNotInitialized,
 			opts:     reader.ReadTableOpt{},
 			config:   config.Tables{{Name: "test"}},
-			matchers: make(config.Matchers),
 		},
 		{
 			scenario: "when table is not set in the config",
 			function: testWhenTableIsNotSetInConfig,
 			opts:     reader.ReadTableOpt{},
 			config:   config.Tables{{Name: "test"}},
-			matchers: make(config.Matchers),
 		},
 		{
 			scenario: "when column is anonymised",
 			function: testWhenColumnIsAnonymised,
 			opts:     reader.ReadTableOpt{},
 			config:   config.Tables{{Name: "test", Anonymise: map[string]string{"column_test": "FirstName"}}},
-			matchers: make(config.Matchers),
 		},
 		{
 			scenario: "when column is anonymised with literal",
 			function: testWhenColumnIsAnonymisedWithLiteral,
 			opts:     reader.ReadTableOpt{},
 			config:   config.Tables{{Name: "test", Anonymise: map[string]string{"column_test": "literal:Hello"}}},
-			matchers: make(config.Matchers),
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.scenario, func(t *testing.T) {
-			test.function(t, test.opts, test.config, test.matchers)
+			test.function(t, test.opts, test.config)
 		})
 	}
 }
 
-func testWhenAnonymiserIsNotInitialized(t *testing.T, opts reader.ReadTableOpt, tables config.Tables, matchers config.Matchers) {
+func testWhenAnonymiserIsNotInitialized(t *testing.T, opts reader.ReadTableOpt, tables config.Tables) {
 	anonymiser := NewAnonymiser(&mockReader{}, tables)
 
 	rowChan := make(chan database.Row, 1)
 	defer close(rowChan)
 
-	err := anonymiser.ReadTable("test", rowChan, opts, matchers)
+	err := anonymiser.ReadTable("test", rowChan, opts)
 	require.NoError(t, err)
 }
 
-func testWhenTableIsNotSetInConfig(t *testing.T, opts reader.ReadTableOpt, tables config.Tables, matchers config.Matchers) {
+func testWhenTableIsNotSetInConfig(t *testing.T, opts reader.ReadTableOpt, tables config.Tables) {
 	anonymiser := NewAnonymiser(&mockReader{}, tables)
 
 	rowChan := make(chan database.Row, 1)
 	defer close(rowChan)
 
-	err := anonymiser.ReadTable("other_table", rowChan, opts, matchers)
+	err := anonymiser.ReadTable("other_table", rowChan, opts)
 	require.NoError(t, err)
 }
 
-func testWhenColumnIsAnonymised(t *testing.T, opts reader.ReadTableOpt, tables config.Tables, matchers config.Matchers) {
+func testWhenColumnIsAnonymised(t *testing.T, opts reader.ReadTableOpt, tables config.Tables) {
 	anonymiser := NewAnonymiser(&mockReader{}, tables)
 
 	rowChan := make(chan database.Row)
 	defer close(rowChan)
 
-	err := anonymiser.ReadTable("test", rowChan, opts, matchers)
+	err := anonymiser.ReadTable("test", rowChan, opts)
 	require.NoError(t, err)
 
 	for {
@@ -95,13 +90,13 @@ func testWhenColumnIsAnonymised(t *testing.T, opts reader.ReadTableOpt, tables c
 	}
 }
 
-func testWhenColumnIsAnonymisedWithLiteral(t *testing.T, opts reader.ReadTableOpt, tables config.Tables, matchers config.Matchers) {
+func testWhenColumnIsAnonymisedWithLiteral(t *testing.T, opts reader.ReadTableOpt, tables config.Tables) {
 	anonymiser := NewAnonymiser(&mockReader{}, tables)
 
 	rowChan := make(chan database.Row)
 	defer close(rowChan)
 
-	err := anonymiser.ReadTable("test", rowChan, opts, matchers)
+	err := anonymiser.ReadTable("test", rowChan, opts)
 	require.NoError(t, err)
 
 	for {
@@ -121,7 +116,7 @@ func (m *mockReader) Close() error                        { return nil }
 func (m *mockReader) FormatColumn(tbl string, col string) string {
 	return fmt.Sprintf("%s.%s", strconv.Quote(tbl), strconv.Quote(col))
 }
-func (m *mockReader) ReadTable(tableName string, rowChan chan<- database.Row, opts reader.ReadTableOpt, matchers config.Matchers) error {
+func (m *mockReader) ReadTable(tableName string, rowChan chan<- database.Row, opts reader.ReadTableOpt) error {
 	row := make(database.Row)
 	row["column_test"] = "to_be_anonimised"
 	rowChan <- row

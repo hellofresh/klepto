@@ -31,7 +31,7 @@ func NewDumper(output io.Writer, rdr reader.Reader) dumper.Dumper {
 }
 
 // Dump executes the dump stream process.
-func (d *textDumper) Dump(done chan<- struct{}, spec *config.Spec, concurrency int) error {
+func (d *textDumper) Dump(done chan<- struct{}, cfgTables config.Tables, concurrency int) error {
 	tables, err := d.reader.GetTables()
 	if err != nil {
 		return errors.Wrap(err, "failed to get tables")
@@ -41,21 +41,27 @@ func (d *textDumper) Dump(done chan<- struct{}, spec *config.Spec, concurrency i
 	if err != nil {
 		return errors.Wrap(err, "could not get database structure")
 	}
-	io.WriteString(d.output, structure)
+	if _, err := io.WriteString(d.output, structure); err != nil {
+		return errors.Wrap(err, "could not write structure to output")
+	}
 
 	for _, tbl := range tables {
+		logger := log.WithField("table", tbl)
+
 		var opts reader.ReadTableOpt
 
-		table, err := spec.Tables.FindByName(tbl)
-		if err != nil {
-			log.WithError(err).WithField("table", tbl).Debug("no configuration found for table")
+		tableConfig := cfgTables.FindByName(tbl)
+		if tableConfig == nil {
+			logger.Debug("no configuration found for tableConfig")
 		}
 
-		if table != nil {
-			opts = reader.ReadTableOpt{
-				Limit:         table.Filter.Limit,
-				Relationships: d.relationshipConfigToOptions(table.Relationships),
+		if tableConfig != nil {
+			if tableConfig.IgnoreData {
+				logger.Debug("ignoring data to dump")
+				continue
 			}
+
+			opts = reader.NewReadTableOpt(tableConfig)
 		}
 
 		// Create read/write chanel
@@ -80,8 +86,8 @@ func (d *textDumper) Dump(done chan<- struct{}, spec *config.Spec, concurrency i
 			}
 		}(tbl)
 
-		if err := d.reader.ReadTable(tbl, rowChan, opts, spec.Matchers); err != nil {
-			log.WithError(err).WithField("table", tbl).Error("error while reading table")
+		if err := d.reader.ReadTable(tbl, rowChan, opts); err != nil {
+			logger.WithError(err).Error("error while reading tableConfig")
 		}
 	}
 
@@ -156,18 +162,4 @@ func (d *textDumper) toSQLStringValue(src interface{}) (string, error) {
 	}
 
 	return "", nil
-}
-
-func (d *textDumper) relationshipConfigToOptions(relationshipsConfig []*config.Relationship) []*reader.RelationshipOpt {
-	var opts []*reader.RelationshipOpt
-
-	for _, r := range relationshipsConfig {
-		opts = append(opts, &reader.RelationshipOpt{
-			ReferencedTable: r.ReferencedTable,
-			ReferencedKey:   r.ReferencedKey,
-			ForeignKey:      r.ForeignKey,
-		})
-	}
-
-	return opts
 }

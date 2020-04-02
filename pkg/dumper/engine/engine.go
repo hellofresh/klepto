@@ -3,12 +3,13 @@ package engine
 import (
 	"sync"
 
+	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
+
 	"github.com/hellofresh/klepto/pkg/config"
 	"github.com/hellofresh/klepto/pkg/database"
 	"github.com/hellofresh/klepto/pkg/dumper"
 	"github.com/hellofresh/klepto/pkg/reader"
-	"github.com/pkg/errors"
-	log "github.com/sirupsen/logrus"
 )
 
 type (
@@ -46,12 +47,12 @@ func New(rdr reader.Reader, dumper Dumper) dumper.Dumper {
 }
 
 // Dump executes the dump process.
-func (e *Engine) Dump(done chan<- struct{}, spec *config.Spec, concurrency int) error {
+func (e *Engine) Dump(done chan<- struct{}, cfgTables config.Tables, concurrency int) error {
 	if err := e.readAndDumpStructure(); err != nil {
 		return err
 	}
 
-	return e.readAndDumpTables(done, spec, concurrency)
+	return e.readAndDumpTables(done, cfgTables, concurrency)
 }
 
 func (e *Engine) readAndDumpStructure() error {
@@ -69,7 +70,7 @@ func (e *Engine) readAndDumpStructure() error {
 	return nil
 }
 
-func (e *Engine) readAndDumpTables(done chan<- struct{}, spec *config.Spec, concurrency int) error {
+func (e *Engine) readAndDumpTables(done chan<- struct{}, cfgTables config.Tables, concurrency int) error {
 	tables, err := e.reader.GetTables()
 	if err != nil {
 		return errors.Wrap(err, "failed to read and dump tables")
@@ -86,9 +87,9 @@ func (e *Engine) readAndDumpTables(done chan<- struct{}, spec *config.Spec, conc
 	var wg sync.WaitGroup
 	for _, tbl := range tables {
 		logger := log.WithField("table", tbl)
-		tableConfig, err := spec.Tables.FindByName(tbl)
-		if err != nil {
-			logger.WithError(err).Debug("no configuration found for table")
+		tableConfig := cfgTables.FindByName(tbl)
+		if tableConfig == nil {
+			logger.Debug("no configuration found for table")
 		}
 
 		var opts reader.ReadTableOpt
@@ -98,12 +99,7 @@ func (e *Engine) readAndDumpTables(done chan<- struct{}, spec *config.Spec, conc
 				continue
 			}
 
-			opts = reader.ReadTableOpt{
-				Match:         tableConfig.Filter.Match,
-				Sorts:         tableConfig.Filter.Sorts,
-				Limit:         tableConfig.Filter.Limit,
-				Relationships: e.relationshipConfigToOptions(tableConfig.Relationships),
-			}
+			opts = reader.NewReadTableOpt(tableConfig)
 		}
 
 		// Create read/write chanel
@@ -121,7 +117,7 @@ func (e *Engine) readAndDumpTables(done chan<- struct{}, spec *config.Spec, conc
 		}(tbl, rowChan, logger)
 
 		go func(tableName string, opts reader.ReadTableOpt, rowChan chan<- database.Row, logger *log.Entry) {
-			if err := e.reader.ReadTable(tableName, rowChan, opts, spec.Matchers); err != nil {
+			if err := e.reader.ReadTable(tableName, rowChan, opts); err != nil {
 				logger.WithError(err).Error("Failed to read table")
 			}
 		}(tbl, opts, rowChan, logger)
@@ -143,19 +139,4 @@ func (e *Engine) readAndDumpTables(done chan<- struct{}, spec *config.Spec, conc
 	}()
 
 	return nil
-}
-
-func (e *Engine) relationshipConfigToOptions(relationshipsConfig []*config.Relationship) []*reader.RelationshipOpt {
-	var opts []*reader.RelationshipOpt
-
-	for _, r := range relationshipsConfig {
-		opts = append(opts, &reader.RelationshipOpt{
-			Table:           r.Table,
-			ReferencedTable: r.ReferencedTable,
-			ReferencedKey:   r.ReferencedKey,
-			ForeignKey:      r.ForeignKey,
-		})
-	}
-
-	return opts
 }

@@ -10,6 +10,9 @@ import (
 )
 
 func TestLoadSpecFromFile(t *testing.T) {
+	_, err := LoadSpecFromFile("")
+	require.Error(t, err)
+
 	cwd, err := os.Getwd()
 	require.NoError(t, err)
 

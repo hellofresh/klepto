@@ -1,8 +1,6 @@
 package config
 
 import (
-	"os"
-
 	wErrors "github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
@@ -77,22 +75,12 @@ func (t Tables) FindByName(name string) *Table {
 
 // LoadSpecFromFile loads klepto spec from file
 func LoadSpecFromFile(configPath string) (*Spec, error) {
-	if configPath != "" {
-		// Use config file from the flag.
-		log.Debugf("Reading config from %s ...", configPath)
-		viper.SetConfigFile(configPath)
-	} else {
-		log.Debugf("Reading config from %s ...", DefaultConfigFileName)
-
-		cwd, err := os.Getwd()
-		if err != nil {
-			return nil, wErrors.Wrap(err, "can't find current working directory")
-		}
-
-		viper.SetConfigName(".klepto")
-		viper.AddConfigPath(cwd)
-		viper.AddConfigPath(".")
+	if configPath == "" {
+		return nil, wErrors.New("config file path can not be empty")
 	}
+
+	log.Debugf("Reading config from %s ...", configPath)
+	viper.SetConfigFile(configPath)
 
 	err := viper.ReadInConfig()
 	if err != nil {

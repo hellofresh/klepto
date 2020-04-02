@@ -32,7 +32,7 @@ func NewDumper(output io.Writer, rdr reader.Reader) dumper.Dumper {
 }
 
 // Dump executes the dump stream process.
-func (d *textDumper) Dump(done chan<- struct{}, spec *config.Spec, concurrency int) error {
+func (d *textDumper) Dump(done chan<- struct{}, cfgTables config.Tables, concurrency int) error {
 	tables, err := d.reader.GetTables()
 	if err != nil {
 		return wErrors.Wrap(err, "failed to get tables")
@@ -42,15 +42,22 @@ func (d *textDumper) Dump(done chan<- struct{}, spec *config.Spec, concurrency i
 	if err != nil {
 		return wErrors.Wrap(err, "could not get database structure")
 	}
-	io.WriteString(d.output, structure)
+	if _, err := io.WriteString(d.output, structure); err != nil {
+		return wErrors.Wrap(err, "could not write structure to output")
+	}
 
 	for _, tbl := range tables {
 		var opts reader.ReadTableOpt
+		logger := log.WithField("table", tbl)
 
-		tableConfig := spec.Tables.FindByName(tbl)
+		tableConfig := cfgTables.FindByName(tbl)
 		if tableConfig == nil {
-			log.WithField("table", tbl).Debug("no configuration found for table")
+			logger.Debug("no configuration found for table")
 		} else {
+			if tableConfig.IgnoreData {
+				logger.Debug("ignoring data to dump")
+				continue
+			}
 			opts = reader.NewReadTableOpt(tableConfig)
 		}
 
@@ -67,16 +74,20 @@ func (d *textDumper) Dump(done chan<- struct{}, spec *config.Spec, concurrency i
 
 				columnMap, err := d.toSQLColumnMap(row)
 				if err != nil {
-					log.WithError(err).Fatal("could not convert value to string")
+					logger.WithError(err).Fatal("could not convert value to string")
 				}
 
 				insert := sq.Insert(tableName).SetMap(columnMap)
-				io.WriteString(d.output, sq.DebugSqlizer(insert))
-				io.WriteString(d.output, "\n")
+				if _, err := io.WriteString(d.output, sq.DebugSqlizer(insert)); err != nil {
+					logger.WithError(err).Error("could not write insert statement to output")
+				}
+				if _, err := io.WriteString(d.output, "\n"); err != nil {
+					logger.WithError(err).Error("could not write new line to output")
+				}
 			}
 		}(tbl)
 
-		if err := d.reader.ReadTable(tbl, rowChan, opts, spec.Matchers); err != nil {
+		if err := d.reader.ReadTable(tbl, rowChan, opts); err != nil {
 			log.WithError(err).WithField("table", tbl).Error("error while reading table")
 		}
 	}

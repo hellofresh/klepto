@@ -19,10 +19,8 @@ func TestLoadSpecFromFile(t *testing.T) {
 	// klepto/pkg/config/../../fixtures/.klepto.toml
 	configPath := filepath.Join(cwd, "..", "..", "fixtures", ".klepto.toml")
 
-	spec, err := LoadSpecFromFile(configPath)
+	cfgTables, err := LoadSpecFromFile(configPath)
 	require.NoError(t, err)
-
-	cfgTables := spec.Tables
 	require.Len(t, cfgTables, 3)
 
 	users := cfgTables.FindByName("users")
@@ -31,5 +29,5 @@ func TestLoadSpecFromFile(t *testing.T) {
 
 	orders := cfgTables.FindByName("orders")
 	require.NotNil(t, orders)
-	assert.Equal(t, "ActiveUsers", orders.Filter.Match)
+	assert.Equal(t, "users.active = TRUE", orders.Filter.Match)
 }

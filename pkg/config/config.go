@@ -1,6 +1,8 @@
 package config
 
 import (
+	"strings"
+
 	wErrors "github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
@@ -74,7 +76,7 @@ func (t Tables) FindByName(name string) *Table {
 }
 
 // LoadSpecFromFile loads klepto spec from file
-func LoadSpecFromFile(configPath string) (*Spec, error) {
+func LoadSpecFromFile(configPath string) (Tables, error) {
 	if configPath == "" {
 		return nil, wErrors.New("config file path can not be empty")
 	}
@@ -93,5 +95,23 @@ func LoadSpecFromFile(configPath string) (*Spec, error) {
 		return nil, wErrors.Wrap(err, "could not unmarshal config file")
 	}
 
-	return cfgSpec, nil
+	// replace matchers aliases in tables with matchers expressions
+	for i, t := range cfgSpec.Tables {
+		if t.Filter.Match == "" {
+			continue
+		}
+
+		if m, ok := cfgSpec.Matchers[t.Filter.Match]; ok {
+			cfgSpec.Tables[i].Filter.Match = m
+			continue
+		}
+
+		// matcher keys can be lower-cased by the parser - check this case as well
+		if m, ok := cfgSpec.Matchers[strings.ToLower(t.Filter.Match)]; ok {
+			cfgSpec.Tables[i].Filter.Match = m
+			continue
+		}
+	}
+
+	return cfgSpec.Tables, nil
 }

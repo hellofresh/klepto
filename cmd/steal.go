@@ -25,7 +25,7 @@ type (
 	// StealOptions represents the command options
 	StealOptions struct {
 		configPath string
-		cfgSpec    *config.Spec
+		cfgTables  config.Tables
 
 		from        string
 		to          string
@@ -49,7 +49,7 @@ func NewStealCmd() *cobra.Command {
 		Short: "Steals and anonymises databases",
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 			var err error
-			opts.cfgSpec, err = config.LoadSpecFromFile(opts.configPath)
+			opts.cfgTables, err = config.LoadSpecFromFile(opts.configPath)
 			if err != nil {
 				return err
 			}
@@ -96,7 +96,7 @@ func RunSteal(opts *StealOptions) (err error) {
 		}
 	}()
 
-	source = anonymiser.NewAnonymiser(source, opts.cfgSpec.Tables)
+	source = anonymiser.NewAnonymiser(source, opts.cfgTables)
 	target, err := dumper.NewDumper(dumper.ConnOpts{
 		DSN:             opts.to,
 		Timeout:         opts.writeOpts.timeout,
@@ -119,7 +119,7 @@ func RunSteal(opts *StealOptions) (err error) {
 	defer close(done)
 
 	start := time.Now()
-	if err := target.Dump(done, opts.cfgSpec, opts.concurrency); err != nil {
+	if err := target.Dump(done, opts.cfgTables, opts.concurrency); err != nil {
 		return wErrors.Wrap(err, "Error while dumping")
 	}
 

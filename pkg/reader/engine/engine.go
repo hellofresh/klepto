@@ -8,11 +8,11 @@ import (
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
-	"github.com/hellofresh/klepto/pkg/config"
+	wErrors "github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
+
 	"github.com/hellofresh/klepto/pkg/database"
 	"github.com/hellofresh/klepto/pkg/reader"
-	"github.com/pkg/errors"
-	log "github.com/sirupsen/logrus"
 )
 
 type (
@@ -80,7 +80,7 @@ func (e *Engine) GetColumns(tableName string) ([]string, error) {
 }
 
 // ReadTable returns a list of all rows in a table
-func (e *Engine) ReadTable(tableName string, rowChan chan<- database.Row, opts reader.ReadTableOpt, matchers config.Matchers) error {
+func (e *Engine) ReadTable(tableName string, rowChan chan<- database.Row, opts reader.ReadTableOpt) error {
 	defer close(rowChan)
 
 	logger := log.WithField("table", tableName)
@@ -89,7 +89,7 @@ func (e *Engine) ReadTable(tableName string, rowChan chan<- database.Row, opts r
 	if len(opts.Columns) == 0 {
 		columns, err := e.GetColumns(tableName)
 		if err != nil {
-			return errors.Wrap(err, "failed to get columns")
+			return wErrors.Wrap(err, "failed to get columns")
 		}
 		opts.Columns = e.formatColumns(tableName, columns)
 	}
@@ -98,26 +98,26 @@ func (e *Engine) ReadTable(tableName string, rowChan chan<- database.Row, opts r
 		query sq.SelectBuilder
 		err   error
 	)
-	query, err = e.buildQuery(tableName, opts, matchers)
+	query, err = e.buildQuery(tableName, opts)
 	if err != nil {
-		return errors.Wrapf(err, "failed to build query for %s", tableName)
+		return wErrors.Wrapf(err, "failed to build query for %s", tableName)
 	}
 
 	var rows *sql.Rows
 	ctx, cancel := context.WithTimeout(context.Background(), e.timeout)
 	defer cancel()
 
-	errchan := make(chan error)
+	errChan := make(chan error)
 	go func() {
-		defer close(errchan)
+		defer close(errChan)
 		rows, err = query.RunWith(e.Conn()).QueryContext(ctx)
-		errchan <- err
+		errChan <- err
 	}()
 
 	select {
 	case <-ctx.Done():
-		return errors.Wrapf(ctx.Err(), fmt.Sprintf("timeout during read %s table", tableName))
-	case err := <-errchan:
+		return wErrors.Wrapf(ctx.Err(), fmt.Sprintf("timeout during read %s table", tableName))
+	case err := <-errChan:
 		if err != nil {
 			querySQL, queryParams, _ := query.ToSql()
 			logger.WithError(err).
@@ -125,7 +125,7 @@ func (e *Engine) ReadTable(tableName string, rowChan chan<- database.Row, opts r
 					"query":  querySQL,
 					"params": queryParams,
 				}).Warn("failed to query rows")
-			return errors.Wrap(err, "failed to query rows")
+			return wErrors.Wrap(err, "failed to query rows")
 		}
 		break
 	}
@@ -134,7 +134,7 @@ func (e *Engine) ReadTable(tableName string, rowChan chan<- database.Row, opts r
 }
 
 // BuildQuery builds the query that will be used to read the table
-func (e *Engine) buildQuery(tableName string, opts reader.ReadTableOpt, matchers map[string]string) (sq.SelectBuilder, error) {
+func (e *Engine) buildQuery(tableName string, opts reader.ReadTableOpt) (sq.SelectBuilder, error) {
 	var query sq.SelectBuilder
 
 	query = sq.Select(opts.Columns...).From(e.QuoteIdentifier(tableName))
@@ -153,11 +153,7 @@ func (e *Engine) buildQuery(tableName string, opts reader.ReadTableOpt, matchers
 	}
 
 	if opts.Match != "" {
-		if v, ok := matchers[opts.Match]; ok {
-			query = query.Where(v)
-		} else {
-			query = query.Where(opts.Match)
-		}
+		query = query.Where(opts.Match)
 	}
 
 	for k, v := range opts.Sorts {
@@ -185,7 +181,7 @@ func (e *Engine) publishRows(rows *sql.Rows, rowChan chan<- database.Row, tableN
 
 	columnTypes, err := rows.ColumnTypes()
 	if err != nil {
-		return errors.Wrap(err, "failed to get column types")
+		return wErrors.Wrap(err, "failed to get column types")
 	}
 
 	columnCount := len(columnTypes)

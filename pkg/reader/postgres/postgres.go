@@ -4,8 +4,9 @@ import (
 	"database/sql"
 	"strings"
 
-	"github.com/hellofresh/klepto/pkg/reader"
 	_ "github.com/lib/pq" // import postgres driver
+
+	"github.com/hellofresh/klepto/pkg/reader"
 )
 
 type driver struct{}

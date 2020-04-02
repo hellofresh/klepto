@@ -1,6 +1,17 @@
 package config
 
-import "errors"
+import (
+	"os"
+
+	wErrors "github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
+)
+
+// Config-related defaults
+const (
+	DefaultConfigFileName = ".klepto.toml"
+)
 
 type (
 	// Spec represents the global app configuration.
@@ -23,8 +34,8 @@ type (
 		// IgnoreData if set to true, it will dump the table structure without importing data.
 		IgnoreData bool
 		// Filter represents the way you want to filter the results.
-		Filter
-		// Anonymise anonymise columns.
+		Filter Filter
+		// Anonymise anonymises columns.
 		Anonymise map[string]string
 		// Relationship is an collection of relationship definitions.
 		Relationships []*Relationship
@@ -54,12 +65,45 @@ type (
 )
 
 // FindByName find a table by its name.
-func (t Tables) FindByName(name string) (*Table, error) {
+func (t Tables) FindByName(name string) *Table {
 	for _, table := range t {
 		if table.Name == name {
-			return table, nil
+			return table
 		}
 	}
 
-	return nil, errors.New("table not found")
+	return nil
+}
+
+// LoadSpecFromFile loads klepto spec from file
+func LoadSpecFromFile(configPath string) (*Spec, error) {
+	if configPath != "" {
+		// Use config file from the flag.
+		log.Debugf("Reading config from %s ...", configPath)
+		viper.SetConfigFile(configPath)
+	} else {
+		log.Debugf("Reading config from %s ...", DefaultConfigFileName)
+
+		cwd, err := os.Getwd()
+		if err != nil {
+			return nil, wErrors.Wrap(err, "can't find current working directory")
+		}
+
+		viper.SetConfigName(".klepto")
+		viper.AddConfigPath(cwd)
+		viper.AddConfigPath(".")
+	}
+
+	err := viper.ReadInConfig()
+	if err != nil {
+		return nil, wErrors.Wrap(err, "could not read configurations")
+	}
+
+	cfgSpec := new(Spec)
+	err = viper.Unmarshal(cfgSpec)
+	if err != nil {
+		return nil, wErrors.Wrap(err, "could not unmarshal config file")
+	}
+
+	return cfgSpec, nil
 }

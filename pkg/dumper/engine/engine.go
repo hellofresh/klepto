@@ -86,9 +86,9 @@ func (e *Engine) readAndDumpTables(done chan<- struct{}, spec *config.Spec, conc
 	var wg sync.WaitGroup
 	for _, tbl := range tables {
 		logger := log.WithField("table", tbl)
-		tableConfig, err := spec.Tables.FindByName(tbl)
-		if err != nil {
-			logger.WithError(err).Debug("no configuration found for table")
+		tableConfig := spec.Tables.FindByName(tbl)
+		if tableConfig == nil {
+			logger.Debug("no configuration found for table")
 		}
 
 		var opts reader.ReadTableOpt

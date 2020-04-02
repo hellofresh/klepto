@@ -38,9 +38,9 @@ func NewAnonymiser(source reader.Reader, tables config.Tables) reader.Reader {
 func (a *anonymiser) ReadTable(tableName string, rowChan chan<- database.Row, opts reader.ReadTableOpt, matchers config.Matchers) error {
 	logger := log.WithField("table", tableName)
 	logger.Debug("Loading anonymiser config")
-	table, err := a.tables.FindByName(tableName)
-	if err != nil {
-		logger.WithError(err).Debug("the table is not configured to be anonymised")
+	table := a.tables.FindByName(tableName)
+	if table == nil {
+		logger.Debug("the table is not configured to be anonymised")
 		return a.Reader.ReadTable(tableName, rowChan, opts, matchers)
 	}
 

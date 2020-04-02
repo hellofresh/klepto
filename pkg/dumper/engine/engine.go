@@ -3,12 +3,13 @@ package engine
 import (
 	"sync"
 
+	wErrors "github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
+
 	"github.com/hellofresh/klepto/pkg/config"
 	"github.com/hellofresh/klepto/pkg/database"
 	"github.com/hellofresh/klepto/pkg/dumper"
 	"github.com/hellofresh/klepto/pkg/reader"
-	"github.com/pkg/errors"
-	log "github.com/sirupsen/logrus"
 )
 
 type (
@@ -58,11 +59,11 @@ func (e *Engine) readAndDumpStructure() error {
 	log.Debug("dumping structure...")
 	sql, err := e.reader.GetStructure()
 	if err != nil {
-		return errors.Wrap(err, "failed to get structure")
+		return wErrors.Wrap(err, "failed to get structure")
 	}
 
 	if err := e.DumpStructure(sql); err != nil {
-		return errors.Wrap(err, "failed to dump structure")
+		return wErrors.Wrap(err, "failed to dump structure")
 	}
 
 	log.Debug("structure was dumped")
@@ -72,13 +73,13 @@ func (e *Engine) readAndDumpStructure() error {
 func (e *Engine) readAndDumpTables(done chan<- struct{}, spec *config.Spec, concurrency int) error {
 	tables, err := e.reader.GetTables()
 	if err != nil {
-		return errors.Wrap(err, "failed to read and dump tables")
+		return wErrors.Wrap(err, "failed to read and dump tables")
 	}
 
 	// Trigger pre dump tables
 	if adv, ok := e.Dumper.(Hooker); ok {
 		if err := adv.PreDumpTables(tables); err != nil {
-			return errors.Wrap(err, "failed to execute pre dump tables")
+			return wErrors.Wrap(err, "failed to execute pre dump tables")
 		}
 	}
 
@@ -98,12 +99,7 @@ func (e *Engine) readAndDumpTables(done chan<- struct{}, spec *config.Spec, conc
 				continue
 			}
 
-			opts = reader.ReadTableOpt{
-				Match:         tableConfig.Filter.Match,
-				Sorts:         tableConfig.Filter.Sorts,
-				Limit:         tableConfig.Filter.Limit,
-				Relationships: e.relationshipConfigToOptions(tableConfig.Relationships),
-			}
+			opts = reader.NewReadTableOpt(tableConfig)
 		}
 
 		// Create read/write chanel
@@ -143,19 +139,4 @@ func (e *Engine) readAndDumpTables(done chan<- struct{}, spec *config.Spec, conc
 	}()
 
 	return nil
-}
-
-func (e *Engine) relationshipConfigToOptions(relationshipsConfig []*config.Relationship) []*reader.RelationshipOpt {
-	var opts []*reader.RelationshipOpt
-
-	for _, r := range relationshipsConfig {
-		opts = append(opts, &reader.RelationshipOpt{
-			Table:           r.Table,
-			ReferencedTable: r.ReferencedTable,
-			ReferencedKey:   r.ReferencedKey,
-			ForeignKey:      r.ForeignKey,
-		})
-	}
-
-	return opts
 }

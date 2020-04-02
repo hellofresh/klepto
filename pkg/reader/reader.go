@@ -74,7 +74,28 @@ type (
 	}
 )
 
-// Connect acts as fectory method that returns a reader from a DSN
+// NewReadTableOpt builds read table options from table config
+func NewReadTableOpt(tableCfg *config.Table) ReadTableOpt {
+	var rOpts []*RelationshipOpt
+
+	for _, r := range tableCfg.Relationships {
+		rOpts = append(rOpts, &RelationshipOpt{
+			Table:           r.Table,
+			ReferencedTable: r.ReferencedTable,
+			ReferencedKey:   r.ReferencedKey,
+			ForeignKey:      r.ForeignKey,
+		})
+	}
+
+	return ReadTableOpt{
+		Match:         tableCfg.Filter.Match,
+		Sorts:         tableCfg.Filter.Sorts,
+		Limit:         tableCfg.Filter.Limit,
+		Relationships: rOpts,
+	}
+}
+
+// Connect acts as factory method that returns a reader from a DSN
 func Connect(opts ConnOpts) (reader Reader, err error) {
 	drivers.Range(func(key, value interface{}) bool {
 		driver, ok := value.(Driver)

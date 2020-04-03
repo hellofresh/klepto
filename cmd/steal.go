@@ -49,7 +49,7 @@ func NewStealCmd() *cobra.Command {
 		Short: "Steals and anonymises databases",
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 			var err error
-			opts.cfgTables, err = config.LoadSpecFromFile(opts.configPath)
+			opts.cfgTables, err = config.LoadFromFile(opts.configPath)
 			if err != nil {
 				return err
 			}

@@ -131,7 +131,7 @@ You can set a number of keys in the configuration file. Below is a list of all c
   - `Name` - The table name.
   - `IgnoreData` - A flag to indicate whether data should be imported or not. If set to true, it will dump the table structure without importing data.
   - `Filter` - A Klepto definition to filter results.
-    - `Match` - A condition field to dump only certain amount data. The value should correspond to an existing `Matchers` definition.
+    - `Match` - A condition field to dump only certain amount data. The value may be either expression or correspond to an existing `Matchers` definition.
     - `Limit` - The number of results to be fetched.
     - `Sorts` - Defines how the table is sorted.
   - `Anonymise` - Indicates which columns to anonymise.

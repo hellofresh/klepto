@@ -1,8 +1,10 @@
 package config
 
 import (
+	"io"
 	"strings"
 
+	"github.com/BurntSushi/toml"
 	wErrors "github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
@@ -14,8 +16,8 @@ const (
 )
 
 type (
-	// Spec represents the global app configuration.
-	Spec struct {
+	// spec represents the global app configuration.
+	spec struct {
 		Matchers
 		Tables
 	}
@@ -75,8 +77,8 @@ func (t Tables) FindByName(name string) *Table {
 	return nil
 }
 
-// LoadSpecFromFile loads klepto spec from file
-func LoadSpecFromFile(configPath string) (Tables, error) {
+// LoadFromFile loads klepto tables config from file
+func LoadFromFile(configPath string) (Tables, error) {
 	if configPath == "" {
 		return nil, wErrors.New("config file path can not be empty")
 	}
@@ -89,7 +91,7 @@ func LoadSpecFromFile(configPath string) (Tables, error) {
 		return nil, wErrors.Wrap(err, "could not read configurations")
 	}
 
-	cfgSpec := new(Spec)
+	cfgSpec := new(spec)
 	err = viper.Unmarshal(cfgSpec)
 	if err != nil {
 		return nil, wErrors.Wrap(err, "could not unmarshal config file")
@@ -114,4 +116,43 @@ func LoadSpecFromFile(configPath string) (Tables, error) {
 	}
 
 	return cfgSpec.Tables, nil
+}
+
+// WriteSample generates and writes sample config to a writer
+func WriteSample(w io.Writer) error {
+	e := toml.NewEncoder(w)
+	return e.Encode(spec{
+		Matchers: map[string]string{
+			"ActiveUsers": "users.active = TRUE",
+		},
+		Tables: []*Table{
+			{
+				Name: "users",
+				Filter: Filter{
+					Match: "users.active = TRUE",
+					Sorts: map[string]string{"user.id": "asc"},
+					Limit: 100,
+				},
+				Anonymise: map[string]string{"firstName": "FirstName", "email": "EmailAddress"},
+			},
+			{
+				Name: "orders",
+				Filter: Filter{
+					Match: "ActiveUsers",
+					Limit: 10,
+				},
+				Relationships: []*Relationship{
+					{
+						ReferencedTable: "users",
+						ReferencedKey:   "id",
+						ForeignKey:      "user_id",
+					},
+				},
+			},
+			{
+				Name:       "logs",
+				IgnoreData: true,
+			},
+		},
+	})
 }

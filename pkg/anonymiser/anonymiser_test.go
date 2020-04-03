@@ -45,6 +45,12 @@ func TestReadTable(t *testing.T) {
 			opts:     reader.ReadTableOpt{},
 			config:   config.Tables{{Name: "test", Anonymise: map[string]string{"column_test": "literal:Hello"}}},
 		},
+		{
+			scenario: "when column anonymiser in invalid",
+			function: testWhenColumnAnonymiserIsInvalid,
+			opts:     reader.ReadTableOpt{},
+			config:   config.Tables{{Name: "test", Anonymise: map[string]string{"column_test": "Hello"}}},
+		},
 	}
 
 	for _, test := range tests {
@@ -102,6 +108,22 @@ func testWhenColumnIsAnonymisedWithLiteral(t *testing.T, opts reader.ReadTableOp
 	for {
 		row := <-rowChan
 		assert.Equal(t, "Hello", row["column_test"])
+		break
+	}
+}
+
+func testWhenColumnAnonymiserIsInvalid(t *testing.T, opts reader.ReadTableOpt, tables config.Tables) {
+	anonymiser := NewAnonymiser(&mockReader{}, tables)
+
+	rowChan := make(chan database.Row)
+	defer close(rowChan)
+
+	err := anonymiser.ReadTable("test", rowChan, opts)
+	require.NoError(t, err)
+
+	for {
+		row := <-rowChan
+		assert.Equal(t, "Invalid anonymiser: Hello", row["column_test"])
 		break
 	}
 }

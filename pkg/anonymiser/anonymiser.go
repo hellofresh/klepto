@@ -66,26 +66,27 @@ func (a *anonymiser) ReadTable(tableName string, rowChan chan<- database.Row, op
 					continue
 				}
 
-				for name, faker := range Functions {
-					if fakerType != name {
-						continue
-					}
-
-					var value string
-					switch name {
-					case email, username:
-						b := make([]byte, 2)
-						rand.Read(b)
-						value = fmt.Sprintf(
-							"%s.%s",
-							faker.Call([]reflect.Value{})[0].String(),
-							hex.EncodeToString(b),
-						)
-					default:
-						value = faker.Call([]reflect.Value{})[0].String()
-					}
-					row[column] = value
+				faker, found := Functions[fakerType]
+				if !found {
+					logger.WithField("anonymiser", fakerType).Error("Anonymiser is not found")
+					row[column] = fmt.Sprintf("Invalid anonymiser: %s", fakerType)
+					continue
 				}
+
+				var value string
+				switch fakerType {
+				case email, username:
+					b := make([]byte, 2)
+					rand.Read(b)
+					value = fmt.Sprintf(
+						"%s.%s",
+						faker.Call([]reflect.Value{})[0].String(),
+						hex.EncodeToString(b),
+					)
+				default:
+					value = faker.Call([]reflect.Value{})[0].String()
+				}
+				row[column] = value
 			}
 
 			rowChan <- row

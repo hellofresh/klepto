@@ -133,7 +133,7 @@ func testWhenColumnAnonymiserIsInvalid(t *testing.T, opts reader.ReadTableOpt, t
 	case row := <-rowChan:
 		assert.Equal(t, "Invalid anonymiser: Hello", row["column_test"])
 	case <-timeoutChan:
-		assert.Fail(t, "Failing due to timeout")
+		assert.FailNow(t, "Failing due to timeout")
 	}
 }
 

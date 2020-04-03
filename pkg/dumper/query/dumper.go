@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"strconv"
+	"sync"
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
@@ -46,6 +47,7 @@ func (d *textDumper) Dump(done chan<- struct{}, cfgTables config.Tables, concurr
 		return wErrors.Wrap(err, "could not write structure to output")
 	}
 
+	var wg sync.WaitGroup
 	for _, tbl := range tables {
 		var opts reader.ReadTableOpt
 		logger := log.WithField("table", tbl)
@@ -64,11 +66,13 @@ func (d *textDumper) Dump(done chan<- struct{}, cfgTables config.Tables, concurr
 		// Create read/write chanel
 		rowChan := make(chan database.Row)
 
+		wg.Add(1)
 		go func(tableName string) {
+			defer wg.Done()
+
 			for {
 				row, more := <-rowChan
 				if !more {
-					done <- struct{}{}
 					return
 				}
 
@@ -91,6 +95,11 @@ func (d *textDumper) Dump(done chan<- struct{}, cfgTables config.Tables, concurr
 			log.WithError(err).WithField("table", tbl).Error("error while reading table")
 		}
 	}
+
+	go func() {
+		wg.Wait()
+		done <- struct{}{}
+	}()
 
 	return nil
 }

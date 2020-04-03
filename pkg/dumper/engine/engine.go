@@ -47,12 +47,12 @@ func New(rdr reader.Reader, dumper Dumper) dumper.Dumper {
 }
 
 // Dump executes the dump process.
-func (e *Engine) Dump(done chan<- struct{}, spec *config.Spec, concurrency int) error {
+func (e *Engine) Dump(done chan<- struct{}, cfgTables config.Tables, concurrency int) error {
 	if err := e.readAndDumpStructure(); err != nil {
 		return err
 	}
 
-	return e.readAndDumpTables(done, spec, concurrency)
+	return e.readAndDumpTables(done, cfgTables, concurrency)
 }
 
 func (e *Engine) readAndDumpStructure() error {
@@ -70,7 +70,7 @@ func (e *Engine) readAndDumpStructure() error {
 	return nil
 }
 
-func (e *Engine) readAndDumpTables(done chan<- struct{}, spec *config.Spec, concurrency int) error {
+func (e *Engine) readAndDumpTables(done chan<- struct{}, cfgTables config.Tables, concurrency int) error {
 	tables, err := e.reader.GetTables()
 	if err != nil {
 		return wErrors.Wrap(err, "failed to read and dump tables")
@@ -87,7 +87,7 @@ func (e *Engine) readAndDumpTables(done chan<- struct{}, spec *config.Spec, conc
 	var wg sync.WaitGroup
 	for _, tbl := range tables {
 		logger := log.WithField("table", tbl)
-		tableConfig := spec.Tables.FindByName(tbl)
+		tableConfig := cfgTables.FindByName(tbl)
 		if tableConfig == nil {
 			logger.Debug("no configuration found for table")
 		}
@@ -117,7 +117,7 @@ func (e *Engine) readAndDumpTables(done chan<- struct{}, spec *config.Spec, conc
 		}(tbl, rowChan, logger)
 
 		go func(tableName string, opts reader.ReadTableOpt, rowChan chan<- database.Row, logger *log.Entry) {
-			if err := e.reader.ReadTable(tableName, rowChan, opts, spec.Matchers); err != nil {
+			if err := e.reader.ReadTable(tableName, rowChan, opts); err != nil {
 				logger.WithError(err).Error("Failed to read table")
 			}
 		}(tbl, opts, rowChan, logger)

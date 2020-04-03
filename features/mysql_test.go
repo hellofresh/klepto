@@ -47,7 +47,7 @@ func (s *MysqlTestSuite) TestExample() {
 
 	done := make(chan struct{})
 	defer close(done)
-	s.Require().NoError(dmp.Dump(done, new(config.Spec), 4), "Failed to dump")
+	s.Require().NoError(dmp.Dump(done, config.Tables{}, 4), "Failed to dump")
 
 	<-done
 

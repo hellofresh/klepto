@@ -1,10 +1,8 @@
 package cmd
 
 import (
-	"bufio"
 	"os"
 
-	"github.com/BurntSushi/toml"
 	wErrors "github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -39,43 +37,8 @@ func RunInit() error {
 		return wErrors.Wrap(err, "could not create file")
 	}
 
-	e := toml.NewEncoder(bufio.NewWriter(f))
-	err = e.Encode(config.Spec{
-		Matchers: map[string]string{
-			"ActiveUsers": "users.active = TRUE",
-		},
-		Tables: []*config.Table{
-			{
-				Name: "users",
-				Filter: config.Filter{
-					Match: "users.active = TRUE",
-					Sorts: map[string]string{"user.id": "asc"},
-					Limit: 100,
-				},
-				Anonymise: map[string]string{"firstName": "FirstName", "email": "EmailAddress"},
-			},
-			{
-				Name: "orders",
-				Filter: config.Filter{
-					Match: "ActiveUsers",
-					Limit: 10,
-				},
-				Relationships: []*config.Relationship{
-					{
-						ReferencedTable: "users",
-						ReferencedKey:   "id",
-						ForeignKey:      "user_id",
-					},
-				},
-			},
-			{
-				Name:       "logs",
-				IgnoreData: true,
-			},
-		},
-	})
-	if err != nil {
-		return wErrors.Wrap(err, "could not encode config")
+	if err := config.WriteSample(f); err != nil {
+		return wErrors.Wrap(err, "could not write config")
 	}
 
 	log.Infof("Created %s!", config.DefaultConfigFileName)

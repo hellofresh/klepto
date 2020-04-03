@@ -47,16 +47,11 @@ func (d *textDumper) Dump(done chan<- struct{}, spec *config.Spec, concurrency i
 	for _, tbl := range tables {
 		var opts reader.ReadTableOpt
 
-		table := spec.Tables.FindByName(tbl)
-		if table == nil {
+		tableConfig := spec.Tables.FindByName(tbl)
+		if tableConfig == nil {
 			log.WithField("table", tbl).Debug("no configuration found for table")
-		}
-
-		if table != nil {
-			opts = reader.ReadTableOpt{
-				Limit:         table.Filter.Limit,
-				Relationships: d.relationshipConfigToOptions(table.Relationships),
-			}
+		} else {
+			opts = reader.NewReadTableOpt(tableConfig)
 		}
 
 		// Create read/write chanel
@@ -157,18 +152,4 @@ func (d *textDumper) toSQLStringValue(src interface{}) (string, error) {
 	}
 
 	return "", nil
-}
-
-func (d *textDumper) relationshipConfigToOptions(relationshipsConfig []*config.Relationship) []*reader.RelationshipOpt {
-	var opts []*reader.RelationshipOpt
-
-	for _, r := range relationshipsConfig {
-		opts = append(opts, &reader.RelationshipOpt{
-			ReferencedTable: r.ReferencedTable,
-			ReferencedKey:   r.ReferencedKey,
-			ForeignKey:      r.ForeignKey,
-		})
-	}
-
-	return opts
 }

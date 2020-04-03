@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strconv"
 	"testing"
+	"time"
 
 	"github.com/hellofresh/klepto/pkg/config"
 	"github.com/hellofresh/klepto/pkg/database"
@@ -11,6 +12,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+const waitTimeout = time.Second
 
 func TestReadTable(t *testing.T) {
 	t.Parallel()
@@ -44,6 +47,12 @@ func TestReadTable(t *testing.T) {
 			function: testWhenColumnIsAnonymisedWithLiteral,
 			opts:     reader.ReadTableOpt{},
 			config:   config.Tables{{Name: "test", Anonymise: map[string]string{"column_test": "literal:Hello"}}},
+		},
+		{
+			scenario: "when column anonymiser in invalid",
+			function: testWhenColumnAnonymiserIsInvalid,
+			opts:     reader.ReadTableOpt{},
+			config:   config.Tables{{Name: "test", Anonymise: map[string]string{"column_test": "Hello"}}},
 		},
 	}
 
@@ -83,10 +92,12 @@ func testWhenColumnIsAnonymised(t *testing.T, opts reader.ReadTableOpt, tables c
 	err := anonymiser.ReadTable("test", rowChan, opts)
 	require.NoError(t, err)
 
-	for {
-		row := <-rowChan
+	timeoutChan := time.After(waitTimeout)
+	select {
+	case row := <-rowChan:
 		assert.NotEqual(t, "to_be_anonimised", row["column_test"])
-		break
+	case <-timeoutChan:
+		assert.FailNow(t, "Failing due to timeout")
 	}
 }
 
@@ -99,10 +110,30 @@ func testWhenColumnIsAnonymisedWithLiteral(t *testing.T, opts reader.ReadTableOp
 	err := anonymiser.ReadTable("test", rowChan, opts)
 	require.NoError(t, err)
 
-	for {
-		row := <-rowChan
+	timeoutChan := time.After(waitTimeout)
+	select {
+	case row := <-rowChan:
 		assert.Equal(t, "Hello", row["column_test"])
-		break
+	case <-timeoutChan:
+		assert.FailNow(t, "Failing due to timeout")
+	}
+}
+
+func testWhenColumnAnonymiserIsInvalid(t *testing.T, opts reader.ReadTableOpt, tables config.Tables) {
+	anonymiser := NewAnonymiser(&mockReader{}, tables)
+
+	rowChan := make(chan database.Row)
+	defer close(rowChan)
+
+	err := anonymiser.ReadTable("test", rowChan, opts)
+	require.NoError(t, err)
+
+	timeoutChan := time.After(waitTimeout)
+	select {
+	case row := <-rowChan:
+		assert.Equal(t, "Invalid anonymiser: Hello", row["column_test"])
+	case <-timeoutChan:
+		assert.FailNow(t, "Failing due to timeout")
 	}
 }
 

@@ -115,7 +115,7 @@ func testWhenColumnIsAnonymisedWithLiteral(t *testing.T, opts reader.ReadTableOp
 	case row := <-rowChan:
 		assert.Equal(t, "Hello", row["column_test"])
 	case <-timeoutChan:
-		assert.Fail(t, "Failing due to timeout")
+		assert.FailNow(t, "Failing due to timeout")
 	}
 }
 

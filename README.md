@@ -22,13 +22,13 @@ Klepto is a tool that copies and anonymises data from other sources.
 - [Usage](#usage)
 - [Steal Options](#steal-options)
 - [Configuration File Options](#configuration-file-options)
+  - [Ignore](#ignore)
   - [IgnoreData](#ignoredata)
   - [Matchers](#matchers)
   - [Anonymise](#anonymise)
   - [Relationships](#relationships)
-- [Examples](#examples)
 - [Contributing](#contributing)
-- [License](#licence)
+- [License](#license)
 
 <a name="intro"></a>
 ## Intro
@@ -129,6 +129,7 @@ You can set a number of keys in the configuration file. Below is a list of all c
 - `Matchers` - Variables to store filter data. You can declare a filter once and reuse it among tables.
 - `Tables` - A Klepto table definition.
   - `Name` - The table name.
+  - `Ignore` - A flag to explicitly indicate whether table should be completely ignored. If set to true all other flags will be ignored.
   - `IgnoreData` - A flag to indicate whether data should be imported or not. If set to true, it will dump the table structure without importing data.
   - `Filter` - A Klepto definition to filter results.
     - `Match` - A condition field to dump only certain amount data. The value may be either expression or correspond to an existing `Matchers` definition.
@@ -142,6 +143,15 @@ You can set a number of keys in the configuration file. Below is a list of all c
     - `ReferencedKey` - The referenced table primary key.
 
 
+<a name="ignore"></a>
+### Ignore
+
+You can explicitly ignore table structure and data by setting the `Ignore` value to `true`.
+```toml
+[[Tables]]
+ Name = "logs"
+ IgnoreData = true
+```
 
 <a name="ignoredata"></a>
 ### IgnoreData
@@ -236,19 +246,12 @@ To dump the latest 100 users with their orders:
       created_at = "desc"
 ```
 
-
-
-<a name="examples"></a>
-## Examples
-
-Example configuration files for intfood and the ordering tool can be found on [Klepto Examples][klepto-examples-confluence] on Confluence.
-
 <a name="contributing"></a>
 ## Contributing
 
 Please read [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduct, and the process for submitting pull requests to us.
 
-<a name="licence"></a>
+<a name="license"></a>
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details

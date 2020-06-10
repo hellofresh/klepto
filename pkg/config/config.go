@@ -33,6 +33,8 @@ type (
 	Table struct {
 		// Name is the table name.
 		Name string
+		// Ignore if set to true, table will be skipped completely.
+		Ignore bool
 		// IgnoreData if set to true, it will dump the table structure without importing data.
 		IgnoreData bool
 		// Filter represents the way you want to filter the results.
@@ -152,6 +154,10 @@ func WriteSample(w io.Writer) error {
 			{
 				Name:       "logs",
 				IgnoreData: true,
+			},
+			{
+				Name:   "pg_stat_statements",
+				Ignore: true,
 			},
 		},
 	})

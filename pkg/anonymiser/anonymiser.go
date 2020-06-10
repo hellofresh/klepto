@@ -7,11 +7,12 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
+
 	"github.com/hellofresh/klepto/pkg/config"
 	"github.com/hellofresh/klepto/pkg/database"
 	"github.com/hellofresh/klepto/pkg/reader"
-	"github.com/pkg/errors"
-	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -38,10 +39,16 @@ func NewAnonymiser(source reader.Reader, tables config.Tables) reader.Reader {
 func (a *anonymiser) ReadTable(tableName string, rowChan chan<- database.Row, opts reader.ReadTableOpt) error {
 	logger := log.WithField("table", tableName)
 	logger.Debug("Loading anonymiser config")
+
 	table := a.tables.FindByName(tableName)
 	if table == nil {
 		logger.Debug("the table is not configured to be anonymised")
 		return a.Reader.ReadTable(tableName, rowChan, opts)
+	}
+
+	if table.Ignore {
+		logger.Debug("table is configured to be ignored")
+		return nil
 	}
 
 	if len(table.Anonymise) == 0 {

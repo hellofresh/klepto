@@ -50,9 +50,10 @@ func (p *PgDump) GetStructure() (string, error) {
 	cmd.Stderr = cmdErr
 	cmd.Stdout = buf
 
-	if err := cmd.Run(); err != nil {
-		logger.Error("failed to load schema for table")
+	err := cmd.Run()
+	if err != nil {
+		logger.WithError(err).Error("failed to load schema for table")
 	}
 
-	return buf.String(), nil
+	return buf.String(), err
 }

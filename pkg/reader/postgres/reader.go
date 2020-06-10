@@ -5,10 +5,11 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/hellofresh/klepto/pkg/reader"
-	"github.com/hellofresh/klepto/pkg/reader/engine"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
+
+	"github.com/hellofresh/klepto/pkg/reader"
+	"github.com/hellofresh/klepto/pkg/reader/engine"
 )
 
 type (
@@ -34,9 +35,12 @@ func NewStorage(conn *sql.DB, dumper PgDumper, timeout time.Duration) reader.Rea
 // GetTables gets a list of all tables in the database
 func (s *storage) GetTables() ([]string, error) {
 	log.Debug("fetching table list")
-	rows, err := s.conn.Query(
-		`SELECT table_name FROM information_schema.tables
-		 WHERE table_catalog=current_database() AND table_schema NOT IN ('pg_catalog', 'information_schema')`,
+	rows, err := s.conn.Query(`
+SELECT table_name
+FROM information_schema.tables
+WHERE table_catalog = current_database() AND
+      table_schema NOT IN ('pg_catalog', 'information_schema')
+      `,
 	)
 	if err != nil {
 		return nil, err
@@ -60,8 +64,11 @@ func (s *storage) GetTables() ([]string, error) {
 
 func (s *storage) GetColumns(table string) ([]string, error) {
 	log.WithField("table", table).Debug("fetching table columns")
-	rows, err := s.conn.Query(
-		"SELECT column_name FROM information_schema.columns WHERE table_catalog=current_database() AND table_name=$1",
+	rows, err := s.conn.Query(`
+SELECT column_name
+FROM information_schema.columns
+WHERE table_catalog = current_database() AND table_name = $1
+`,
 		table,
 	)
 	if err != nil {

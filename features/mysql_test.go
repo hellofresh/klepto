@@ -39,11 +39,17 @@ func (s *MysqlTestSuite) TestExample() {
 
 	rdr, err := reader.Connect(reader.ConnOpts{DSN: readDSN, Timeout: s.timeout})
 	s.Require().NoError(err, "Unable to create reader")
-	defer rdr.Close()
+	defer func() {
+		err := rdr.Close()
+		s.Assert().NoError(err)
+	}()
 
 	dmp, err := dumper.NewDumper(dumper.ConnOpts{DSN: dumpDSN}, rdr)
 	s.Require().NoError(err, "Unable to create dumper")
-	defer dmp.Close()
+	defer func() {
+		err := dmp.Close()
+		s.Assert().NoError(err)
+	}()
 
 	done := make(chan struct{})
 	defer close(done)
@@ -75,7 +81,8 @@ func (s *MysqlTestSuite) TearDownSuite() {
 		s.dropDatabase(db)
 	}
 
-	s.rootConnection.Close()
+	err := s.rootConnection.Close()
+	s.Assert().NoError(err)
 }
 
 func (s *MysqlTestSuite) createDatabase(name string) string {
@@ -102,7 +109,10 @@ func (s *MysqlTestSuite) loadFixture(dsn string, file string) {
 	s.Require().NoError(err, "Unable to load fixture file")
 
 	conn, err := sql.Open("mysql", dsn)
-	defer conn.Close()
+	defer func() {
+		err := conn.Close()
+		s.Assert().NoError(err)
+	}()
 	s.Require().NoError(err, "Unable to open db connection to load fixture")
 
 	_, err = conn.Exec(string(data))
@@ -112,11 +122,17 @@ func (s *MysqlTestSuite) loadFixture(dsn string, file string) {
 func (s *MysqlTestSuite) assertDatabaseAreTheSame(expectedDSN string, dumpDSN string) {
 	sourceConn, err := sql.Open("mysql", expectedDSN)
 	s.Require().NoError(err, "Unable to connect to source db")
-	defer sourceConn.Close()
+	defer func() {
+		err := sourceConn.Close()
+		s.Assert().NoError(err)
+	}()
 
 	targetConn, err := sql.Open("mysql", dumpDSN)
 	s.Require().NoError(err, "Unable to connect to target db")
-	defer targetConn.Close()
+	defer func() {
+		err := targetConn.Close()
+		s.Assert().NoError(err)
+	}()
 
 	tables := s.fetchTableRowCount(sourceConn)
 	s.Require().Equal(tables, s.fetchTableRowCount(targetConn))
@@ -142,7 +158,7 @@ func (s *MysqlTestSuite) fetchTableRowCount(db *sql.DB) []tableInfo {
 	s.Require().NoError(err, "Unable to fetch table info")
 	defer tableRows.Close()
 
-	tables := []tableInfo{}
+	var tables []tableInfo
 	for tableRows.Next() {
 		table := tableInfo{}
 
@@ -163,11 +179,17 @@ func (s *MysqlTestSuite) compareTable(source *sql.DB, target *sql.DB, table stri
 
 	expectedRows, err := source.Query(query)
 	assert.NoError(err, "Unable to query source table")
-	defer expectedRows.Close()
+	defer func() {
+		err := expectedRows.Close()
+		s.Assert().NoError(err)
+	}()
 
 	rows, err := target.Query(query)
 	assert.NoError(err, "Unable to query target table")
-	defer rows.Close()
+	defer func() {
+		err := rows.Close()
+		s.Assert().NoError(err)
+	}()
 
 	for expectedRows.Next() {
 		assert.True(rows.Next(), "target row mismatch")

@@ -36,7 +36,6 @@ func init() {
 		}
 	}
 
-	RootCmd.AddCommand(NewVersionCmd())
 	RootCmd.AddCommand(NewUpdateCmd())
 	RootCmd.AddCommand(NewInitCmd())
 	RootCmd.AddCommand(NewStealCmd())

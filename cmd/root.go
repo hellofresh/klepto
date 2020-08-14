@@ -11,11 +11,13 @@ import (
 
 var (
 	verbose bool
+	version = "0.0.0-dev"
 
 	// RootCmd steals and anonymises databases
 	RootCmd = &cobra.Command{
-		Use:   "klepto",
-		Short: "Steals and anonymises databases",
+		Use:     "klepto",
+		Version: version,
+		Short:   "Steals and anonymises databases",
 		Long: `Klepto by HelloFresh.
 		Takes the structure and data from one (mysql) database (--from),
 		anonymises the data according to the provided configuration file,

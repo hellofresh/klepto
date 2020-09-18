@@ -29,6 +29,7 @@ type (
 
 		from        string
 		to          string
+		toRDS       bool
 		concurrency int
 		readOpts    connOpts
 		writeOpts   connOpts
@@ -65,6 +66,7 @@ func NewStealCmd() *cobra.Command {
 	persistentFlags.StringVarP(&opts.configPath, "config", "c", config.DefaultConfigFileName, "Path to config file")
 	persistentFlags.StringVarP(&opts.from, "from", "f", "mysql://root:root@tcp(localhost:3306)/klepto", "Database dsn to steal from")
 	persistentFlags.StringVarP(&opts.to, "to", "t", "os://stdout/", "Database to output to (default writes to stdOut)")
+	persistentFlags.BoolVar(&opts.toRDS, "to-rds", false, "If the output server is an AWS RDS server")
 	persistentFlags.IntVar(&opts.concurrency, "concurrency", runtime.NumCPU(), "Sets the amount of dumps to be performed concurrently")
 	persistentFlags.DurationVar(&opts.readOpts.timeout, "read-timeout", 5*time.Minute, "Sets the timeout for read operations")
 	persistentFlags.DurationVar(&opts.readOpts.maxConnLifetime, "read-conn-lifetime", 0, "Sets the maximum amount of time a connection may be reused on the read database")
@@ -99,6 +101,7 @@ func RunSteal(opts *StealOptions) (err error) {
 	source = anonymiser.NewAnonymiser(source, opts.cfgTables)
 	target, err := dumper.NewDumper(dumper.ConnOpts{
 		DSN:             opts.to,
+		IsRDS:           opts.toRDS,
 		Timeout:         opts.writeOpts.timeout,
 		MaxConnLifetime: opts.writeOpts.maxConnLifetime,
 		MaxConns:        opts.writeOpts.maxConns,

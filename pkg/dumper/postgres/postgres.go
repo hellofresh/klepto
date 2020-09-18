@@ -24,7 +24,7 @@ func (m *driver) NewConnection(opts dumper.ConnOpts, rdr reader.Reader) (dumper.
 	conn.SetMaxIdleConns(opts.MaxIdleConns)
 	conn.SetConnMaxLifetime(opts.MaxConnLifetime)
 
-	return NewDumper(conn, rdr), nil
+	return NewDumper(opts, conn, rdr), nil
 }
 
 func init() {

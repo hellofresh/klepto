@@ -38,6 +38,7 @@ func (p *PgDump) GetStructure() (string, error) {
 		"--schema-only",
 		"--no-privileges",
 		"--no-owner",
+		"--no-comments",
 	)
 
 	logger.Debug("loading schema for table")

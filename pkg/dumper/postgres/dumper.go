@@ -16,17 +16,26 @@ import (
 )
 
 type (
+	foreignKeyInfo struct {
+		tableName            string
+		constraintName       string
+		constraintDefinition string
+	}
+
 	pgDumper struct {
-		conn   *sql.DB
-		reader reader.Reader
+		conn        *sql.DB
+		reader      reader.Reader
+		isRDS       bool
+		foreignKeys []foreignKeyInfo
 	}
 )
 
 // NewDumper returns a new postgres dumper.
-func NewDumper(conn *sql.DB, rdr reader.Reader) dumper.Dumper {
+func NewDumper(opts dumper.ConnOpts, conn *sql.DB, rdr reader.Reader) dumper.Dumper {
 	return engine.New(rdr, &pgDumper{
 		conn:   conn,
 		reader: rdr,
+		isRDS:  opts.IsRDS,
 	})
 }
 
@@ -72,26 +81,67 @@ func (d *pgDumper) DumpTable(tableName string, rowChan <-chan database.Row) erro
 // PreDumpTables Disable triggers on all tables to avoid foreign key constraints
 func (d *pgDumper) PreDumpTables(tables []string) error {
 	// We can't use `SET session_replication_role = replica` because multiple connections and stuff
-	for _, tbl := range tables {
-		query := fmt.Sprintf("ALTER TABLE %s DISABLE TRIGGER ALL", strconv.Quote(tbl))
-		if _, err := d.conn.Exec(query); err != nil {
-			return errors.Wrapf(err, "Failed to disable triggers for %s", tbl)
+	// For RDS databases, the superuser does not have the required permission to call
+	// DISABLE TRIGGER ALL, so manually remove and re-add all Foreign Keys
+	if !d.isRDS {
+		log.Debug("Disabling triggers")
+		for _, tbl := range tables {
+			query := fmt.Sprintf("ALTER TABLE %s DISABLE TRIGGER ALL", strconv.Quote(tbl))
+			if _, err := d.conn.Exec(query); err != nil {
+				return errors.Wrapf(err, "Failed to disable triggers for %s", tbl)
+			}
 		}
+		return nil
 	}
 
+	log.Debug("Removing foreign keys")
+	query := `SELECT conrelid::regclass::varchar tableName,
+		conname constraintName,
+		pg_catalog.pg_get_constraintdef(r.oid, true) constraintDefinition
+		FROM pg_catalog.pg_constraint r
+		WHERE r.contype = 'f'
+		AND r.connamespace = (SELECT n.oid FROM pg_namespace n WHERE n.nspname = current_schema())
+		`
+	rows, err := d.conn.Query(query)
+	if err != nil {
+		return errors.Wrapf(err, "Failed to query ForeignKeys")
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var fk foreignKeyInfo
+		if err := rows.Scan(&fk.tableName, &fk.constraintName, &fk.constraintDefinition); err != nil {
+			return errors.Wrapf(err, "Failed to load ForeignKeyInfo")
+		}
+		query := fmt.Sprintf("ALTER TABLE %s DROP CONSTRAINT %s", strconv.Quote(fk.tableName), strconv.Quote(fk.constraintName))
+		if _, err := d.conn.Exec(query); err != nil {
+			return errors.Wrapf(err, "Failed to frop contraint %s.%s", fk.tableName, fk.constraintName)
+		}
+		d.foreignKeys = append(d.foreignKeys, fk)
+	}
 	return nil
 }
 
 // PostDumpTables enable triggers on all tables to enforce foreign key constraints
 func (d *pgDumper) PostDumpTables(tables []string) error {
 	// We can't use `SET session_replication_role = DEFAULT` because multiple connections and stuff
-	for _, tbl := range tables {
-		query := fmt.Sprintf("ALTER TABLE %s ENABLE TRIGGER ALL", strconv.Quote(tbl))
-		if _, err := d.conn.Exec(query); err != nil {
-			return errors.Wrapf(err, "Failed to anble triggers for %s", tbl)
+	if !d.isRDS {
+		log.Debug("Reenabling triggers")
+		for _, tbl := range tables {
+			query := fmt.Sprintf("ALTER TABLE %s ENABLE TRIGGER ALL", strconv.Quote(tbl))
+			if _, err := d.conn.Exec(query); err != nil {
+				return errors.Wrapf(err, "Failed to enable triggers for %s", tbl)
+			}
 		}
+		return nil
 	}
 
+	log.Debug("Recreating foreign keys")
+	for _, fk := range d.foreignKeys {
+		query := fmt.Sprintf("ALTER TABLE %s ADD CONSTRAINT %s %s", strconv.Quote(fk.tableName), strconv.Quote(fk.constraintName), fk.constraintDefinition)
+		if _, err := d.conn.Exec(query); err != nil {
+			return errors.Wrapf(err, "Failed to re-create ForeignKey %s.%s", fk.tableName, fk.constraintName)
+		}
+	}
 	return nil
 }
 

@@ -32,6 +32,8 @@ type (
 	ConnOpts struct {
 		// DSN is the connection address.
 		DSN string
+		// IsRDS identifies if the server is an AWS RDS server
+		IsRDS bool
 		// Timeout is the timeout for dump operations.
 		Timeout time.Duration
 		// MaxConnLifetime is the maximum amount of time a connection may be reused on the read database.

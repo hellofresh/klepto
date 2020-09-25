@@ -25,6 +25,9 @@ CREATE TABLE "order_items" (
   FOREIGN KEY (order_id) REFERENCES orders(id)
 );
 
+
+CREATE VIEW "users_view" AS SELECT id, username FROM "users" WHERE active=true;
+
 INSERT INTO "users" VALUES ('0d60a85e-0b90-4482-a14c-108aea2557aa', 'wbo', 'wbo@hellofresh.com', true, 'm', '2017-01-01');
 INSERT INTO "users" VALUES ('39240e9f-ae09-4e95-9fd0-a712035c8ad7', 'kp', 'kp@hellofresh.com', true, NULL, '2017-01-01');
 INSERT INTO "users" VALUES ('9e4de779-d6a0-44bc-a531-20cdb97178d2', 'lp', 'lp@hellofresh.com', false, 'f', '2017-01-01');

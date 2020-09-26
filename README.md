@@ -26,7 +26,6 @@ Klepto is a tool that copies and anonymises data from other sources.
   - [Matchers](#matchers)
   - [Anonymise](#anonymise)
   - [Relationships](#relationships)
-- [Examples](#examples)
 - [Contributing](#contributing)
 - [License](#licence)
 
@@ -111,11 +110,34 @@ Behind the scenes Klepto will establishes the connection with the source and tar
 
 <a name="steal-options"></a>
 ## Steal Options
-The available options can be seen by running `klepto steal -h`
+Available options can be seen by running `klepto steal --help`
 
-<p align="left">  
-  <img src="./klepto-steal-help.png"  alt="Klepto Steal Help" title="Klepto Steal Help">
-</p>
+```
+❯ klepto steal --help
+Steals and anonymises databases
+
+Usage:
+  klepto steal [flags]
+
+Flags:
+      --concurrency int                Sets the amount of dumps to be performed concurrently (default 12)
+  -c, --config string                  Path to config file (default ".klepto.toml")
+  -f, --from string                    Database dsn to steal from (default "mysql://root:root@tcp(localhost:3306)/klepto")
+  -h, --help                           help for steal
+      --read-conn-lifetime duration    Sets the maximum amount of time a connection may be reused on the read database
+      --read-max-conns int             Sets the maximum number of open connections to the read database (default 5)
+      --read-max-idle-conns int        Sets the maximum number of connections in the idle connection pool for the read database
+      --read-timeout duration          Sets the timeout for read operations (default 5m0s)
+  -t, --to string                      Database to output to (default writes to stdOut) (default "os://stdout/")
+      --to-rds                         If the output server is an AWS RDS server
+      --write-conn-lifetime duration   Sets the maximum amount of time a connection may be reused on the write database
+      --write-max-conns int            Sets the maximum number of open connections to the write database (default 5)
+      --write-max-idle-conns int       Sets the maximum number of connections in the idle connection pool for the write database
+      --write-timeout duration         Sets the timeout for write operations (default 30s)
+
+Global Flags:
+  -v, --verbose   Make the operation more talkative
+```
 
 We recommend to always set the following parameters:
 - `concurrency` to alleviate the pressure over both the source and target databases.
@@ -237,12 +259,6 @@ To dump the latest 100 users with their orders:
 ```
 
 
-
-<a name="examples"></a>
-## Examples
-
-Example configuration files for intfood and the ordering tool can be found on [Klepto Examples][klepto-examples-confluence] on Confluence.
-
 <a name="contributing"></a>
 ## Contributing
 
@@ -254,7 +270,5 @@ Please read [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduc
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details
 
 
-
 [pg_dump-docs]: https://www.postgresql.org/docs/10/static/app-pgdump.html "pg_dump docs"
 [klepto-releases]: https://github.com/hellofresh/klepto/releases "Klepto releases page"
-[klepto-examples-confluence]: https://hellofresh.atlassian.net/wiki/spaces/PLAT/pages/204505400/Klepto+Examples "Klepto examples confluence"

@@ -1,6 +1,0 @@
-approvals:
-  groups:
-    pm:
-      minimum: 0
-    qa:
-      minimum: 0

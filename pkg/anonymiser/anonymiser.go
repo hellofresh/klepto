@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"reflect"
+	"strconv"
 	"strings"
 
 	"github.com/hellofresh/klepto/pkg/config"
@@ -19,8 +20,18 @@ const (
 	literalPrefix = "literal:"
 	email         = "EmailAddress"
 	username      = "UserName"
-	password      = "Password"
 )
+
+var requireArgs = map[string]bool{
+	"CharactersN":   true,
+	"DigitsN":       true,
+	"ParagraphsN":   true,
+	"SentencesN":    true,
+	"WordsN":        true,
+	"CreditCardNum": true,
+	"Password":      true,
+	"Year":          true,
+}
 
 type (
 	anonymiser struct {
@@ -66,6 +77,7 @@ func (a *anonymiser) ReadTable(tableName string, rowChan chan<- database.Row, op
 					continue
 				}
 
+				fakerType, args := getTypeArgs(fakerType)
 				faker, found := Functions[fakerType]
 				if !found {
 					logger.WithField("anonymiser", fakerType).Error("Anonymiser is not found")
@@ -87,7 +99,7 @@ func (a *anonymiser) ReadTable(tableName string, rowChan chan<- database.Row, op
 						hex.EncodeToString(b),
 					)
 				default:
-					value = faker.Call([]reflect.Value{})[0].String()
+					value = faker.Call(args)[0].String()
 				}
 				row[column] = value
 			}
@@ -101,4 +113,48 @@ func (a *anonymiser) ReadTable(tableName string, rowChan chan<- database.Row, op
 	}
 
 	return nil
+}
+
+func getTypeArgs(fakerType string) (string, []reflect.Value) {
+	parts := strings.Split(fakerType, ":")
+	fType := parts[0]
+	if !requireArgs[fType] {
+		return fType, nil
+	}
+
+	return fType, parseArgs(Functions[fType], parts[1:])
+}
+
+func parseArgs(function reflect.Value, values []string) []reflect.Value {
+	t := function.Type()
+	argsN := t.NumIn()
+	if argsN > len(values) {
+		log.WithFields(log.Fields{"expected": argsN, "received": len(values)}).Warn("Not enough arguments passed. Falling back to defaults")
+		values = append(values, make([]string, argsN-len(values))...)
+	}
+
+	argsV := make([]reflect.Value, argsN)
+	for i := 0; i < argsN; i++ {
+		argT := t.In(i)
+		v := reflect.New(argT).Elem()
+		switch argT.Kind() {
+		case reflect.String:
+			v.SetString(values[i])
+		case reflect.Int:
+			n, err := strconv.ParseInt(values[i], 10, 0)
+			if err != nil {
+				log.WithField("argument", values[i]).Warn("Failed to parse argument as string. Falling back to default")
+			}
+			v.SetInt(n)
+		case reflect.Bool:
+			b, err := strconv.ParseBool(values[i])
+			if err != nil {
+				log.WithField("argument", values[i]).Warn("Failed to parse argument as boolean. Falling back to default")
+			}
+			v.SetBool(b)
+		}
+
+		argsV[i] = v
+	}
+	return argsV
 }

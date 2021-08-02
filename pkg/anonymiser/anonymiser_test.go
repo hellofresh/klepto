@@ -54,6 +54,30 @@ func TestReadTable(t *testing.T) {
 			opts:     reader.ReadTableOpt{},
 			config:   config.Tables{{Name: "test", Anonymise: map[string]string{"column_test": "Hello"}}},
 		},
+		{
+			scenario: "when column anonymiser require args",
+			function: testWhenColumnAnonymiserRequireArgs,
+			opts:     reader.ReadTableOpt{},
+			config:   config.Tables{{Name: "test", Anonymise: map[string]string{"column_test": "DigitsN:20"}}},
+		},
+		{
+			scenario: "when column anonymiser require multiple args",
+			function: testWhenColumnAnonymiserRequireMultipleArgs,
+			opts:     reader.ReadTableOpt{},
+			config:   config.Tables{{Name: "test", Anonymise: map[string]string{"column_test": "Year:2020:2021"}}},
+		},
+		{
+			scenario: "when column anonymiser require args but no values are passed",
+			function: testWhenColumnAnonymiserRequireArgsNoValues,
+			opts:     reader.ReadTableOpt{},
+			config:   config.Tables{{Name: "test", Anonymise: map[string]string{"column_test": "CreditCardNum"}}},
+		},
+		{
+			scenario: "when column anonymiser require args but the value passed is invalid",
+			function: testWhenColumnAnonymiserRequireArgsInvalidValues,
+			opts:     reader.ReadTableOpt{},
+			config:   config.Tables{{Name: "test", Anonymise: map[string]string{"column_test1": "CharactersN:invalid", "column_test2": "Password:1:2:yes"}}},
+		},
 	}
 
 	for _, test := range tests {
@@ -132,6 +156,80 @@ func testWhenColumnAnonymiserIsInvalid(t *testing.T, opts reader.ReadTableOpt, t
 	select {
 	case row := <-rowChan:
 		assert.Equal(t, "Invalid anonymiser: Hello", row["column_test"])
+	case <-timeoutChan:
+		assert.FailNow(t, "Failing due to timeout")
+	}
+}
+
+func testWhenColumnAnonymiserRequireArgs(t *testing.T, opts reader.ReadTableOpt, tables config.Tables) {
+	anonymiser := NewAnonymiser(&mockReader{}, tables)
+
+	rowChan := make(chan database.Row)
+	defer close(rowChan)
+
+	err := anonymiser.ReadTable("test", rowChan, opts)
+	require.NoError(t, err)
+
+	timeoutChan := time.After(waitTimeout)
+	select {
+	case row := <-rowChan:
+		assert.NotEqual(t, "to_be_anonimised", row["column_test"])
+		assert.Len(t, row["column_test"], 20)
+	case <-timeoutChan:
+		assert.FailNow(t, "Failing due to timeout")
+	}
+}
+
+func testWhenColumnAnonymiserRequireMultipleArgs(t *testing.T, opts reader.ReadTableOpt, tables config.Tables) {
+	anonymiser := NewAnonymiser(&mockReader{}, tables)
+
+	rowChan := make(chan database.Row)
+	defer close(rowChan)
+
+	err := anonymiser.ReadTable("test", rowChan, opts)
+	require.NoError(t, err)
+
+	timeoutChan := time.After(waitTimeout)
+	select {
+	case row := <-rowChan:
+		assert.NotEqual(t, "to_be_anonimised", row["column_test"])
+	case <-timeoutChan:
+		assert.FailNow(t, "Failing due to timeout")
+	}
+}
+
+func testWhenColumnAnonymiserRequireArgsNoValues(t *testing.T, opts reader.ReadTableOpt, tables config.Tables) {
+	anonymiser := NewAnonymiser(&mockReader{}, tables)
+
+	rowChan := make(chan database.Row)
+	defer close(rowChan)
+
+	err := anonymiser.ReadTable("test", rowChan, opts)
+	require.NoError(t, err)
+
+	timeoutChan := time.After(waitTimeout)
+	select {
+	case row := <-rowChan:
+		assert.NotEqual(t, "to_be_anonimised", row["column_test"])
+	case <-timeoutChan:
+		assert.FailNow(t, "Failing due to timeout")
+	}
+}
+
+func testWhenColumnAnonymiserRequireArgsInvalidValues(t *testing.T, opts reader.ReadTableOpt, tables config.Tables) {
+	anonymiser := NewAnonymiser(&mockReader{}, tables)
+
+	rowChan := make(chan database.Row)
+	defer close(rowChan)
+
+	err := anonymiser.ReadTable("test", rowChan, opts)
+	require.NoError(t, err)
+
+	timeoutChan := time.After(waitTimeout)
+	select {
+	case row := <-rowChan:
+		assert.NotEqual(t, "to_be_anonimised", row["column_test1"])
+		assert.NotEqual(t, "to_be_anonimised", row["column_test2"])
 	case <-timeoutChan:
 		assert.FailNow(t, "Failing due to timeout")
 	}

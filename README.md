@@ -211,6 +211,9 @@ You can anonymise specific columns in your table using the `Anonymise` key. Anon
   [Tables.Anonymise]
     email = "EmailAddress"
     firstName = "FirstName"
+    postalCode = "DigitsN:5"
+    creditCard = "CreditCardNum"
+    voucher = "Password:3:5:true"
 
 [[Tables]]
   Name = "users"
@@ -219,7 +222,7 @@ You can anonymise specific columns in your table using the `Anonymise` key. Anon
     password = "literal:1234"
 ```
 
-This would replace these 4 columns from the `customer` and `users` tables and run `fake.EmailAddress` and `fake.FirstName` against them respectively. We can use `literal:[some-constant-value]` to specify a constant we want to write for a column. In this case, `password = "literal:1234"` would write `1234` for every row in the password column of the users table.
+This would replace all the specified columns from the `customer` and `users` tables with the spcified fake function. If a function requires arguments to be passed, we can specify them splitting with the `:` character, the default value of a argument type will be used in case the provided one is invalid or missing. There is also a special function `literal:[some-constant-value]` to specify a constant we want to write for a column. In this case, `password = "literal:1234"` would write `1234` for every row in the password column of the users table.
 
 #### Available data types for anonymisation
 

@@ -12,19 +12,19 @@ var Functions = map[string]reflect.Value{
 	"Brand":                    reflect.ValueOf(fake.Brand),
 	"Character":                reflect.ValueOf(fake.Character),
 	"Characters":               reflect.ValueOf(fake.Characters),
-	"CharactersN":              reflect.ValueOf(fake.CharactersN),
+	"CharactersN":              reflect.ValueOf(fake.CharactersN), //func fake.CharactersN(n int) string
 	"City":                     reflect.ValueOf(fake.City),
 	"Color":                    reflect.ValueOf(fake.Color),
 	"Company":                  reflect.ValueOf(fake.Company),
 	"Continent":                reflect.ValueOf(fake.Continent),
 	"Country":                  reflect.ValueOf(fake.Country),
-	"CreditCardNum":            reflect.ValueOf(fake.CreditCardNum),
+	"CreditCardNum":            reflect.ValueOf(fake.CreditCardNum), //func fake.CreditCardNum(vendor string) string
 	"CreditCardType":           reflect.ValueOf(fake.CreditCardType),
 	"Currency":                 reflect.ValueOf(fake.Currency),
 	"CurrencyCode":             reflect.ValueOf(fake.CurrencyCode),
 	"Day":                      reflect.ValueOf(fake.Day),
 	"Digits":                   reflect.ValueOf(fake.Digits),
-	"DigitsN":                  reflect.ValueOf(fake.DigitsN),
+	"DigitsN":                  reflect.ValueOf(fake.DigitsN), //func fake.DigitsN(n int) string
 	"DomainName":               reflect.ValueOf(fake.DomainName),
 	"DomainZone":               reflect.ValueOf(fake.DomainZone),
 	"EmailAddress":             reflect.ValueOf(fake.EmailAddress),
@@ -73,15 +73,15 @@ var Functions = map[string]reflect.Value{
 	"MonthShort":               reflect.ValueOf(fake.MonthShort),
 	"Paragraph":                reflect.ValueOf(fake.Paragraph),
 	"Paragraphs":               reflect.ValueOf(fake.Paragraphs),
-	"ParagraphsN":              reflect.ValueOf(fake.ParagraphsN),
-	"Password":                 reflect.ValueOf(fake.Password),
+	"ParagraphsN":              reflect.ValueOf(fake.ParagraphsN), //func fake.ParagraphsN(n int) string
+	"Password":                 reflect.ValueOf(fake.Password),    //func fake.Password(atLeast int, atMost int, allowUpper bool, allowNumeric bool, allowSpecial bool) string
 	"Patronymic":               reflect.ValueOf(fake.Patronymic),
 	"Phone":                    reflect.ValueOf(fake.Phone),
 	"Product":                  reflect.ValueOf(fake.Product),
 	"ProductName":              reflect.ValueOf(fake.ProductName),
 	"Sentence":                 reflect.ValueOf(fake.Sentence),
 	"Sentences":                reflect.ValueOf(fake.Sentences),
-	"SentencesN":               reflect.ValueOf(fake.SentencesN),
+	"SentencesN":               reflect.ValueOf(fake.SentencesN), //func fake.SentencesN(n int) string
 	"SimplePassword":           reflect.ValueOf(fake.SimplePassword),
 	"State":                    reflect.ValueOf(fake.State),
 	"StateAbbrev":              reflect.ValueOf(fake.StateAbbrev),
@@ -96,7 +96,7 @@ var Functions = map[string]reflect.Value{
 	"WeekdayNum":               reflect.ValueOf(fake.WeekdayNum),
 	"Word":                     reflect.ValueOf(fake.Word),
 	"Words":                    reflect.ValueOf(fake.Words),
-	"WordsN":                   reflect.ValueOf(fake.WordsN),
-	"Year":                     reflect.ValueOf(fake.Year),
+	"WordsN":                   reflect.ValueOf(fake.WordsN), //func fake.WordsN(n int) string
+	"Year":                     reflect.ValueOf(fake.Year),   //func fake.Year(from int, to int) int
 	"Zip":                      reflect.ValueOf(fake.Zip),
 }

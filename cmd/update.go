@@ -5,6 +5,7 @@ import (
 	"os"
 	"runtime"
 	"strings"
+	"time"
 
 	"github.com/hellofresh/updater-go"
 	"github.com/palantir/stacktrace"
@@ -14,8 +15,9 @@ import (
 )
 
 const (
-	githubOwner = "hellofresh"
-	githubRepo  = "klepto"
+	githubOwner              = "hellofresh"
+	githubRepo               = "klepto"
+	defaultConnectionTimeout = time.Duration(5 * time.Second)
 )
 
 // UpdateOptions are the command flags
@@ -23,6 +25,7 @@ type UpdateOptions struct {
 	token   string
 	version string
 	dryRun  bool
+	timeout time.Duration
 }
 
 // NewUpdateCmd creates a new update command
@@ -39,7 +42,8 @@ func NewUpdateCmd() *cobra.Command {
 
 	cmd.PersistentFlags().StringVar(&opts.token, "token", "", "Github token that will be used to check for Klepto! versions. If not set GITHUB_TOKEN environment variable value is used.")
 	cmd.PersistentFlags().StringVar(&opts.version, "version", "", "Update to specific version instead of the latest stable.")
-	cmd.PersistentFlags().BoolVar(&opts.dryRun, "dry-run", false, "check the version available but do not run actual update")
+	cmd.PersistentFlags().BoolVar(&opts.dryRun, "dry-run", false, "Check the version available but do not run actual update")
+	cmd.PersistentFlags().DurationVar(&opts.timeout, "timeout", defaultConnectionTimeout, "Connection timeout")
 
 	return cmd
 }
@@ -62,7 +66,7 @@ func RunUpdate(opts *UpdateOptions) error {
 	}
 
 	// Create release locator
-	locator := newReleaseLocator(opts.token, versionFilter)
+	locator := newReleaseLocator(opts.token, versionFilter, opts.timeout)
 
 	// Find the release
 	updateTo, err := locateRelease(locator, updateToVersion)
@@ -90,7 +94,7 @@ func RunUpdate(opts *UpdateOptions) error {
 	return nil
 }
 
-func newReleaseLocator(token string, filter updater.ReleaseFilter) updater.ReleaseLocator {
+func newReleaseLocator(token string, filter updater.ReleaseFilter, timeout time.Duration) updater.ReleaseLocator {
 	return updater.NewGithubClient(
 		githubOwner,
 		githubRepo,
@@ -99,6 +103,7 @@ func newReleaseLocator(token string, filter updater.ReleaseFilter) updater.Relea
 		func(asset string) bool {
 			return strings.Contains(asset, fmt.Sprintf("_%s_%s", runtime.GOOS, runtime.GOARCH))
 		},
+		timeout,
 	)
 }
 func locateRelease(locator updater.ReleaseLocator, version string) (updater.Release, error) {

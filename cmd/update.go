@@ -1,13 +1,14 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"runtime"
 	"strings"
 	"time"
 
-	"github.com/hellofresh/updater-go"
+	"github.com/hellofresh/updater-go/v3"
 	"github.com/palantir/stacktrace"
 	wErrors "github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
@@ -36,7 +37,7 @@ func NewUpdateCmd() *cobra.Command {
 		Aliases: []string{"self-update"},
 		Short:   "Check for new versions of kepto",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return RunUpdate(opts)
+			return RunUpdate(cmd.Context(), opts)
 		},
 	}
 
@@ -49,7 +50,7 @@ func NewUpdateCmd() *cobra.Command {
 }
 
 // RunUpdate runs the update command
-func RunUpdate(opts *UpdateOptions) error {
+func RunUpdate(ctx context.Context, opts *UpdateOptions) error {
 	log.Info("Checking for new versions of Klepto!")
 
 	if opts.token == "" {
@@ -66,10 +67,10 @@ func RunUpdate(opts *UpdateOptions) error {
 	}
 
 	// Create release locator
-	locator := newReleaseLocator(opts.token, versionFilter, opts.timeout)
+	locator := newReleaseLocator(ctx, opts.token, versionFilter, opts.timeout)
 
 	// Find the release
-	updateTo, err := locateRelease(locator, updateToVersion)
+	updateTo, err := locateRelease(ctx, locator, updateToVersion)
 	if rootErr := stacktrace.RootCause(err); rootErr == updater.ErrNoRepository {
 		// fatal exits with code 1
 		log.Fatal("Unable to access the Klepto! repository.")
@@ -81,7 +82,7 @@ func RunUpdate(opts *UpdateOptions) error {
 	if updateTo.Name != version {
 		// Fetch the release and update
 		if !opts.dryRun {
-			if err := updater.SelfUpdate(updateTo); err != nil {
+			if err := updater.SelfUpdate(ctx, updateTo); err != nil {
 				return wErrors.Wrapf(err, "failed to update to version %s", updateTo.Name)
 			}
 		}
@@ -94,8 +95,9 @@ func RunUpdate(opts *UpdateOptions) error {
 	return nil
 }
 
-func newReleaseLocator(token string, filter updater.ReleaseFilter, timeout time.Duration) updater.ReleaseLocator {
+func newReleaseLocator(ctx context.Context, token string, filter updater.ReleaseFilter, timeout time.Duration) updater.ReleaseLocator {
 	return updater.NewGithubClient(
+		ctx,
 		githubOwner,
 		githubRepo,
 		token,
@@ -106,15 +108,15 @@ func newReleaseLocator(token string, filter updater.ReleaseFilter, timeout time.
 		timeout,
 	)
 }
-func locateRelease(locator updater.ReleaseLocator, version string) (updater.Release, error) {
+func locateRelease(ctx context.Context, locator updater.ReleaseLocator, version string) (updater.Release, error) {
 	// No specific version use the latest
 	if version == "" {
-		return updater.LatestRelease(locator)
+		return updater.LatestRelease(ctx, locator)
 	}
 
 	// Find a specific release
 	var release updater.Release
-	updates, err := locator.ListReleases(1)
+	updates, err := locator.ListReleases(ctx, 1)
 	if err != nil {
 		return release, err
 	}

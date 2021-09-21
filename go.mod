@@ -6,7 +6,7 @@ require (
 	github.com/BurntSushi/toml v0.4.1
 	github.com/Masterminds/squirrel v1.5.0
 	github.com/go-sql-driver/mysql v1.6.0
-	github.com/hellofresh/updater-go v1.0.2
+	github.com/hellofresh/updater-go/v3 v3.0.0
 	github.com/icrowley/fake v0.0.0-20180203215853-4178557ae428
 	github.com/lib/pq v1.10.3
 	github.com/palantir/stacktrace v0.0.0-20161112013806-78658fd2d177
@@ -18,7 +18,7 @@ require (
 )
 
 require (
-	github.com/Masterminds/semver v1.4.2 // indirect
+	github.com/Masterminds/semver/v3 v3.1.1 // indirect
 	github.com/corpix/uarand v0.1.1 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/fsnotify/fsnotify v1.5.1 // indirect
@@ -31,15 +31,14 @@ require (
 	github.com/mitchellh/mapstructure v1.4.2 // indirect
 	github.com/pelletier/go-toml v1.9.4 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
-	github.com/shurcooL/githubv4 v0.0.0-20180509030948-19298c78142b // indirect
-	github.com/shurcooL/go v0.0.0-20180423040247-9e1955d9fb6e // indirect
-	github.com/shurcooL/graphql v0.0.0-20180514000029-62c9ce094e75 // indirect
+	github.com/shurcooL/githubv4 v0.0.0-20201206200315-234843c633fa // indirect
+	github.com/shurcooL/graphql v0.0.0-20200928012149-18c5c3165e3a // indirect
 	github.com/spf13/afero v1.6.0 // indirect
 	github.com/spf13/cast v1.4.1 // indirect
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/subosito/gotenv v1.2.0 // indirect
-	golang.org/x/net v0.0.0-20210503060351-7fd8e65b6420 // indirect
+	golang.org/x/net v0.0.0-20210510120150-4163338589ed // indirect
 	golang.org/x/oauth2 v0.0.0-20210819190943-2bc19b11175f // indirect
 	golang.org/x/sys v0.0.0-20210823070655-63515b42dcdf // indirect
 	golang.org/x/text v0.3.6 // indirect

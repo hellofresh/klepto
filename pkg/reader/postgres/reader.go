@@ -2,12 +2,12 @@ package postgres
 
 import (
 	"database/sql"
+	"fmt"
 	"strconv"
 	"time"
 
 	"github.com/hellofresh/klepto/pkg/reader"
 	"github.com/hellofresh/klepto/pkg/reader/engine"
-	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -92,7 +92,7 @@ func (s *storage) QuoteIdentifier(name string) string {
 // Close closes the postgres connection reader.
 func (s *storage) Close() error {
 	if err := s.conn.Close(); err != nil {
-		return errors.Wrap(err, "failed to close postgres connection reader")
+		return fmt.Errorf("failed to close postgres connection reader: %w", err)
 	}
 	return nil
 }

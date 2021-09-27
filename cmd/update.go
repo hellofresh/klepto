@@ -10,7 +10,6 @@ import (
 
 	"github.com/hellofresh/updater-go/v3"
 	"github.com/palantir/stacktrace"
-	wErrors "github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -76,14 +75,14 @@ func RunUpdate(ctx context.Context, opts *UpdateOptions) error {
 		log.Fatal("Unable to access the Klepto! repository.")
 	}
 	if err != nil {
-		return wErrors.Wrap(err, "failed to retrieve the update release")
+		return fmt.Errorf("failed to retrieve the update release: %w", err)
 	}
 
 	if updateTo.Name != version {
 		// Fetch the release and update
 		if !opts.dryRun {
 			if err := updater.SelfUpdate(ctx, updateTo); err != nil {
-				return wErrors.Wrapf(err, "failed to update to version %s", updateTo.Name)
+				return fmt.Errorf("failed to update to version %s: %w", updateTo.Name, err)
 			}
 		}
 

@@ -1,9 +1,9 @@
 package cmd
 
 import (
+	"fmt"
 	"os"
 
-	wErrors "github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 
@@ -34,11 +34,11 @@ func RunInit() error {
 
 	f, err := os.Create(config.DefaultConfigFileName)
 	if err != nil {
-		return wErrors.Wrap(err, "could not create file")
+		return fmt.Errorf("could not create file: %w", err)
 	}
 
 	if err := config.WriteSample(f); err != nil {
-		return wErrors.Wrap(err, "could not write config")
+		return fmt.Errorf("could not write config: %w", err)
 	}
 
 	log.Infof("Created %s!", config.DefaultConfigFileName)

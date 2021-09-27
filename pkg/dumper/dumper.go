@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"time"
 
-	wErrors "github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/hellofresh/klepto/pkg/config"
@@ -59,7 +58,7 @@ func NewDumper(opts ConnOpts, rdr reader.Reader) (dumper Dumper, err error) {
 	})
 
 	if err != nil {
-		return nil, wErrors.Wrapf(err, "could not create dumper for DSN: %q", opts.DSN)
+		return nil, fmt.Errorf("could not create dumper for DSN %q : %w", opts.DSN, err)
 	}
 
 	if dumper == nil {

@@ -14,7 +14,6 @@ import (
 	"github.com/hellofresh/klepto/pkg/dumper"
 	"github.com/hellofresh/klepto/pkg/dumper/engine"
 	"github.com/hellofresh/klepto/pkg/reader"
-	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -73,7 +72,7 @@ func (d *myDumper) DumpTable(tableName string, rowChan <-chan database.Row) erro
 
 	txn, err := d.conn.Begin()
 	if err != nil {
-		return errors.Wrap(err, "failed to open transaction")
+		return fmt.Errorf("failed to open transaction: %w", err)
 	}
 
 	insertedRows, err := d.insertIntoTable(txn, tableName, rowChan)
@@ -83,7 +82,7 @@ func (d *myDumper) DumpTable(tableName string, rowChan <-chan database.Row) erro
 				log.WithError(err).Error("failed to rollback")
 			}
 		}()
-		err = errors.Wrap(err, "failed to insert rows")
+		err = fmt.Errorf("failed to insert rows: %w", err)
 		return err
 	}
 
@@ -93,7 +92,7 @@ func (d *myDumper) DumpTable(tableName string, rowChan <-chan database.Row) erro
 	}).Debug("inserted rows")
 
 	if err := txn.Commit(); err != nil {
-		return errors.Wrap(err, "failed to commit transaction")
+		return fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
 	return nil
@@ -109,14 +108,14 @@ func (d *myDumper) Close() error {
 	err := d.conn.Close()
 	if err != nil {
 		if errGlobalInline != nil {
-			return errors.Wrap(errGlobalInline, "failed to close mysql connection and `SET GLOBAL local_infile=0`")
+			return fmt.Errorf("failed to close mysql connection and `SET GLOBAL local_infile=0`: %w", errGlobalInline)
 		}
 
-		return errors.Wrap(err, "failed to close mysql connection")
+		return fmt.Errorf("failed to close mysql connection: %w", err)
 	}
 
 	if errGlobalInline != nil {
-		return errors.Wrap(errGlobalInline, "failed `SET GLOBAL local_infile=0` please do this manually!")
+		return fmt.Errorf("failed `SET GLOBAL local_infile=0` please do this manually! : %w", errGlobalInline)
 	}
 
 	return nil
@@ -125,7 +124,7 @@ func (d *myDumper) Close() error {
 func (d *myDumper) insertIntoTable(txn *sql.Tx, tableName string, rowChan <-chan database.Row) (int64, error) {
 	columns, err := d.reader.GetColumns(tableName)
 	if err != nil {
-		return 0, errors.Wrap(err, "failed to get columns")
+		return 0, fmt.Errorf("failed to get columns: %w", err)
 	}
 
 	columnsQuoted := make([]string, len(columns))
@@ -184,11 +183,11 @@ func (d *myDumper) insertIntoTable(txn *sql.Tx, tableName string, rowChan <-chan
 	defer mysql.DeregisterReaderHandler(tableName)
 
 	if _, err := txn.Exec("SET foreign_key_checks = 0;"); err != nil {
-		return 0, errors.Wrap(err, "failed to disable foreign key checks")
+		return 0, fmt.Errorf("failed to disable foreign key checks: %w", err)
 	}
 
 	if _, err := txn.Exec(query); err != nil {
-		return 0, errors.Wrap(err, "failed to execute query")
+		return 0, fmt.Errorf("failed to execute query: %w", err)
 	}
 
 	return inserted, nil

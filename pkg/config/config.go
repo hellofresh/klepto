@@ -1,11 +1,12 @@
 package config
 
 import (
+	"errors"
+	"fmt"
 	"io"
 	"strings"
 
 	"github.com/BurntSushi/toml"
-	wErrors "github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 )
@@ -80,7 +81,7 @@ func (t Tables) FindByName(name string) *Table {
 // LoadFromFile loads klepto tables config from file
 func LoadFromFile(configPath string) (Tables, error) {
 	if configPath == "" {
-		return nil, wErrors.New("config file path can not be empty")
+		return nil, errors.New("config file path can not be empty")
 	}
 
 	log.Debugf("Reading config from %s ...", configPath)
@@ -88,13 +89,13 @@ func LoadFromFile(configPath string) (Tables, error) {
 
 	err := viper.ReadInConfig()
 	if err != nil {
-		return nil, wErrors.Wrap(err, "could not read configurations")
+		return nil, fmt.Errorf("could not read configurations: %w", err)
 	}
 
 	cfgSpec := new(spec)
 	err = viper.Unmarshal(cfgSpec)
 	if err != nil {
-		return nil, wErrors.Wrap(err, "could not unmarshal config file")
+		return nil, fmt.Errorf("could not unmarshal config file: %w", err)
 	}
 
 	// replace matchers aliases in tables with matchers expressions

@@ -11,7 +11,6 @@ import (
 	"github.com/hellofresh/klepto/pkg/dumper/engine"
 	"github.com/hellofresh/klepto/pkg/reader"
 	"github.com/lib/pq"
-	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -52,7 +51,7 @@ func (d *pgDumper) DumpStructure(sql string) error {
 func (d *pgDumper) DumpTable(tableName string, rowChan <-chan database.Row) error {
 	txn, err := d.conn.Begin()
 	if err != nil {
-		return errors.Wrap(err, "failed to open transaction")
+		return fmt.Errorf("failed to open transaction: %w", err)
 	}
 
 	insertedRows, err := d.insertIntoTable(txn, tableName, rowChan)
@@ -62,7 +61,7 @@ func (d *pgDumper) DumpTable(tableName string, rowChan <-chan database.Row) erro
 				log.WithError(err).Error("failed to rollback")
 			}
 		}()
-		err = errors.Wrap(err, "failed to insert rows")
+		err = fmt.Errorf("failed to insert rows: %w", err)
 		return err
 	}
 
@@ -72,7 +71,7 @@ func (d *pgDumper) DumpTable(tableName string, rowChan <-chan database.Row) erro
 	}).Debug("inserted rows")
 
 	if err := txn.Commit(); err != nil {
-		return errors.Wrap(err, "failed to commit transaction")
+		return fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
 	return nil
@@ -88,7 +87,7 @@ func (d *pgDumper) PreDumpTables(tables []string) error {
 		for _, tbl := range tables {
 			query := fmt.Sprintf("ALTER TABLE %s DISABLE TRIGGER ALL", strconv.Quote(tbl))
 			if _, err := d.conn.Exec(query); err != nil {
-				return errors.Wrapf(err, "Failed to disable triggers for %s", tbl)
+				return fmt.Errorf("failed to disable triggers for %s: %w", tbl, err)
 			}
 		}
 		return nil
@@ -104,17 +103,17 @@ func (d *pgDumper) PreDumpTables(tables []string) error {
 		`
 	rows, err := d.conn.Query(query)
 	if err != nil {
-		return errors.Wrapf(err, "Failed to query ForeignKeys")
+		return fmt.Errorf("failed to query ForeignKeys: %w", err)
 	}
 	defer rows.Close()
 	for rows.Next() {
 		var fk foreignKeyInfo
 		if err := rows.Scan(&fk.tableName, &fk.constraintName, &fk.constraintDefinition); err != nil {
-			return errors.Wrapf(err, "Failed to load ForeignKeyInfo")
+			return fmt.Errorf("failed to load ForeignKeyInfo: %w", err)
 		}
 		query := fmt.Sprintf("ALTER TABLE %s DROP CONSTRAINT %s", strconv.Quote(fk.tableName), strconv.Quote(fk.constraintName))
 		if _, err := d.conn.Exec(query); err != nil {
-			return errors.Wrapf(err, "Failed to frop contraint %s.%s", fk.tableName, fk.constraintName)
+			return fmt.Errorf("failed to frop contraint %s.%s: %w", fk.tableName, fk.constraintName, err)
 		}
 		d.foreignKeys = append(d.foreignKeys, fk)
 	}
@@ -129,7 +128,7 @@ func (d *pgDumper) PostDumpTables(tables []string) error {
 		for _, tbl := range tables {
 			query := fmt.Sprintf("ALTER TABLE %s ENABLE TRIGGER ALL", strconv.Quote(tbl))
 			if _, err := d.conn.Exec(query); err != nil {
-				return errors.Wrapf(err, "Failed to enable triggers for %s", tbl)
+				return fmt.Errorf("failed to enable triggers for %s: %w", tbl, err)
 			}
 		}
 		return nil
@@ -139,7 +138,7 @@ func (d *pgDumper) PostDumpTables(tables []string) error {
 	for _, fk := range d.foreignKeys {
 		query := fmt.Sprintf("ALTER TABLE %s ADD CONSTRAINT %s %s", strconv.Quote(fk.tableName), strconv.Quote(fk.constraintName), fk.constraintDefinition)
 		if _, err := d.conn.Exec(query); err != nil {
-			return errors.Wrapf(err, "Failed to re-create ForeignKey %s.%s", fk.tableName, fk.constraintName)
+			return fmt.Errorf("failed to re-create ForeignKey %s.%s: %w", fk.tableName, fk.constraintName, err)
 		}
 	}
 	return nil
@@ -149,7 +148,7 @@ func (d *pgDumper) PostDumpTables(tables []string) error {
 func (d *pgDumper) Close() error {
 	err := d.conn.Close()
 	if err != nil {
-		return errors.Wrap(err, "failed to close postgres connection")
+		return fmt.Errorf("failed to close postgres connection: %w", err)
 	}
 	return nil
 }
@@ -157,7 +156,7 @@ func (d *pgDumper) Close() error {
 func (d *pgDumper) insertIntoTable(txn *sql.Tx, tableName string, rowChan <-chan database.Row) (int64, error) {
 	columns, err := d.reader.GetColumns(tableName)
 	if err != nil {
-		return 0, errors.Wrap(err, "failed to get columns")
+		return 0, fmt.Errorf("failed to get columns: %w", err)
 	}
 
 	logger := log.WithFields(log.Fields{
@@ -168,7 +167,7 @@ func (d *pgDumper) insertIntoTable(txn *sql.Tx, tableName string, rowChan <-chan
 
 	stmt, err := txn.Prepare(pq.CopyIn(tableName, columns...))
 	if err != nil {
-		return 0, errors.Wrap(err, "failed to prepare copy in")
+		return 0, fmt.Errorf("failed to prepare copy in: %w", err)
 	}
 
 	defer func() {
@@ -200,7 +199,7 @@ func (d *pgDumper) insertIntoTable(txn *sql.Tx, tableName string, rowChan <-chan
 		// Insert
 		_, err := stmt.Exec(rowValues...)
 		if err != nil {
-			return 0, errors.Wrap(err, "failed to copy in row")
+			return 0, fmt.Errorf("failed to copy in row: %w", err)
 		}
 
 		inserted++
@@ -208,7 +207,7 @@ func (d *pgDumper) insertIntoTable(txn *sql.Tx, tableName string, rowChan <-chan
 
 	logger.Debug("executing copy in")
 	if _, err := stmt.Exec(); err != nil {
-		return 0, errors.Wrap(err, "failed to exec copy in")
+		return 0, fmt.Errorf("failed to exec copy in: %w", err)
 	}
 
 	return inserted, nil

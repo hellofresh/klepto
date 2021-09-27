@@ -1,9 +1,9 @@
 package engine
 
 import (
+	"fmt"
 	"sync"
 
-	wErrors "github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/hellofresh/klepto/pkg/config"
@@ -59,11 +59,11 @@ func (e *Engine) readAndDumpStructure() error {
 	log.Debug("dumping structure...")
 	sql, err := e.reader.GetStructure()
 	if err != nil {
-		return wErrors.Wrap(err, "failed to get structure")
+		return fmt.Errorf("failed to get structure: %w", err)
 	}
 
 	if err := e.DumpStructure(sql); err != nil {
-		return wErrors.Wrap(err, "failed to dump structure")
+		return fmt.Errorf("failed to dump structure: %w", err)
 	}
 
 	log.Debug("structure was dumped")
@@ -73,13 +73,13 @@ func (e *Engine) readAndDumpStructure() error {
 func (e *Engine) readAndDumpTables(done chan<- struct{}, cfgTables config.Tables, concurrency int) error {
 	tables, err := e.reader.GetTables()
 	if err != nil {
-		return wErrors.Wrap(err, "failed to read and dump tables")
+		return fmt.Errorf("failed to read and dump tables: %w", err)
 	}
 
 	// Trigger pre dump tables
 	if adv, ok := e.Dumper.(Hooker); ok {
 		if err := adv.PreDumpTables(tables); err != nil {
-			return wErrors.Wrap(err, "failed to execute pre dump tables")
+			return fmt.Errorf("failed to execute pre dump tables: %w", err)
 		}
 	}
 

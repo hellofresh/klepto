@@ -8,7 +8,6 @@ import (
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
-	wErrors "github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/hellofresh/klepto/pkg/database"
@@ -89,7 +88,7 @@ func (e *Engine) ReadTable(tableName string, rowChan chan<- database.Row, opts r
 	if len(opts.Columns) == 0 {
 		columns, err := e.GetColumns(tableName)
 		if err != nil {
-			return wErrors.Wrap(err, "failed to get columns")
+			return fmt.Errorf("failed to get columns: %w", err)
 		}
 		opts.Columns = e.formatColumns(tableName, columns)
 	}
@@ -100,7 +99,7 @@ func (e *Engine) ReadTable(tableName string, rowChan chan<- database.Row, opts r
 	)
 	query, err = e.buildQuery(tableName, opts)
 	if err != nil {
-		return wErrors.Wrapf(err, "failed to build query for %s", tableName)
+		return fmt.Errorf("failed to build query for %s: %w", tableName, err)
 	}
 
 	var rows *sql.Rows
@@ -116,7 +115,7 @@ func (e *Engine) ReadTable(tableName string, rowChan chan<- database.Row, opts r
 
 	select {
 	case <-ctx.Done():
-		return wErrors.Wrapf(ctx.Err(), fmt.Sprintf("timeout during read %s table", tableName))
+		return fmt.Errorf("timeout during read %s table: %w", tableName, ctx.Err())
 	case err := <-errChan:
 		if err != nil {
 			querySQL, queryParams, _ := query.ToSql()
@@ -125,7 +124,7 @@ func (e *Engine) ReadTable(tableName string, rowChan chan<- database.Row, opts r
 					"query":  querySQL,
 					"params": queryParams,
 				}).Warn("failed to query rows")
-			return wErrors.Wrap(err, "failed to query rows")
+			return fmt.Errorf("failed to query rows: %w", err)
 		}
 		break
 	}
@@ -181,7 +180,7 @@ func (e *Engine) publishRows(rows *sql.Rows, rowChan chan<- database.Row, tableN
 
 	columnTypes, err := rows.ColumnTypes()
 	if err != nil {
-		return wErrors.Wrap(err, "failed to get column types")
+		return fmt.Errorf("failed to get column types: %w", err)
 	}
 
 	columnCount := len(columnTypes)

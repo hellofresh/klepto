@@ -1,0 +1,16 @@
+site_name: 'Klepto'
+site_description: 'Klepto User Guide'
+
+plugins:
+  - techdocs-core
+
+markdown_extensions:
+  - attr_list
+
+nav:
+  - Home: index.md
+  - Installation: installation.md
+  - Usage: 
+    - Configuration: usage/config.md
+    - Commands: usage/commands.md
+  - Contributing: contribute.md

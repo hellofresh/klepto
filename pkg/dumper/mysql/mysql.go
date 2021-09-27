@@ -2,11 +2,11 @@ package mysql
 
 import (
 	"database/sql"
+	"fmt"
 
 	"github.com/go-sql-driver/mysql"
 	"github.com/hellofresh/klepto/pkg/dumper"
 	"github.com/hellofresh/klepto/pkg/reader"
-	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -26,7 +26,7 @@ func (m *driver) IsSupported(dsn string) bool {
 func (m *driver) NewConnection(opts dumper.ConnOpts, rdr reader.Reader) (dumper.Dumper, error) {
 	dsnCfg, err := mysql.ParseDSN(opts.DSN)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to parse mysql dsn")
+		return nil, fmt.Errorf("failed to parse mysql dsn: %w", err)
 	}
 
 	if !dsnCfg.MultiStatements {
@@ -37,7 +37,7 @@ func (m *driver) NewConnection(opts dumper.ConnOpts, rdr reader.Reader) (dumper.
 
 	conn, err := sql.Open("mysql", dsnCfg.FormatDSN())
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to open mysql connection")
+		return nil, fmt.Errorf("failed to open mysql connection: %w", err)
 	}
 
 	conn.SetMaxOpenConns(opts.MaxConns)

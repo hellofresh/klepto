@@ -1,10 +1,10 @@
 package cmd
 
 import (
+	"fmt"
 	"runtime"
 	"time"
 
-	wErrors "github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 
@@ -90,7 +90,7 @@ func RunSteal(opts *StealOptions) (err error) {
 		MaxIdleConns:    opts.readOpts.maxIdleConns,
 	})
 	if err != nil {
-		return wErrors.Wrap(err, "Could not connecting to reader")
+		return fmt.Errorf("could not connecting to reader: %w", err)
 	}
 	defer func() {
 		if err := source.Close(); err != nil {
@@ -108,7 +108,7 @@ func RunSteal(opts *StealOptions) (err error) {
 		MaxIdleConns:    opts.writeOpts.maxIdleConns,
 	}, source)
 	if err != nil {
-		return wErrors.Wrap(err, "Error creating dumper")
+		return fmt.Errorf("error creating dumper: %w", err)
 	}
 	defer func() {
 		if err := target.Close(); err != nil {
@@ -123,7 +123,7 @@ func RunSteal(opts *StealOptions) (err error) {
 
 	start := time.Now()
 	if err := target.Dump(done, opts.cfgTables, opts.concurrency); err != nil {
-		return wErrors.Wrap(err, "Error while dumping")
+		return fmt.Errorf("error while dumping: %w", err)
 	}
 
 	<-done

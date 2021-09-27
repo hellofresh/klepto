@@ -9,7 +9,6 @@ import (
 
 	"github.com/hellofresh/klepto/pkg/reader"
 	"github.com/hellofresh/klepto/pkg/reader/engine"
-	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -119,7 +118,7 @@ func (s *storage) QuoteIdentifier(name string) string {
 func (s *storage) Close() error {
 	err := s.conn.Close()
 	if err != nil {
-		return errors.Wrap(err, "failed to close mysql reader database connection")
+		return fmt.Errorf("failed to close mysql reader database connection: %w", err)
 	}
 	return nil
 }

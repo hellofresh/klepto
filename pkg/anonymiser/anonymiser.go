@@ -11,7 +11,6 @@ import (
 	"github.com/hellofresh/klepto/pkg/config"
 	"github.com/hellofresh/klepto/pkg/database"
 	"github.com/hellofresh/klepto/pkg/reader"
-	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -109,7 +108,7 @@ func (a *anonymiser) ReadTable(tableName string, rowChan chan<- database.Row, op
 	}(rowChan, rawChan, table)
 
 	if err := a.Reader.ReadTable(tableName, rawChan, opts); err != nil {
-		return errors.Wrap(err, "anonymiser: error while reading table")
+		return fmt.Errorf("anonymiser: error while reading table: %w", err)
 	}
 
 	return nil

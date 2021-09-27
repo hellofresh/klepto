@@ -1,6 +1,7 @@
 package query
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"strconv"
@@ -8,7 +9,6 @@ import (
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
-	wErrors "github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/hellofresh/klepto/pkg/config"
@@ -36,15 +36,15 @@ func NewDumper(output io.Writer, rdr reader.Reader) dumper.Dumper {
 func (d *textDumper) Dump(done chan<- struct{}, cfgTables config.Tables, concurrency int) error {
 	tables, err := d.reader.GetTables()
 	if err != nil {
-		return wErrors.Wrap(err, "failed to get tables")
+		return fmt.Errorf("failed to get tables: %w", err)
 	}
 
 	structure, err := d.reader.GetStructure()
 	if err != nil {
-		return wErrors.Wrap(err, "could not get database structure")
+		return fmt.Errorf("could not get database structure: %w", err)
 	}
 	if _, err := io.WriteString(d.output, structure); err != nil {
-		return wErrors.Wrap(err, "could not write structure to output")
+		return fmt.Errorf("could not write structure to output: %w", err)
 	}
 
 	var wg sync.WaitGroup
@@ -109,12 +109,12 @@ func (d *textDumper) Close() error {
 	closer, ok := d.output.(io.WriteCloser)
 	if ok {
 		if err := closer.Close(); err != nil {
-			return wErrors.Wrap(err, "failed to close output stream")
+			return fmt.Errorf("failed to close output stream: %w", err)
 		}
 		return nil
 	}
 
-	return wErrors.New("unable to close output: wrong closer type")
+	return errors.New("unable to close output: wrong closer type")
 }
 
 func (d *textDumper) toSQLColumnMap(row database.Row) (map[string]interface{}, error) {
@@ -168,7 +168,7 @@ func (d *textDumper) toSQLStringValue(src interface{}) (string, error) {
 		}
 		return d.toSQLStringValue(*(src.(*interface{})))
 	default:
-		return "", wErrors.New("could not parse type")
+		return "", errors.New("could not parse type")
 	}
 
 	return "", nil

@@ -21,7 +21,7 @@ Available Commands:
   help        Help about any command
   init        Create a fresh config file
   steal       Steals and anonymises databases
-  update      Check for new versions of kepto
+  update      Check for new versions of klepto
 
 Flags:
   -h, --help      help for klepto

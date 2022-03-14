@@ -34,7 +34,7 @@ func NewUpdateCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "update",
 		Aliases: []string{"self-update"},
-		Short:   "Check for new versions of kepto",
+		Short:   "Check for new versions of klepto",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return RunUpdate(cmd.Context(), opts)
 		},

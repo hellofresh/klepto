@@ -33,6 +33,7 @@ type (
 		concurrency int
 		readOpts    connOpts
 		writeOpts   connOpts
+		dataOnly    bool
 	}
 	connOpts struct {
 		timeout         time.Duration
@@ -76,6 +77,7 @@ func NewStealCmd() *cobra.Command {
 	persistentFlags.DurationVar(&opts.writeOpts.maxConnLifetime, "write-conn-lifetime", 0, "Sets the maximum amount of time a connection may be reused on the write database")
 	persistentFlags.IntVar(&opts.writeOpts.maxConns, "write-max-conns", 5, "Sets the maximum number of open connections to the write database")
 	persistentFlags.IntVar(&opts.writeOpts.maxIdleConns, "write-max-idle-conns", 0, "Sets the maximum number of connections in the idle connection pool for the write database")
+	persistentFlags.BoolVar(&opts.dataOnly, "data-only", false, "Only steal data; requires that the target database structure already exists")
 
 	return cmd
 }
@@ -122,7 +124,7 @@ func RunSteal(opts *StealOptions) (err error) {
 	defer close(done)
 
 	start := time.Now()
-	if err := target.Dump(done, opts.cfgTables, opts.concurrency); err != nil {
+	if err := target.Dump(done, opts.cfgTables, opts.concurrency, opts.dataOnly); err != nil {
 		return fmt.Errorf("error while dumping: %w", err)
 	}
 

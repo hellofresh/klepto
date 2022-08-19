@@ -100,27 +100,31 @@ func (e *Engine) readAndDumpTables(done chan<- struct{}, cfgTables config.Tables
 			}
 
 			opts = reader.NewReadTableOpt(tableConfig)
+		} else {
+			opts = reader.NewBlankReadTableOpt()
 		}
 
-		// Create read/write chanel
-		rowChan := make(chan database.Row)
-		semChan <- struct{}{}
-		wg.Add(1)
+		for i, subset := range opts.Subsets {
+			// Create read/write chanel
+			rowChan := make(chan database.Row)
+			semChan <- struct{}{}
+			wg.Add(1)
 
-		go func(tableName string, rowChan <-chan database.Row, logger *log.Entry) {
-			defer wg.Done()
-			defer func(semChan <-chan struct{}) { <-semChan }(semChan)
+			go func(tableName string, rowChan <-chan database.Row, logger *log.Entry) {
+				defer wg.Done()
+				defer func(semChan <-chan struct{}) { <-semChan }(semChan)
 
-			if err := e.DumpTable(tableName, rowChan); err != nil {
-				logger.WithError(err).Error("Failed to dump table")
-			}
-		}(tbl, rowChan, logger)
+				if err := e.DumpTable(tableName, rowChan); err != nil {
+					logger.WithError(err).Error("Failed to dump table")
+				}
+			}(tbl, rowChan, logger)
 
-		go func(tableName string, opts reader.ReadTableOpt, rowChan chan<- database.Row, logger *log.Entry) {
-			if err := e.reader.ReadTable(tableName, rowChan, opts); err != nil {
-				logger.WithError(err).Error("Failed to read table")
-			}
-		}(tbl, opts, rowChan, logger)
+			go func(tableName string, subsetIndex int, subsetName string, opts reader.ReadTableOpt, rowChan chan<- database.Row, logger *log.Entry) {
+				if err := e.reader.ReadSubset(tableName, subsetIndex, rowChan, opts); err != nil {
+					logger.WithError(err).Error(fmt.Sprintf("Failed to read '%s' subset of table '%s'", subsetName, tableName))
+				}
+			}(tbl, i, subset.Name, opts, rowChan, logger)
+		}
 	}
 
 	go func() {

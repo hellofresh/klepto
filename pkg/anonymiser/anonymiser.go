@@ -44,25 +44,36 @@ func NewAnonymiser(source reader.Reader, tables config.Tables) reader.Reader {
 	return &anonymiser{source, tables}
 }
 
-// ReadTable decorates reader.ReadTable method for anonymising rows published from the reader.Reader
-func (a *anonymiser) ReadTable(tableName string, rowChan chan<- database.Row, opts reader.ReadTableOpt) error {
-	logger := log.WithField("table", tableName)
+// ReadSubset decorates reader.ReadSubset method for anonymising rows published from the reader.Reader
+func (a *anonymiser) ReadSubset(tableName string, subsetIndex int, rowChan chan<- database.Row, opts reader.ReadTableOpt) error {
+	var logger = log.WithFields(log.Fields{"table": tableName, "subsetIndex": subsetIndex})
 	logger.Debug("Loading anonymiser config")
+
 	table := a.tables.FindByName(tableName)
-	if table == nil {
-		logger.Debug("the table is not configured to be anonymised")
-		return a.Reader.ReadTable(tableName, rowChan, opts)
+	var subset *config.Subset
+
+	if table != nil {
+		if subsetIndex < len(table.Subsets) {
+			subset = table.Subsets[subsetIndex]
+		}
 	}
 
-	if len(table.Anonymise) == 0 {
+	if table == nil || subset == nil {
+		logger.Debug("the table is not configured to be anonymised")
+		return a.Reader.ReadSubset(tableName, subsetIndex, rowChan, opts)
+	}
+
+	logger = log.WithFields(log.Fields{"table": tableName, "subset": subset.Name})
+
+	if len(subset.Anonymise) == 0 {
 		logger.Debug("Skipping anonymiser")
-		return a.Reader.ReadTable(tableName, rowChan, opts)
+		return a.Reader.ReadSubset(tableName, subsetIndex, rowChan, opts)
 	}
 
 	// Create read/write chanel
 	rawChan := make(chan database.Row)
 
-	go func(rowChan chan<- database.Row, rawChan chan database.Row, table *config.Table) {
+	go func(rowChan chan<- database.Row, rawChan chan database.Row, subset *config.Subset) {
 		for {
 			row, more := <-rawChan
 			if !more {
@@ -70,7 +81,7 @@ func (a *anonymiser) ReadTable(tableName string, rowChan chan<- database.Row, op
 				return
 			}
 
-			for column, fakerType := range table.Anonymise {
+			for column, fakerType := range subset.Anonymise {
 				if strings.HasPrefix(fakerType, literalPrefix) {
 					row[column] = strings.TrimPrefix(fakerType, literalPrefix)
 					continue
@@ -105,9 +116,9 @@ func (a *anonymiser) ReadTable(tableName string, rowChan chan<- database.Row, op
 
 			rowChan <- row
 		}
-	}(rowChan, rawChan, table)
+	}(rowChan, rawChan, subset)
 
-	if err := a.Reader.ReadTable(tableName, rawChan, opts); err != nil {
+	if err := a.Reader.ReadSubset(tableName, subsetIndex, rawChan, opts); err != nil {
 		return fmt.Errorf("anonymiser: error while reading table: %w", err)
 	}
 

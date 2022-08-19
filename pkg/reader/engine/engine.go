@@ -78,12 +78,12 @@ func (e *Engine) GetColumns(tableName string) ([]string, error) {
 	return columns.([]string), nil
 }
 
-// ReadTable returns a list of all rows in a table
-func (e *Engine) ReadTable(tableName string, rowChan chan<- database.Row, opts reader.ReadTableOpt) error {
+// ReadSubset returns a list of all rows in a table subset
+func (e *Engine) ReadSubset(tableName string, subsetIndex int, rowChan chan<- database.Row, opts reader.ReadTableOpt) error {
 	defer close(rowChan)
 
-	logger := log.WithField("table", tableName)
-	logger.Debug("reading table data")
+	subset := opts.Subsets[subsetIndex]
+	logger := log.WithFields(log.Fields{"table": tableName, "subset": subset.Name})
 
 	if len(opts.Columns) == 0 {
 		columns, err := e.GetColumns(tableName)
@@ -93,11 +93,12 @@ func (e *Engine) ReadTable(tableName string, rowChan chan<- database.Row, opts r
 		opts.Columns = e.formatColumns(tableName, columns)
 	}
 
+	logger.Debug("reading data")
 	var (
 		query sq.SelectBuilder
 		err   error
 	)
-	query, err = e.buildQuery(tableName, opts)
+	query, err = e.buildQuery(tableName, subsetIndex, opts)
 	if err != nil {
 		return fmt.Errorf("failed to build query for %s: %w", tableName, err)
 	}
@@ -133,11 +134,13 @@ func (e *Engine) ReadTable(tableName string, rowChan chan<- database.Row, opts r
 }
 
 // BuildQuery builds the query that will be used to read the table
-func (e *Engine) buildQuery(tableName string, opts reader.ReadTableOpt) (sq.SelectBuilder, error) {
+func (e *Engine) buildQuery(tableName string, subsetIndex int, opts reader.ReadTableOpt) (sq.SelectBuilder, error) {
 	var query sq.SelectBuilder
 
 	query = sq.Select(opts.Columns...).From(e.QuoteIdentifier(tableName))
-	for _, r := range opts.Relationships {
+	subset := opts.Subsets[subsetIndex]
+
+	for _, r := range subset.Relationships {
 		if r.Table == "" {
 			r.Table = tableName
 		}
@@ -151,16 +154,16 @@ func (e *Engine) buildQuery(tableName string, opts reader.ReadTableOpt) (sq.Sele
 		))
 	}
 
-	if opts.Match != "" {
-		query = query.Where(opts.Match)
+	if subset.Match != "" {
+		query = query.Where(subset.Match)
 	}
 
-	for k, v := range opts.Sorts {
+	for k, v := range subset.Sorts {
 		query = query.OrderBy(fmt.Sprintf("%s %s", k, v))
 	}
 
-	if opts.Limit > 0 {
-		query = query.Limit(opts.Limit)
+	if subset.Limit > 0 {
+		query = query.Limit(subset.Limit)
 	}
 
 	return query, nil

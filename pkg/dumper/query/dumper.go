@@ -91,8 +91,10 @@ func (d *textDumper) Dump(done chan<- struct{}, cfgTables config.Tables, concurr
 			}
 		}(tbl)
 
-		if err := d.reader.ReadTable(tbl, rowChan, opts); err != nil {
-			log.WithError(err).WithField("table", tbl).Error("error while reading table")
+		for subsetIndex, subset := range opts.Subsets {
+			if err := d.reader.ReadSubset(tbl, subsetIndex, rowChan, opts); err != nil {
+				log.WithError(err).Error(fmt.Sprintf("Failed to read '%s' subset of table '%s'", subset.Name, tbl))
+			}
 		}
 	}
 

@@ -42,6 +42,20 @@ type (
 		Anonymise map[string]string
 		// Relationship is an collection of relationship definitions.
 		Relationships []*Relationship
+		// Subsets is a collection of subset definitions.
+		Subsets []*Subset
+	}
+
+	// Subset represents a subset of a table.
+	Subset struct {
+		// Name is the subset name.
+		Name string
+		// Filter represents the way you want to filter the results.
+		Filter Filter
+		// Anonymise anonymises columns.
+		Anonymise map[string]string
+		// Relationship is an collection of relationship definitions.
+		Relationships []*Relationship
 	}
 
 	// Filter represents the way you want to filter the results.
@@ -98,21 +112,37 @@ func LoadFromFile(configPath string) (Tables, error) {
 		return nil, fmt.Errorf("could not unmarshal config file: %w", err)
 	}
 
-	// replace matchers aliases in tables with matchers expressions
 	for i, t := range cfgSpec.Tables {
-		if t.Filter.Match == "" {
-			continue
-		}
+		// If no subsets are defined or if Filter/Anonymise is defined at the
+		// table root, create a _default subset to represent the root level.
 
-		if m, ok := cfgSpec.Matchers[t.Filter.Match]; ok {
-			cfgSpec.Tables[i].Filter.Match = m
-			continue
+		if len(t.Subsets) == 0 || t.Filter.Match != "" || len(t.Anonymise) > 0 {
+			t.Subsets = append(cfgSpec.Tables[i].Subsets, &Subset{
+				Name:          "_default",
+				Filter:        t.Filter,
+				Anonymise:     t.Anonymise,
+				Relationships: t.Relationships,
+			})
 		}
+	}
 
-		// matcher keys can be lower-cased by the parser - check this case as well
-		if m, ok := cfgSpec.Matchers[strings.ToLower(t.Filter.Match)]; ok {
-			cfgSpec.Tables[i].Filter.Match = m
-			continue
+	for ti, t := range cfgSpec.Tables {
+		for si, s := range t.Subsets {
+			// replace matchers aliases in tables with matchers expressions
+			if s.Filter.Match == "" {
+				continue
+			}
+
+			if m, ok := cfgSpec.Matchers[s.Filter.Match]; ok {
+				cfgSpec.Tables[ti].Subsets[si].Filter.Match = m
+				continue
+			}
+
+			// matcher keys can be lower-cased by the parser - check this case as well
+			if m, ok := cfgSpec.Matchers[strings.ToLower(s.Filter.Match)]; ok {
+				cfgSpec.Tables[ti].Subsets[si].Filter.Match = m
+				continue
+			}
 		}
 	}
 

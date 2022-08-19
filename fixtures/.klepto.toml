@@ -4,14 +4,18 @@
 [[Tables]]
   Name = "users"
   IgnoreData = false
-  [Tables.Filter]
-    Match = "users.active = TRUE"
-    Limit = 100
-    [Tables.Filter.Sorts]
-      "user.id" = "asc"
-  [Tables.Anonymise]
-    email = "EmailAddress"
-    firstName = "FirstName"
+
+  [[Tables.Subsets]]
+    Name = "active"
+
+    [Tables.Subsets.Filter]
+      Match = "users.active = TRUE"
+      Limit = 100
+      [Tables.Subsets.Filter.Sorts]
+        "user.id" = "asc"
+    [Tables.Subsets.Anonymise]
+      email = "EmailAddress"
+      firstName = "FirstName"
 
 [[Tables]]
   Name = "orders"
@@ -32,3 +36,34 @@
   [Tables.Filter]
     Match = ""
     Limit = 0
+
+[[Tables]]
+	Name = "vegetables"
+
+[[Tables]]
+  Name = "fruits"
+
+  [Tables.Filter]
+    Match = "fruits.color = 'red'"
+    Limit = 10
+
+  [Tables.Anonymise]
+    name = "FirstName"
+
+[[Tables]]
+  Name = "grains"
+
+  [Tables.Filter]
+    Match = "grains.size = 'large'"
+    Limit = 10
+
+  [Tables.Anonymise]
+    weight = "Digits"
+
+  [[Tables.Subsets]]
+    Name = "starchy"
+
+    [Tables.Subsets.Filter]
+      Match = "grains.starchy = TRUE"
+    [Tables.Subsets.Anonymise]
+      name = "FirstName"

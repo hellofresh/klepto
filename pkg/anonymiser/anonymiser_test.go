@@ -15,7 +15,7 @@ import (
 
 const waitTimeout = time.Second
 
-func TestReadTable(t *testing.T) {
+func TestReadSubset(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -28,55 +28,135 @@ func TestReadTable(t *testing.T) {
 			scenario: "when anonymiser is not initialized",
 			function: testWhenAnonymiserIsNotInitialized,
 			opts:     reader.ReadTableOpt{},
-			config:   config.Tables{{Name: "test"}},
+			config: config.Tables{
+				{
+					Name:    "test",
+					Subsets: []*config.Subset{{Name: "_deafult"}},
+				},
+			},
 		},
 		{
 			scenario: "when table is not set in the config",
 			function: testWhenTableIsNotSetInConfig,
 			opts:     reader.ReadTableOpt{},
-			config:   config.Tables{{Name: "test"}},
+			config: config.Tables{
+				{
+					Name:    "test",
+					Subsets: []*config.Subset{{Name: "_deafult"}},
+				},
+			},
 		},
 		{
 			scenario: "when column is anonymised",
 			function: testWhenColumnIsAnonymised,
 			opts:     reader.ReadTableOpt{},
-			config:   config.Tables{{Name: "test", Anonymise: map[string]string{"column_test": "FirstName"}}},
+			config: config.Tables{
+				{
+					Name: "test",
+					Subsets: []*config.Subset{
+						{
+							Name:      "_deafult",
+							Anonymise: map[string]string{"column_test": "FirstName"},
+						},
+					},
+				},
+			},
 		},
 		{
 			scenario: "when column is anonymised with literal",
 			function: testWhenColumnIsAnonymisedWithLiteral,
 			opts:     reader.ReadTableOpt{},
-			config:   config.Tables{{Name: "test", Anonymise: map[string]string{"column_test": "literal:Hello"}}},
+			config: config.Tables{
+				{
+					Name: "test",
+					Subsets: []*config.Subset{
+						{
+							Name:      "_deafult",
+							Anonymise: map[string]string{"column_test": "literal:Hello"},
+						},
+					},
+				},
+			},
 		},
 		{
 			scenario: "when column anonymiser in invalid",
 			function: testWhenColumnAnonymiserIsInvalid,
 			opts:     reader.ReadTableOpt{},
-			config:   config.Tables{{Name: "test", Anonymise: map[string]string{"column_test": "Hello"}}},
+			config: config.Tables{
+				{
+					Name: "test",
+					Subsets: []*config.Subset{
+						{
+							Name:      "_deafult",
+							Anonymise: map[string]string{"column_test": "Hello"},
+						},
+					},
+				},
+			},
 		},
 		{
 			scenario: "when column anonymiser require args",
 			function: testWhenColumnAnonymiserRequireArgs,
 			opts:     reader.ReadTableOpt{},
-			config:   config.Tables{{Name: "test", Anonymise: map[string]string{"column_test": "DigitsN:20"}}},
+			config: config.Tables{
+				{
+					Name: "test",
+					Subsets: []*config.Subset{
+						{
+							Name:      "_deafult",
+							Anonymise: map[string]string{"column_test": "DigitsN:20"},
+						},
+					},
+				},
+			},
 		},
 		{
 			scenario: "when column anonymiser require multiple args",
 			function: testWhenColumnAnonymiserRequireMultipleArgs,
 			opts:     reader.ReadTableOpt{},
-			config:   config.Tables{{Name: "test", Anonymise: map[string]string{"column_test": "Year:2020:2021"}}},
+			config: config.Tables{
+				{
+					Name: "test",
+					Subsets: []*config.Subset{
+						{
+							Name:      "_deafult",
+							Anonymise: map[string]string{"column_test": "Year:2020:2021"},
+						},
+					},
+				},
+			},
 		},
 		{
 			scenario: "when column anonymiser require args but no values are passed",
 			function: testWhenColumnAnonymiserRequireArgsNoValues,
 			opts:     reader.ReadTableOpt{},
-			config:   config.Tables{{Name: "test", Anonymise: map[string]string{"column_test": "CreditCardNum"}}},
+			config: config.Tables{
+				{
+					Name: "test",
+					Subsets: []*config.Subset{
+						{
+							Name:      "_deafult",
+							Anonymise: map[string]string{"column_test": "CreditCardNum"},
+						},
+					},
+				},
+			},
 		},
 		{
 			scenario: "when column anonymiser require args but the value passed is invalid",
 			function: testWhenColumnAnonymiserRequireArgsInvalidValues,
 			opts:     reader.ReadTableOpt{},
-			config:   config.Tables{{Name: "test", Anonymise: map[string]string{"column_test1": "CharactersN:invalid", "column_test2": "Password:1:2:yes"}}},
+			config: config.Tables{
+				{
+					Name: "test",
+					Subsets: []*config.Subset{
+						{
+							Name:      "_deafult",
+							Anonymise: map[string]string{"column_test1": "CharactersN:invalid", "column_test2": "Password:1:2:yes"},
+						},
+					},
+				},
+			},
 		},
 	}
 
@@ -93,7 +173,7 @@ func testWhenAnonymiserIsNotInitialized(t *testing.T, opts reader.ReadTableOpt, 
 	rowChan := make(chan database.Row, 1)
 	defer close(rowChan)
 
-	err := anonymiser.ReadTable("test", rowChan, opts)
+	err := anonymiser.ReadSubset("test", 0, rowChan, opts)
 	require.NoError(t, err)
 }
 
@@ -103,7 +183,7 @@ func testWhenTableIsNotSetInConfig(t *testing.T, opts reader.ReadTableOpt, table
 	rowChan := make(chan database.Row, 1)
 	defer close(rowChan)
 
-	err := anonymiser.ReadTable("other_table", rowChan, opts)
+	err := anonymiser.ReadSubset("other_table", 0, rowChan, opts)
 	require.NoError(t, err)
 }
 
@@ -113,7 +193,7 @@ func testWhenColumnIsAnonymised(t *testing.T, opts reader.ReadTableOpt, tables c
 	rowChan := make(chan database.Row)
 	defer close(rowChan)
 
-	err := anonymiser.ReadTable("test", rowChan, opts)
+	err := anonymiser.ReadSubset("test", 0, rowChan, opts)
 	require.NoError(t, err)
 
 	timeoutChan := time.After(waitTimeout)
@@ -131,7 +211,7 @@ func testWhenColumnIsAnonymisedWithLiteral(t *testing.T, opts reader.ReadTableOp
 	rowChan := make(chan database.Row)
 	defer close(rowChan)
 
-	err := anonymiser.ReadTable("test", rowChan, opts)
+	err := anonymiser.ReadSubset("test", 0, rowChan, opts)
 	require.NoError(t, err)
 
 	timeoutChan := time.After(waitTimeout)
@@ -149,7 +229,7 @@ func testWhenColumnAnonymiserIsInvalid(t *testing.T, opts reader.ReadTableOpt, t
 	rowChan := make(chan database.Row)
 	defer close(rowChan)
 
-	err := anonymiser.ReadTable("test", rowChan, opts)
+	err := anonymiser.ReadSubset("test", 0, rowChan, opts)
 	require.NoError(t, err)
 
 	timeoutChan := time.After(waitTimeout)
@@ -167,7 +247,7 @@ func testWhenColumnAnonymiserRequireArgs(t *testing.T, opts reader.ReadTableOpt,
 	rowChan := make(chan database.Row)
 	defer close(rowChan)
 
-	err := anonymiser.ReadTable("test", rowChan, opts)
+	err := anonymiser.ReadSubset("test", 0, rowChan, opts)
 	require.NoError(t, err)
 
 	timeoutChan := time.After(waitTimeout)
@@ -186,7 +266,7 @@ func testWhenColumnAnonymiserRequireMultipleArgs(t *testing.T, opts reader.ReadT
 	rowChan := make(chan database.Row)
 	defer close(rowChan)
 
-	err := anonymiser.ReadTable("test", rowChan, opts)
+	err := anonymiser.ReadSubset("test", 0, rowChan, opts)
 	require.NoError(t, err)
 
 	timeoutChan := time.After(waitTimeout)
@@ -204,7 +284,7 @@ func testWhenColumnAnonymiserRequireArgsNoValues(t *testing.T, opts reader.ReadT
 	rowChan := make(chan database.Row)
 	defer close(rowChan)
 
-	err := anonymiser.ReadTable("test", rowChan, opts)
+	err := anonymiser.ReadSubset("test", 0, rowChan, opts)
 	require.NoError(t, err)
 
 	timeoutChan := time.After(waitTimeout)
@@ -222,7 +302,7 @@ func testWhenColumnAnonymiserRequireArgsInvalidValues(t *testing.T, opts reader.
 	rowChan := make(chan database.Row)
 	defer close(rowChan)
 
-	err := anonymiser.ReadTable("test", rowChan, opts)
+	err := anonymiser.ReadSubset("test", 0, rowChan, opts)
 	require.NoError(t, err)
 
 	timeoutChan := time.After(waitTimeout)
@@ -245,7 +325,7 @@ func (m *mockReader) Close() error                        { return nil }
 func (m *mockReader) FormatColumn(tbl string, col string) string {
 	return fmt.Sprintf("%s.%s", strconv.Quote(tbl), strconv.Quote(col))
 }
-func (m *mockReader) ReadTable(tableName string, rowChan chan<- database.Row, opts reader.ReadTableOpt) error {
+func (m *mockReader) ReadSubset(tableName string, subsetIndex int, rowChan chan<- database.Row, opts reader.ReadTableOpt) error {
 	row := make(database.Row)
 	row["column_test"] = "to_be_anonimised"
 	rowChan <- row

@@ -27,8 +27,8 @@ type (
 		GetColumns(string) ([]string, error)
 		// FormatColumn returns a escaped table.column string
 		FormatColumn(tableName string, columnName string) string
-		// ReadTable returns a channel with all database rows
-		ReadTable(string, chan<- database.Row, ReadTableOpt) error
+		// ReadSubset returns a channel with all database rows
+		ReadSubset(string, int, chan<- database.Row, ReadTableOpt) error
 		// Close closes the reader resources and releases them.
 		Close() error
 	}
@@ -37,14 +37,8 @@ type (
 	ReadTableOpt struct {
 		// Columns contains the (quoted) column of the table
 		Columns []string
-		// Match is a condition field to dump only certain amount data
-		Match string
-		// Sort the results
-		Sorts map[string]string
-		// Limit defines a limit of results to be fetched
-		Limit uint64
-		// Relationships defines an slice of relationship definitions
-		Relationships []*RelationshipOpt
+		// Subsets contains the subsets of the table
+		Subsets []*SubsetOpt
 	}
 
 	// RelationshipOpt represents the relationships options
@@ -57,6 +51,19 @@ type (
 		ReferencedTable string
 		// ReferencedKey is the referenced table primary key name.
 		ReferencedKey string
+	}
+
+	// SubsetOpt represents the subset options
+	SubsetOpt struct {
+		Name string
+		// Match is a condition field to dump only certain amount data
+		Match string
+		// Sort the results
+		Sorts map[string]string
+		// Limit defines a limit of results to be fetched
+		Limit uint64
+		// Relationships defines an slice of relationship definitions
+		Relationships []*RelationshipOpt
 	}
 
 	// ConnOpts are the options to create a connection
@@ -76,23 +83,36 @@ type (
 
 // NewReadTableOpt builds read table options from table config
 func NewReadTableOpt(tableCfg *config.Table) ReadTableOpt {
-	rOpts := make([]*RelationshipOpt, len(tableCfg.Relationships))
+	sOpts := make([]*SubsetOpt, len(tableCfg.Subsets))
 
-	for i, r := range tableCfg.Relationships {
-		rOpts[i] = &RelationshipOpt{
-			Table:           r.Table,
-			ReferencedTable: r.ReferencedTable,
-			ReferencedKey:   r.ReferencedKey,
-			ForeignKey:      r.ForeignKey,
+	for i, s := range tableCfg.Subsets {
+		rOpts := make([]*RelationshipOpt, len(s.Relationships))
+
+		for i, r := range s.Relationships {
+			rOpts[i] = &RelationshipOpt{
+				Table:           r.Table,
+				ReferencedTable: r.ReferencedTable,
+				ReferencedKey:   r.ReferencedKey,
+				ForeignKey:      r.ForeignKey,
+			}
+		}
+
+		sOpts[i] = &SubsetOpt{
+			Name:          s.Name,
+			Match:         s.Filter.Match,
+			Sorts:         s.Filter.Sorts,
+			Limit:         s.Filter.Limit,
+			Relationships: rOpts,
 		}
 	}
 
 	return ReadTableOpt{
-		Match:         tableCfg.Filter.Match,
-		Sorts:         tableCfg.Filter.Sorts,
-		Limit:         tableCfg.Filter.Limit,
-		Relationships: rOpts,
+		Subsets: sOpts,
 	}
+}
+
+func NewBlankReadTableOpt() ReadTableOpt {
+	return ReadTableOpt{Subsets: []*SubsetOpt{{Name: "_default"}}}
 }
 
 // Connect acts as factory method that returns a reader from a DSN

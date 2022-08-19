@@ -19,11 +19,17 @@ You can set a number of keys in the configuration file. Below is a list of all c
   - `Anonymise` - Indicates which columns to anonymise.
   - `Relationships` - Represents a relationship between the table and referenced table.
     - `Table` - The table name.
-    - `ForeignKey` - The table's foreign key. 
+    - `ForeignKey` - The table's foreign key.
     - `ReferencedTable` - The referenced table name.
     - `ReferencedKey` - The referenced table primary key.
+  - `Subsets` - Allows extracting multple sets of data from the same table.
+    - `Name` - The subset name
+    - `Filter` - A Klepto definition to filter results, see _Filter_ above. 
+    - `Anonymise` - A Klepto definition to anonymise results, see _Anonymise_ above.
+    - `Relationships` - Represents a relationship between the table and referenced table, see _Relationships_ above.
 
-### **IgnoreData**
+
+### IgnoreData
 
 You can dump the database structure without importing data by setting the `IgnoreData` value to `true`.
 
@@ -33,7 +39,7 @@ You can dump the database structure without importing data by setting the `Ignor
  IgnoreData = true
 ```
 
-### **Matchers**
+### Matchers
 
 Matchers are variables to store filter data. You can declare a filter once and reuse it among tables:
 
@@ -56,7 +62,7 @@ Matchers are variables to store filter data. You can declare a filter once and r
     Match = "Latest100Users"
 ```
 
-### **Anonymise**
+### Anonymise
 
 You can anonymise specific columns in your table using the `Anonymise` key. Anonymisation is performed by running a Faker against the specified column.
 
@@ -92,7 +98,7 @@ go get github.com/ungerik/pkgreflect
 fake master pkgreflect -notypes -novars -norecurs vendor/github.com/icrowley/fake/
 ```
 
-### **Relationships**
+### Relationships
 
 The `Relationships` key represents a relationship between the table and referenced table.
 
@@ -118,6 +124,47 @@ To dump the latest 100 users with their orders:
     [Tables.Filter.Sorts]
       created_at = "desc"
 ```
+
+### Subsets
+
+Using `Subsets`, you can extract multiple sets of data from a single table.
+
+The same `Filter`, `Anonymise`, and `Relationships` blocks available at the root level can be nested within a subset.
+
+In order to avoid primary key conflicts on insert, it's important to write subset queries so that each record will only fall into a single subset. In the following example, we exclude admin users from the `RecentUsers` subset to avoid conflicts.
+
+To extract the last 100 anonymised users, plus unmodified admin users:
+
+```toml
+[[Tables]]
+  Name = "users"
+
+  [[Tables.Subsets]]
+    Name = "RecentUsers"
+
+    [Tables.Subsets.Filter]
+      Match = "users.admin = false"
+      Limit = 100
+      [Tables.Subsets.Filter.Sorts]
+        created_at = "desc"
+
+    [Tables.Subsets.Anonymise]
+      name = "FullName"
+      email = "EmailAddress"
+
+  [[Tables.Subsets]]
+    Name = "Admins"
+
+    [Tables.Subsets.Filter]
+      Match = "users.admin = true"
+
+    [[Tables.Subsets.Relationships]]
+      ForeignKey = "business_id"
+      ReferencedTable = "businesses"
+      ReferencedKey = "id"
+```
+
+---
 
 !!! info "Tip"
     You can find some [configuration examples](https://github.com/hellofresh/klepto/tree/master/examples) in Klepto's repository.

@@ -19,6 +19,8 @@ const (
 	literalPrefix = "literal:"
 	email         = "EmailAddress"
 	username      = "UserName"
+	latitude      = "Latitude"
+	longitude     = "Longitude"
 )
 
 var requireArgs = map[string]bool{
@@ -97,6 +99,8 @@ func (a *anonymiser) ReadTable(tableName string, rowChan chan<- database.Row, op
 						faker.Call([]reflect.Value{})[0].String(),
 						hex.EncodeToString(b),
 					)
+				case latitude, longitude:
+					value = fmt.Sprintf("%f", faker.Call(args)[0].Float())
 				default:
 					value = faker.Call(args)[0].String()
 				}

@@ -47,9 +47,11 @@ func New(rdr reader.Reader, dumper Dumper) dumper.Dumper {
 }
 
 // Dump executes the dump process.
-func (e *Engine) Dump(done chan<- struct{}, cfgTables config.Tables, concurrency int) error {
-	if err := e.readAndDumpStructure(); err != nil {
-		return err
+func (e *Engine) Dump(done chan<- struct{}, cfgTables config.Tables, concurrency int, dataOnly bool) error {
+	if !dataOnly {
+		if err := e.readAndDumpStructure(); err != nil {
+			return err
+		}
 	}
 
 	return e.readAndDumpTables(done, cfgTables, concurrency)

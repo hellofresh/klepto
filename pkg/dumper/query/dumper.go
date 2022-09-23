@@ -33,18 +33,20 @@ func NewDumper(output io.Writer, rdr reader.Reader) dumper.Dumper {
 }
 
 // Dump executes the dump stream process.
-func (d *textDumper) Dump(done chan<- struct{}, cfgTables config.Tables, concurrency int) error {
+func (d *textDumper) Dump(done chan<- struct{}, cfgTables config.Tables, concurrency int, dataOnly bool) error {
 	tables, err := d.reader.GetTables()
 	if err != nil {
 		return fmt.Errorf("failed to get tables: %w", err)
 	}
 
-	structure, err := d.reader.GetStructure()
-	if err != nil {
-		return fmt.Errorf("could not get database structure: %w", err)
-	}
-	if _, err := io.WriteString(d.output, structure); err != nil {
-		return fmt.Errorf("could not write structure to output: %w", err)
+	if !dataOnly {
+		structure, err := d.reader.GetStructure()
+		if err != nil {
+			return fmt.Errorf("could not get database structure: %w", err)
+		}
+		if _, err := io.WriteString(d.output, structure); err != nil {
+			return fmt.Errorf("could not write structure to output: %w", err)
+		}
 	}
 
 	var wg sync.WaitGroup

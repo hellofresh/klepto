@@ -79,6 +79,12 @@ func TestReadSubset(t *testing.T) {
 			},
 		},
 		{
+			scenario: "when column is anonymised with float value",
+			function: testWhenColumnIsAnonymisedWithFloatValue,
+			opts:     reader.ReadTableOpt{},
+			config:   config.Tables{{Name: "test", Anonymise: map[string]string{"column_test": "Latitude"}}},
+		},
+		{
 			scenario: "when column anonymiser in invalid",
 			function: testWhenColumnAnonymiserIsInvalid,
 			opts:     reader.ReadTableOpt{},
@@ -218,6 +224,24 @@ func testWhenColumnIsAnonymisedWithLiteral(t *testing.T, opts reader.ReadTableOp
 	select {
 	case row := <-rowChan:
 		assert.Equal(t, "Hello", row["column_test"])
+	case <-timeoutChan:
+		assert.FailNow(t, "Failing due to timeout")
+	}
+}
+
+func testWhenColumnIsAnonymisedWithFloatValue(t *testing.T, opts reader.ReadTableOpt, tables config.Tables) {
+	anonymiser := NewAnonymiser(&mockReader{}, tables)
+
+	rowChan := make(chan database.Row)
+	defer close(rowChan)
+
+	err := anonymiser.ReadTable("test", rowChan, opts)
+	require.NoError(t, err)
+
+	timeoutChan := time.After(waitTimeout)
+	select {
+	case row := <-rowChan:
+		assert.NotEqual(t, "<float32 Value>", row["column_test"])
 	case <-timeoutChan:
 		assert.FailNow(t, "Failing due to timeout")
 	}

@@ -78,6 +78,18 @@ func (t Tables) FindByName(name string) *Table {
 	return nil
 }
 
+// FilterByName find all tables that match given name.
+func (t Tables) FilterByName(name string) Tables {
+	tables := make(Tables, 0, len(t))
+	for _, table := range t {
+		if table.Name == name {
+			tables = append(tables, table)
+		}
+	}
+
+	return tables
+}
+
 // LoadFromFile loads klepto tables config from file
 func LoadFromFile(configPath string) (Tables, error) {
 	if configPath == "" {

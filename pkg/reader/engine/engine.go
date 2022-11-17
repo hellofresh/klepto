@@ -80,11 +80,13 @@ func (e *Engine) GetColumns(tableName string) ([]string, error) {
 }
 
 // ReadTable returns a list of all rows in a table
-func (e *Engine) ReadTable(table config.Table, rowChan chan<- database.Row, opts reader.ReadTableOpt) error {
+func (e *Engine) ReadTable(table config.Table, rowChan chan<- database.Row) error {
 	defer close(rowChan)
 
 	logger := log.WithField("table", table.Name)
 	logger.Debug("reading table data")
+
+	opts := reader.NewReadTableOpt(&table)
 
 	if len(opts.Columns) == 0 {
 		columns, err := e.GetColumns(table.Name)

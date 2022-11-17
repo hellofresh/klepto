@@ -47,13 +47,13 @@ func NewAnonymiser(source reader.Reader) reader.Reader {
 }
 
 // ReadTable decorates reader.ReadTable method for anonymising rows published from the reader.Reader
-func (a *anonymiser) ReadTable(table config.Table, rowChan chan<- database.Row, opts reader.ReadTableOpt) error {
+func (a *anonymiser) ReadTable(table config.Table, rowChan chan<- database.Row) error {
 	logger := log.WithField("table", table.Name)
 	logger.Debug("Loading anonymiser config")
 
 	if len(table.Anonymise) == 0 {
 		logger.Debug("Skipping anonymiser")
-		return a.Reader.ReadTable(table, rowChan, opts)
+		return a.Reader.ReadTable(table, rowChan)
 	}
 
 	// Create read/write chanel
@@ -106,7 +106,7 @@ func (a *anonymiser) ReadTable(table config.Table, rowChan chan<- database.Row, 
 		}
 	}(rowChan, rawChan, &table)
 
-	if err := a.Reader.ReadTable(table, rawChan, opts); err != nil {
+	if err := a.Reader.ReadTable(table, rawChan); err != nil {
 		return fmt.Errorf("anonymiser: error while reading table: %w", err)
 	}
 

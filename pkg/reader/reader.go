@@ -28,7 +28,7 @@ type (
 		// FormatColumn returns a escaped table.column string
 		FormatColumn(tableName string, columnName string) string
 		// ReadTable returns a channel with all database rows
-		ReadTable(config.Table, chan<- database.Row, ReadTableOpt) error
+		ReadTable(config.Table, chan<- database.Row) error
 		// Close closes the reader resources and releases them.
 		Close() error
 	}

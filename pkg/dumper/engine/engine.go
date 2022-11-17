@@ -95,13 +95,10 @@ func (e *Engine) readAndDumpTables(done chan<- struct{}, cfgTables config.Tables
 			tableConfigs = append(tableConfigs, &config.Table{Name: tbl})
 		}
 		for _, tableConfig := range tableConfigs {
-			var opts reader.ReadTableOpt
 			if tableConfig.IgnoreData {
 				logger.Debug("ignoring data to dump")
 				continue
 			}
-
-			opts = reader.NewReadTableOpt(tableConfig)
 
 			// Create read/write chanel
 			rowChan := make(chan database.Row)
@@ -117,11 +114,11 @@ func (e *Engine) readAndDumpTables(done chan<- struct{}, cfgTables config.Tables
 				}
 			}(tbl, rowChan, logger)
 
-			go func(table config.Table, opts reader.ReadTableOpt, rowChan chan<- database.Row, logger *log.Entry) {
-				if err := e.reader.ReadTable(table, rowChan, opts); err != nil {
+			go func(table config.Table, rowChan chan<- database.Row, logger *log.Entry) {
+				if err := e.reader.ReadTable(table, rowChan); err != nil {
 					logger.WithError(err).Error("Failed to read table")
 				}
-			}(*tableConfig, opts, rowChan, logger)
+			}(*tableConfig, rowChan, logger)
 		}
 	}
 

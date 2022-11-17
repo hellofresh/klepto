@@ -11,7 +11,6 @@ import (
 
 	"github.com/hellofresh/klepto/pkg/config"
 	"github.com/hellofresh/klepto/pkg/database"
-	"github.com/hellofresh/klepto/pkg/reader"
 )
 
 const waitTimeout = time.Second
@@ -89,7 +88,7 @@ func testWhenAnonymiserIsNotInitialized(t *testing.T, table config.Table) {
 	rowChan := make(chan database.Row, 1)
 	defer close(rowChan)
 
-	err := anonymiser.ReadTable(config.Table{Name: "test"}, rowChan, reader.ReadTableOpt{})
+	err := anonymiser.ReadTable(config.Table{Name: "test"}, rowChan)
 	require.NoError(t, err)
 }
 
@@ -99,7 +98,7 @@ func testWhenTableIsNotSetInConfig(t *testing.T, table config.Table) {
 	rowChan := make(chan database.Row, 1)
 	defer close(rowChan)
 
-	err := anonymiser.ReadTable(config.Table{Name: "other_table"}, rowChan, reader.ReadTableOpt{})
+	err := anonymiser.ReadTable(config.Table{Name: "other_table"}, rowChan)
 	require.NoError(t, err)
 }
 
@@ -109,7 +108,7 @@ func testWhenColumnIsAnonymised(t *testing.T, table config.Table) {
 	rowChan := make(chan database.Row)
 	defer close(rowChan)
 
-	err := anonymiser.ReadTable(table, rowChan, reader.ReadTableOpt{})
+	err := anonymiser.ReadTable(table, rowChan)
 	require.NoError(t, err)
 
 	timeoutChan := time.After(waitTimeout)
@@ -127,7 +126,7 @@ func testWhenColumnIsAnonymisedWithLiteral(t *testing.T, table config.Table) {
 	rowChan := make(chan database.Row)
 	defer close(rowChan)
 
-	err := anonymiser.ReadTable(table, rowChan, reader.ReadTableOpt{})
+	err := anonymiser.ReadTable(table, rowChan)
 	require.NoError(t, err)
 
 	timeoutChan := time.After(waitTimeout)
@@ -145,7 +144,7 @@ func testWhenColumnIsAnonymisedWithFloatValue(t *testing.T, table config.Table) 
 	rowChan := make(chan database.Row)
 	defer close(rowChan)
 
-	err := anonymiser.ReadTable(table, rowChan, reader.ReadTableOpt{})
+	err := anonymiser.ReadTable(table, rowChan)
 	require.NoError(t, err)
 
 	timeoutChan := time.After(waitTimeout)
@@ -163,7 +162,7 @@ func testWhenColumnAnonymiserIsInvalid(t *testing.T, table config.Table) {
 	rowChan := make(chan database.Row)
 	defer close(rowChan)
 
-	err := anonymiser.ReadTable(table, rowChan, reader.ReadTableOpt{})
+	err := anonymiser.ReadTable(table, rowChan)
 	require.NoError(t, err)
 
 	timeoutChan := time.After(waitTimeout)
@@ -181,7 +180,7 @@ func testWhenColumnAnonymiserRequireArgs(t *testing.T, table config.Table) {
 	rowChan := make(chan database.Row)
 	defer close(rowChan)
 
-	err := anonymiser.ReadTable(table, rowChan, reader.ReadTableOpt{})
+	err := anonymiser.ReadTable(table, rowChan)
 	require.NoError(t, err)
 
 	timeoutChan := time.After(waitTimeout)
@@ -200,7 +199,7 @@ func testWhenColumnAnonymiserRequireMultipleArgs(t *testing.T, table config.Tabl
 	rowChan := make(chan database.Row)
 	defer close(rowChan)
 
-	err := anonymiser.ReadTable(table, rowChan, reader.ReadTableOpt{})
+	err := anonymiser.ReadTable(table, rowChan)
 	require.NoError(t, err)
 
 	timeoutChan := time.After(waitTimeout)
@@ -218,7 +217,7 @@ func testWhenColumnAnonymiserRequireArgsNoValues(t *testing.T, table config.Tabl
 	rowChan := make(chan database.Row)
 	defer close(rowChan)
 
-	err := anonymiser.ReadTable(table, rowChan, reader.ReadTableOpt{})
+	err := anonymiser.ReadTable(table, rowChan)
 	require.NoError(t, err)
 
 	timeoutChan := time.After(waitTimeout)
@@ -236,7 +235,7 @@ func testWhenColumnAnonymiserRequireArgsInvalidValues(t *testing.T, table config
 	rowChan := make(chan database.Row)
 	defer close(rowChan)
 
-	err := anonymiser.ReadTable(table, rowChan, reader.ReadTableOpt{})
+	err := anonymiser.ReadTable(table, rowChan)
 	require.NoError(t, err)
 
 	timeoutChan := time.After(waitTimeout)
@@ -259,7 +258,7 @@ func (m *mockReader) Close() error                        { return nil }
 func (m *mockReader) FormatColumn(tbl string, col string) string {
 	return fmt.Sprintf("%s.%s", strconv.Quote(tbl), strconv.Quote(col))
 }
-func (m *mockReader) ReadTable(table config.Table, rowChan chan<- database.Row, opts reader.ReadTableOpt) error {
+func (m *mockReader) ReadTable(table config.Table, rowChan chan<- database.Row) error {
 	row := make(database.Row)
 	row["column_test"] = "to_be_anonimised"
 	rowChan <- row

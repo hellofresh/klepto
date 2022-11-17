@@ -5,9 +5,10 @@ import (
 	"fmt"
 
 	"github.com/go-sql-driver/mysql"
+	log "github.com/sirupsen/logrus"
+
 	"github.com/hellofresh/klepto/pkg/dumper"
 	"github.com/hellofresh/klepto/pkg/reader"
-	log "github.com/sirupsen/logrus"
 )
 
 type driver struct{}

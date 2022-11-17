@@ -3,7 +3,6 @@ package features
 import (
 	"database/sql"
 	"fmt"
-	"io/ioutil"
 	"net/url"
 	"os"
 	"path"
@@ -11,12 +10,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/suite"
+
 	"github.com/hellofresh/klepto/pkg/config"
 	"github.com/hellofresh/klepto/pkg/dumper"
 	_ "github.com/hellofresh/klepto/pkg/dumper/postgres"
 	"github.com/hellofresh/klepto/pkg/reader"
 	_ "github.com/hellofresh/klepto/pkg/reader/postgres"
-	"github.com/stretchr/testify/suite"
 )
 
 type PostgresTestSuite struct {
@@ -103,12 +103,12 @@ func (s *PostgresTestSuite) dropDatabase(name string) {
 }
 
 func (s *PostgresTestSuite) loadFixture(dsn string, file string) {
-	data, err := ioutil.ReadFile(path.Join("../fixtures/", file))
+	data, err := os.ReadFile(path.Join("../fixtures/", file))
 	s.Require().NoError(err, "Unable to load fixture file")
 
 	conn, err := sql.Open("postgres", dsn)
-	defer conn.Close()
 	s.Require().NoError(err, "Unable to open db connection to load fixture")
+	defer conn.Close()
 
 	_, err = conn.Exec(string(data))
 	s.Require().NoError(err, "Unable to execute fixture")

@@ -53,7 +53,7 @@ const (
     Match = "users.active = TRUE"
     Limit = 100
     [Tables.Filter.Sorts]
-      "user.id" = "asc"
+      "users.id" = "asc"
   [Tables.Anonymise]
     email = "EmailAddress"
     firstName = "FirstName"

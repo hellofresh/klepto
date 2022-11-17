@@ -131,7 +131,7 @@ func WriteSample(w io.Writer) error {
 				Name: "users",
 				Filter: Filter{
 					Match: "users.active = TRUE",
-					Sorts: map[string]string{"user.id": "asc"},
+					Sorts: map[string]string{"users.id": "asc"},
 					Limit: 100,
 				},
 				Anonymise: map[string]string{"firstName": "FirstName", "email": "EmailAddress"},

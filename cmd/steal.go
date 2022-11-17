@@ -100,7 +100,7 @@ func RunSteal(opts *StealOptions) (err error) {
 		}
 	}()
 
-	source = anonymiser.NewAnonymiser(source, opts.cfgTables)
+	source = anonymiser.NewAnonymiser(source)
 	target, err := dumper.NewDumper(dumper.ConnOpts{
 		DSN:             opts.to,
 		IsRDS:           opts.toRDS,

@@ -118,7 +118,7 @@ func (e *Engine) readAndDumpTables(done chan<- struct{}, cfgTables config.Tables
 			}(tbl, rowChan, logger)
 
 			go func(table config.Table, opts reader.ReadTableOpt, rowChan chan<- database.Row, logger *log.Entry) {
-				if err := e.reader.ReadTable(table.Name, rowChan, opts); err != nil {
+				if err := e.reader.ReadTable(table, rowChan, opts); err != nil {
 					logger.WithError(err).Error("Failed to read table")
 				}
 			}(*tableConfig, opts, rowChan, logger)

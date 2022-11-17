@@ -10,6 +10,7 @@ import (
 	sq "github.com/Masterminds/squirrel"
 	log "github.com/sirupsen/logrus"
 
+	"github.com/hellofresh/klepto/pkg/config"
 	"github.com/hellofresh/klepto/pkg/database"
 	"github.com/hellofresh/klepto/pkg/reader"
 )
@@ -79,27 +80,27 @@ func (e *Engine) GetColumns(tableName string) ([]string, error) {
 }
 
 // ReadTable returns a list of all rows in a table
-func (e *Engine) ReadTable(tableName string, rowChan chan<- database.Row, opts reader.ReadTableOpt) error {
+func (e *Engine) ReadTable(table config.Table, rowChan chan<- database.Row, opts reader.ReadTableOpt) error {
 	defer close(rowChan)
 
-	logger := log.WithField("table", tableName)
+	logger := log.WithField("table", table.Name)
 	logger.Debug("reading table data")
 
 	if len(opts.Columns) == 0 {
-		columns, err := e.GetColumns(tableName)
+		columns, err := e.GetColumns(table.Name)
 		if err != nil {
 			return fmt.Errorf("failed to get columns: %w", err)
 		}
-		opts.Columns = e.formatColumns(tableName, columns)
+		opts.Columns = e.formatColumns(table.Name, columns)
 	}
 
 	var (
 		query sq.SelectBuilder
 		err   error
 	)
-	query, err = e.buildQuery(tableName, opts)
+	query, err = e.buildQuery(table.Name, opts)
 	if err != nil {
-		return fmt.Errorf("failed to build query for %s: %w", tableName, err)
+		return fmt.Errorf("failed to build query for %s: %w", table.Name, err)
 	}
 
 	var rows *sql.Rows
@@ -115,7 +116,7 @@ func (e *Engine) ReadTable(tableName string, rowChan chan<- database.Row, opts r
 
 	select {
 	case <-ctx.Done():
-		return fmt.Errorf("timeout during read %s table: %w", tableName, ctx.Err())
+		return fmt.Errorf("timeout during read %s table: %w", table.Name, ctx.Err())
 	case err := <-errChan:
 		if err != nil {
 			querySQL, queryParams, _ := query.ToSql()
@@ -129,7 +130,7 @@ func (e *Engine) ReadTable(tableName string, rowChan chan<- database.Row, opts r
 		break
 	}
 
-	return e.publishRows(rows, rowChan, tableName)
+	return e.publishRows(rows, rowChan, table.Name)
 }
 
 // BuildQuery builds the query that will be used to read the table

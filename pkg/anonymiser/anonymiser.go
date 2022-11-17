@@ -38,28 +38,22 @@ var requireArgs = map[string]bool{
 type (
 	anonymiser struct {
 		reader.Reader
-		tables config.Tables
 	}
 )
 
 // NewAnonymiser returns a new anonymiser reader.
-func NewAnonymiser(source reader.Reader, tables config.Tables) reader.Reader {
-	return &anonymiser{source, tables}
+func NewAnonymiser(source reader.Reader) reader.Reader {
+	return &anonymiser{source}
 }
 
 // ReadTable decorates reader.ReadTable method for anonymising rows published from the reader.Reader
-func (a *anonymiser) ReadTable(tableName string, rowChan chan<- database.Row, opts reader.ReadTableOpt) error {
-	logger := log.WithField("table", tableName)
+func (a *anonymiser) ReadTable(table config.Table, rowChan chan<- database.Row, opts reader.ReadTableOpt) error {
+	logger := log.WithField("table", table.Name)
 	logger.Debug("Loading anonymiser config")
-	table := a.tables.FindByName(tableName)
-	if table == nil {
-		logger.Debug("the table is not configured to be anonymised")
-		return a.Reader.ReadTable(tableName, rowChan, opts)
-	}
 
 	if len(table.Anonymise) == 0 {
 		logger.Debug("Skipping anonymiser")
-		return a.Reader.ReadTable(tableName, rowChan, opts)
+		return a.Reader.ReadTable(table, rowChan, opts)
 	}
 
 	// Create read/write chanel
@@ -110,9 +104,9 @@ func (a *anonymiser) ReadTable(tableName string, rowChan chan<- database.Row, op
 
 			rowChan <- row
 		}
-	}(rowChan, rawChan, table)
+	}(rowChan, rawChan, &table)
 
-	if err := a.Reader.ReadTable(tableName, rawChan, opts); err != nil {
+	if err := a.Reader.ReadTable(table, rawChan, opts); err != nil {
 		return fmt.Errorf("anonymiser: error while reading table: %w", err)
 	}
 

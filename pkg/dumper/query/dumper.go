@@ -93,7 +93,7 @@ func (d *textDumper) Dump(done chan<- struct{}, cfgTables config.Tables, concurr
 				}
 			}(tbl)
 
-			if err := d.reader.ReadTable(tableConfig.Name, rowChan, reader.NewReadTableOpt(tableConfig)); err != nil {
+			if err := d.reader.ReadTable(*tableConfig, rowChan, reader.NewReadTableOpt(tableConfig)); err != nil {
 				log.WithError(err).WithField("table", tbl).Error("error while reading table")
 			}
 		}

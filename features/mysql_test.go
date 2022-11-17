@@ -3,19 +3,19 @@ package features
 import (
 	"database/sql"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path"
 	"testing"
 	"time"
 
 	"github.com/go-sql-driver/mysql"
+	"github.com/stretchr/testify/suite"
+
 	"github.com/hellofresh/klepto/pkg/config"
 	"github.com/hellofresh/klepto/pkg/dumper"
 	_ "github.com/hellofresh/klepto/pkg/dumper/mysql"
 	"github.com/hellofresh/klepto/pkg/reader"
 	_ "github.com/hellofresh/klepto/pkg/reader/mysql"
-	"github.com/stretchr/testify/suite"
 )
 
 type MysqlTestSuite struct {
@@ -105,7 +105,7 @@ func (s *MysqlTestSuite) dropDatabase(name string) {
 }
 
 func (s *MysqlTestSuite) loadFixture(dsn string, file string) {
-	data, err := ioutil.ReadFile(path.Join("../fixtures/", file))
+	data, err := os.ReadFile(path.Join("../fixtures/", file))
 	s.Require().NoError(err, "Unable to load fixture file")
 
 	conn, err := sql.Open("mysql", dsn)

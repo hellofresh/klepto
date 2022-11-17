@@ -10,11 +10,12 @@ import (
 	"sync/atomic"
 
 	"github.com/go-sql-driver/mysql"
+	log "github.com/sirupsen/logrus"
+
 	"github.com/hellofresh/klepto/pkg/database"
 	"github.com/hellofresh/klepto/pkg/dumper"
 	"github.com/hellofresh/klepto/pkg/dumper/engine"
 	"github.com/hellofresh/klepto/pkg/reader"
-	log "github.com/sirupsen/logrus"
 )
 
 const (

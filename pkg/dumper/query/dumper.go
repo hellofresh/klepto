@@ -136,42 +136,28 @@ func (d *textDumper) toSQLColumnMap(row database.Row) (map[string]interface{}, e
 
 // ResolveType accepts a value and attempts to determine its type
 func (d *textDumper) toSQLStringValue(src interface{}) (string, error) {
-	switch src.(type) {
+	switch value := src.(type) {
 	case int64:
-		if value, ok := src.(int64); ok {
-			return strconv.FormatInt(value, 10), nil
-		}
+		return strconv.FormatInt(value, 10), nil
 	case float64:
-		if value, ok := src.(float64); ok {
-			return fmt.Sprintf("%v", value), nil
-		}
+		return fmt.Sprintf("%v", value), nil
 	case bool:
-		if value, ok := src.(bool); ok {
-			return strconv.FormatBool(value), nil
-		}
+		return strconv.FormatBool(value), nil
 	case string:
-		if value, ok := src.(string); ok {
-			return value, nil
-		}
+		return value, nil
 	case []byte:
 		// TODO handle blobs?
-		if value, ok := src.([]byte); ok {
-			return string(value), nil
-		}
+		return string(value), nil
 	case time.Time:
-		if value, ok := src.(time.Time); ok {
-			return value.String(), nil
-		}
+		return value.String(), nil
 	case nil:
 		return "NULL", nil
 	case *interface{}:
-		if src == nil {
+		if value == nil {
 			return "NULL", nil
 		}
-		return d.toSQLStringValue(*(src.(*interface{})))
+		return d.toSQLStringValue(*value)
 	default:
 		return "", errors.New("could not parse type")
 	}
-
-	return "", nil
 }

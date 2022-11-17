@@ -5,13 +5,13 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/hellofresh/klepto/pkg/config"
+	"github.com/lib/pq"
+	log "github.com/sirupsen/logrus"
+
 	"github.com/hellofresh/klepto/pkg/database"
 	"github.com/hellofresh/klepto/pkg/dumper"
 	"github.com/hellofresh/klepto/pkg/dumper/engine"
 	"github.com/hellofresh/klepto/pkg/reader"
-	"github.com/lib/pq"
-	log "github.com/sirupsen/logrus"
 )
 
 type (
@@ -188,9 +188,8 @@ func (d *pgDumper) insertIntoTable(txn *sql.Tx, tableName string, rowChan <-chan
 		rowValues := make([]interface{}, len(columns))
 		for i, col := range columns {
 			val := row[col]
-			switch val.(type) {
-			case []byte:
-				val = string(val.([]byte))
+			if bytesVal, ok := val.([]byte); ok {
+				val = string(bytesVal)
 			}
 
 			rowValues[i] = val
@@ -211,18 +210,4 @@ func (d *pgDumper) insertIntoTable(txn *sql.Tx, tableName string, rowChan <-chan
 	}
 
 	return inserted, nil
-}
-
-func (d *pgDumper) relationshipConfigToOptions(relationshipsConfig []*config.Relationship) []*reader.RelationshipOpt {
-	var opts []*reader.RelationshipOpt
-
-	for _, r := range relationshipsConfig {
-		opts = append(opts, &reader.RelationshipOpt{
-			ReferencedTable: r.ReferencedTable,
-			ReferencedKey:   r.ReferencedKey,
-			ForeignKey:      r.ForeignKey,
-		})
-	}
-
-	return opts
 }

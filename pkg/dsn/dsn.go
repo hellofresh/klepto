@@ -11,9 +11,9 @@ import (
 
 var (
 	// ErrEmptyDsn defines error returned when no dsn is provided
-	ErrEmptyDsn = errors.New("Empty string provided for dsn")
+	ErrEmptyDsn = errors.New("empty string provided for dsn")
 	// ErrInvalidDsn defines error returned when the dsn is invalid
-	ErrInvalidDsn = errors.New("Invalid dsn")
+	ErrInvalidDsn = errors.New("invalid dsn")
 
 	// From https://github.com/go-sql-driver/mysql/blob/f4bf8e8e0aa93d4ead0c6473503ca2f5d5eb65a8/utils.go#L34
 	regex = regexp.MustCompile(

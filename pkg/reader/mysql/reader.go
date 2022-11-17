@@ -7,9 +7,10 @@ import (
 	"strings"
 	"time"
 
+	log "github.com/sirupsen/logrus"
+
 	"github.com/hellofresh/klepto/pkg/reader"
 	"github.com/hellofresh/klepto/pkg/reader/engine"
-	log "github.com/sirupsen/logrus"
 )
 
 const (

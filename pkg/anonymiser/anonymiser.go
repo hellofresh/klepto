@@ -8,10 +8,11 @@ import (
 	"strconv"
 	"strings"
 
+	log "github.com/sirupsen/logrus"
+
 	"github.com/hellofresh/klepto/pkg/config"
 	"github.com/hellofresh/klepto/pkg/database"
 	"github.com/hellofresh/klepto/pkg/reader"
-	log "github.com/sirupsen/logrus"
 )
 
 const (

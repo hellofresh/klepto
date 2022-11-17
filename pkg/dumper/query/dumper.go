@@ -51,51 +51,53 @@ func (d *textDumper) Dump(done chan<- struct{}, cfgTables config.Tables, concurr
 
 	var wg sync.WaitGroup
 	for _, tbl := range tables {
-		var opts reader.ReadTableOpt
 		logger := log.WithField("table", tbl)
 
-		tableConfig := cfgTables.FindByName(tbl)
-		if tableConfig == nil {
+		tableConfigs := cfgTables.FilterByName(tbl)
+		if len(tableConfigs) == 0 {
 			logger.Debug("no configuration found for table")
-		} else {
+			tableConfigs = append(tableConfigs, &config.Table{Name: tbl})
+		}
+		for _, tableConfig := range tableConfigs {
+
 			if tableConfig.IgnoreData {
 				logger.Debug("ignoring data to dump")
 				continue
 			}
-			opts = reader.NewReadTableOpt(tableConfig)
-		}
 
-		// Create read/write chanel
-		rowChan := make(chan database.Row)
+			// Create read/write chanel
+			rowChan := make(chan database.Row)
 
-		wg.Add(1)
-		go func(tableName string) {
-			defer wg.Done()
+			wg.Add(1)
+			go func(tableName string) {
+				defer wg.Done()
 
-			for {
-				row, more := <-rowChan
-				if !more {
-					return
+				for {
+					row, more := <-rowChan
+					if !more {
+						return
+					}
+
+					columnMap, err := d.toSQLColumnMap(row)
+					if err != nil {
+						logger.WithError(err).Fatal("could not convert value to string")
+					}
+
+					insert := sq.Insert(tableName).SetMap(columnMap)
+					if _, err := io.WriteString(d.output, sq.DebugSqlizer(insert)); err != nil {
+						logger.WithError(err).Error("could not write insert statement to output")
+					}
+					if _, err := io.WriteString(d.output, "\n"); err != nil {
+						logger.WithError(err).Error("could not write new line to output")
+					}
 				}
+			}(tbl)
 
-				columnMap, err := d.toSQLColumnMap(row)
-				if err != nil {
-					logger.WithError(err).Fatal("could not convert value to string")
-				}
-
-				insert := sq.Insert(tableName).SetMap(columnMap)
-				if _, err := io.WriteString(d.output, sq.DebugSqlizer(insert)); err != nil {
-					logger.WithError(err).Error("could not write insert statement to output")
-				}
-				if _, err := io.WriteString(d.output, "\n"); err != nil {
-					logger.WithError(err).Error("could not write new line to output")
-				}
+			if err := d.reader.ReadTable(tableConfig.Name, rowChan, reader.NewReadTableOpt(tableConfig)); err != nil {
+				log.WithError(err).WithField("table", tbl).Error("error while reading table")
 			}
-		}(tbl)
-
-		if err := d.reader.ReadTable(tbl, rowChan, opts); err != nil {
-			log.WithError(err).WithField("table", tbl).Error("error while reading table")
 		}
+
 	}
 
 	go func() {

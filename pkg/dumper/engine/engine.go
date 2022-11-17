@@ -89,40 +89,40 @@ func (e *Engine) readAndDumpTables(done chan<- struct{}, cfgTables config.Tables
 	var wg sync.WaitGroup
 	for _, tbl := range tables {
 		logger := log.WithField("table", tbl)
-		tableConfig := cfgTables.FindByName(tbl)
-		if tableConfig == nil {
+		tableConfigs := cfgTables.FilterByName(tbl)
+		if len(tableConfigs) == 0 {
 			logger.Debug("no configuration found for table")
+			tableConfigs = append(tableConfigs, &config.Table{Name: tbl})
 		}
-
-		var opts reader.ReadTableOpt
-		if tableConfig != nil {
+		for _, tableConfig := range tableConfigs {
+			var opts reader.ReadTableOpt
 			if tableConfig.IgnoreData {
 				logger.Debug("ignoring data to dump")
 				continue
 			}
 
 			opts = reader.NewReadTableOpt(tableConfig)
+
+			// Create read/write chanel
+			rowChan := make(chan database.Row)
+			semChan <- struct{}{}
+			wg.Add(1)
+
+			go func(tableName string, rowChan <-chan database.Row, logger *log.Entry) {
+				defer wg.Done()
+				defer func(semChan <-chan struct{}) { <-semChan }(semChan)
+
+				if err := e.DumpTable(tableName, rowChan); err != nil {
+					logger.WithError(err).Error("Failed to dump table")
+				}
+			}(tbl, rowChan, logger)
+
+			go func(table config.Table, opts reader.ReadTableOpt, rowChan chan<- database.Row, logger *log.Entry) {
+				if err := e.reader.ReadTable(table.Name, rowChan, opts); err != nil {
+					logger.WithError(err).Error("Failed to read table")
+				}
+			}(*tableConfig, opts, rowChan, logger)
 		}
-
-		// Create read/write chanel
-		rowChan := make(chan database.Row)
-		semChan <- struct{}{}
-		wg.Add(1)
-
-		go func(tableName string, rowChan <-chan database.Row, logger *log.Entry) {
-			defer wg.Done()
-			defer func(semChan <-chan struct{}) { <-semChan }(semChan)
-
-			if err := e.DumpTable(tableName, rowChan); err != nil {
-				logger.WithError(err).Error("Failed to dump table")
-			}
-		}(tbl, rowChan, logger)
-
-		go func(tableName string, opts reader.ReadTableOpt, rowChan chan<- database.Row, logger *log.Entry) {
-			if err := e.reader.ReadTable(tableName, rowChan, opts); err != nil {
-				logger.WithError(err).Error("Failed to read table")
-			}
-		}(tbl, opts, rowChan, logger)
 	}
 
 	go func() {

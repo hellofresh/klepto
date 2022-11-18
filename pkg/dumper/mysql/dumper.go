@@ -5,6 +5,7 @@ import (
 	"encoding/csv"
 	"fmt"
 	"io"
+	"math/rand"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -133,9 +134,12 @@ func (d *myDumper) insertIntoTable(txn *sql.Tx, tableName string, rowChan <-chan
 		columnsQuoted[i] = d.quoteIdentifier(column)
 	}
 
+	// generate pseudo-random name for the reader to avoid concurrency issues with subsets of same table
+	readerName := fmt.Sprintf("%s-%d", tableName, rand.Int())
+
 	query := fmt.Sprintf(
 		"LOAD DATA LOCAL INFILE 'Reader::%s' INTO TABLE %s FIELDS TERMINATED BY ',' ENCLOSED BY '\"' ESCAPED BY '\"' (%s)",
-		tableName,
+		readerName,
 		d.quoteIdentifier(tableName),
 		strings.Join(columnsQuoted, ","),
 	)
@@ -162,9 +166,9 @@ func (d *myDumper) insertIntoTable(txn *sql.Tx, tableName string, rowChan <-chan
 				case nil:
 					rowValues[i] = null
 				case string:
-					rowValues[i] = row[col].(string)
+					rowValues[i] = v
 				case []uint8:
-					rowValues[i] = string(row[col].([]uint8))
+					rowValues[i] = string(v)
 				default:
 					log.WithField("type", v).Info("we have an unhandled type. attempting to convert to a string \n")
 					rowValues[i] = row[col].(string)
@@ -180,8 +184,8 @@ func (d *myDumper) insertIntoTable(txn *sql.Tx, tableName string, rowChan <-chan
 	}(rowWriter)
 
 	// Register the reader for reading the csv
-	mysql.RegisterReaderHandler(tableName, func() io.Reader { return rowReader })
-	defer mysql.DeregisterReaderHandler(tableName)
+	mysql.RegisterReaderHandler(readerName, func() io.Reader { return rowReader })
+	defer mysql.DeregisterReaderHandler(readerName)
 
 	if _, err := txn.Exec("SET foreign_key_checks = 0;"); err != nil {
 		return 0, fmt.Errorf("failed to disable foreign key checks: %w", err)

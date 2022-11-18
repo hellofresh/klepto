@@ -12,6 +12,7 @@ import (
 
 	"github.com/stretchr/testify/suite"
 
+	"github.com/hellofresh/klepto/pkg/anonymiser"
 	"github.com/hellofresh/klepto/pkg/config"
 	"github.com/hellofresh/klepto/pkg/dumper"
 	_ "github.com/hellofresh/klepto/pkg/dumper/postgres"
@@ -59,6 +60,38 @@ func (s *PostgresTestSuite) TestExample() {
 	<-done
 
 	s.assertDatabaseAreTheSame(readDSN, dumpDSN)
+}
+
+func (s *PostgresTestSuite) TestMultipleSubsetsExample() {
+	readDSN := s.createDatabase("pg_subsets")
+	dumpDSN := s.createDatabase("pg_subsets_dump")
+
+	tables, err := config.LoadFromFile(path.Join("../fixtures/", ".klepto_subsets.toml"))
+	s.Require().NoError(err, "Unable to load configuration")
+	s.loadFixture(readDSN, "pg_subsets.sql")
+
+	rdr, err := reader.Connect(reader.ConnOpts{DSN: readDSN, Timeout: s.timeout})
+	s.Require().NoError(err, "Unable to create reader")
+	defer rdr.Close()
+
+	rdr = anonymiser.NewAnonymiser(rdr)
+
+	dmp, err := dumper.NewDumper(dumper.ConnOpts{DSN: dumpDSN}, rdr)
+	s.Require().NoError(err, "Unable to create dumper")
+	defer dmp.Close()
+
+	done := make(chan struct{})
+	defer close(done)
+	s.Require().NoError(dmp.Dump(done, tables, 4, false), "Failed to dump")
+
+	<-done
+
+	targetConn, err := sql.Open("postgres", dumpDSN)
+	s.Require().NoError(err, "Unable to connect to target db")
+	defer targetConn.Close()
+
+	targetTables := s.fetchTableRowCount(targetConn)
+	s.Assert().Equal([]tableInfo{{name: "users", count: 5, columnCount: 4}}, targetTables)
 }
 
 func (s *PostgresTestSuite) SetupSuite() {

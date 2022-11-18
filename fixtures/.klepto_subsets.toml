@@ -1,0 +1,21 @@
+[Matchers]
+  AdminUsers = "users.administrator = TRUE"
+  NonAdminUsers = "users.administrator = FALSE"
+
+[[Tables]]
+  Name = "users"
+  IgnoreData = false
+
+  [Tables.Filter]
+    Match = "AdminUsers"
+
+[[Tables]]
+  Name = "users"
+  IgnoreData = false
+
+  [Tables.Filter]
+    Match = "NonAdminUsers"
+
+  [Tables.Anonymise]
+    email = "EmailAddress"
+    first_name = "FirstName"

@@ -11,6 +11,7 @@ import (
 	"github.com/go-sql-driver/mysql"
 	"github.com/stretchr/testify/suite"
 
+	"github.com/hellofresh/klepto/pkg/anonymiser"
 	"github.com/hellofresh/klepto/pkg/config"
 	"github.com/hellofresh/klepto/pkg/dumper"
 	_ "github.com/hellofresh/klepto/pkg/dumper/mysql"
@@ -58,6 +59,47 @@ func (s *MysqlTestSuite) TestExample() {
 	<-done
 
 	s.assertDatabaseAreTheSame(readDSN, dumpDSN)
+}
+
+func (s *MysqlTestSuite) TestMultipleSubsetsExample() {
+	readDSN := s.createDatabase("subsets")
+	dumpDSN := s.createDatabase("subsets_dump")
+
+	tables, err := config.LoadFromFile(path.Join("../fixtures/", ".klepto_subsets.toml"))
+	s.Require().NoError(err, "Unable to load configuration")
+	s.loadFixture(readDSN, "mysql_subsets.sql")
+
+	rdr, err := reader.Connect(reader.ConnOpts{DSN: readDSN, Timeout: s.timeout})
+	s.Require().NoError(err, "Unable to create reader")
+	defer func() {
+		err := rdr.Close()
+		s.Assert().NoError(err)
+	}()
+
+	rdr = anonymiser.NewAnonymiser(rdr)
+
+	dmp, err := dumper.NewDumper(dumper.ConnOpts{DSN: dumpDSN}, rdr)
+	s.Require().NoError(err, "Unable to create dumper")
+	defer func() {
+		err := dmp.Close()
+		s.Assert().NoError(err)
+	}()
+
+	done := make(chan struct{})
+	defer close(done)
+	s.Require().NoError(dmp.Dump(done, tables, 4, false), "Failed to dump")
+
+	<-done
+
+	targetConn, err := sql.Open("mysql", dumpDSN)
+	s.Require().NoError(err, "Unable to connect to target db")
+	defer func() {
+		err := targetConn.Close()
+		s.Assert().NoError(err)
+	}()
+
+	targetTables := s.fetchTableRowCount(targetConn)
+	s.Assert().Equal([]tableInfo{{name: "users", count: 5, columnCount: 4}}, targetTables)
 }
 
 func (s *MysqlTestSuite) SetupSuite() {
@@ -146,7 +188,7 @@ func (s *MysqlTestSuite) fetchTableRowCount(db *sql.DB) []tableInfo {
 	tableRows, err := db.Query(
 		`SELECT
 		  t.TABLE_NAME AS name,
-		  SUM(t.TABLE_ROWS) AS count,
+		  SUM(DISTINCT(t.TABLE_ROWS)) AS count,
 		  COUNT(c.COLUMN_NAME) AS columnCount
 		FROM information_schema.TABLES AS t
 		  LEFT JOIN information_schema.COLUMNS AS c ON

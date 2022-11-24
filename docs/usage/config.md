@@ -121,3 +121,23 @@ To dump the latest 100 users with their orders:
 
 !!! info "Tip"
     You can find some [configuration examples](https://github.com/hellofresh/klepto/tree/master/examples) in Klepto's repository.
+
+### **Replacements**
+
+If you want to replace part of a value in a column you can use the `Replace` key to do so.
+
+```toml
+[[Tables]]
+  Name = "colours"
+  IgnoreData = false
+
+  [[Tables.Replace]]
+    Column = "reference"
+    Before = "print.unmade.com"
+    After = "print-dev.unmade.com"
+
+  [[Tables.Replace]]
+    Column = "reference"
+    Before = "www.cloudknit.com"
+    After = "dev.cloudknit.com"
+```

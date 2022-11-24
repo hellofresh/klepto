@@ -23,6 +23,12 @@ CREATE TABLE order_items (
   CONSTRAINT fk_order_id FOREIGN KEY (order_id) REFERENCES orders (id)
 );
 
+CREATE TABLE colours {
+  id varchar(36) PRIMARY KEY NOT NULL,
+  name varchar(255) NOT NULL,
+  reference varchar(255) NOT NULL
+}
+
 INSERT INTO `users` VALUES ('0d60a85e-0b90-4482-a14c-108aea2557aa', 'wbo', 'wbo@hellofresh.com', true, 'm', '2017-01-01');
 INSERT INTO `users` VALUES ('39240e9f-ae09-4e95-9fd0-a712035c8ad7', 'kp', 'kp@hellofresh.com', true, NULL, '2017-01-01');
 INSERT INTO `users` VALUES ('9e4de779-d6a0-44bc-a531-20cdb97178d2', 'lp', 'lp@hellofresh.com', false, 'f', '2017-01-01');
@@ -40,3 +46,6 @@ INSERT INTO `orders` VALUES ('2b92734e-0e4c-11e8-ba89-0ed5f89f718b', '66a45c1b-1
 INSERT INTO `order_items` VALUES ('7e4e057e-1709-11e8-b642-0ed5f89f718b', 'b9bcd5e1-75e6-412d-be87-278003519717', '2018-01-01');
 INSERT INTO `order_items` VALUES ('dcad1150-1709-11e8-b642-0ed5f89f718b', '7ee31a7f-5140-483b-8ba1-fa8f116219c0', '2018-01-01');
 INSERT INTO `order_items` VALUES ('d0d80524-174a-11e8-b642-0ed5f89f718b', '453f4498-b4e0-485f-94fa-72f233bb7958', '2018-01-01');
+
+INSERT INTO `colours` VALUES ('c8868e95-9ce9-45dc-a1f0-3bed9e797677', 'red', 'https://something.somewhere.com/68923684-4028-4d7e-90f4-b67964d0b8d8');
+INSERT INTO `colours` VALUES ('1dd19834-7ff5-488c-aad8-bae3e191ac78', 'blue', 'https://something.somewhere.com/a676f8f6-b1bb-4b47-9517-f7effa9badec');

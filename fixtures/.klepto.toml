@@ -32,3 +32,12 @@
   [Tables.Filter]
     Match = ""
     Limit = 0
+
+[[Tables]]
+  Name = "colours"
+  IgnoreData = false
+  
+  [[Tables.Replace]]
+    Column = "reference"
+    Before = "something.somewhere.com"
+    After = "something.somewhere.dev"

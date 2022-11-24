@@ -42,6 +42,8 @@ type (
 		Anonymise map[string]string
 		// Relationship is an collection of relationship definitions.
 		Relationships []*Relationship
+		// Replace substitutes part of the column value with another.
+		Replace []*Replace
 	}
 
 	// Filter represents the way you want to filter the results.
@@ -64,6 +66,12 @@ type (
 		ReferencedTable string
 		// ReferencedKey is the referenced table primary key name.
 		ReferencedKey string
+	}
+
+	Replace struct {
+		Column string
+		Before string
+		After  string
 	}
 )
 
@@ -153,6 +161,14 @@ func WriteSample(w io.Writer) error {
 			{
 				Name:       "logs",
 				IgnoreData: true,
+			},
+			{
+				Name:       "colours",
+				IgnoreData: false,
+				Replace: []*Replace{
+					{Column: "reference", Before: "something.somewhere.com", After: "something.somewhere.dev"},
+					{Column: "reference", Before: "something.else.com", After: "something.else.dev"},
+				},
 			},
 		},
 	})

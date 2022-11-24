@@ -12,6 +12,7 @@ import (
 	"github.com/hellofresh/klepto/pkg/config"
 	"github.com/hellofresh/klepto/pkg/dumper"
 	"github.com/hellofresh/klepto/pkg/reader"
+	"github.com/hellofresh/klepto/pkg/replacer"
 
 	// imports dumpers and readers
 	_ "github.com/hellofresh/klepto/pkg/dumper/mysql"
@@ -101,6 +102,7 @@ func RunSteal(opts *StealOptions) (err error) {
 	}()
 
 	source = anonymiser.NewAnonymiser(source, opts.cfgTables)
+	source = replacer.NewReplacer(source, opts.cfgTables)
 	target, err := dumper.NewDumper(dumper.ConnOpts{
 		DSN:             opts.to,
 		IsRDS:           opts.toRDS,

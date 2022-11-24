@@ -22,7 +22,7 @@ func TestLoadFromFile(t *testing.T) {
 
 	cfgTables, err := LoadFromFile(configPath)
 	require.NoError(t, err)
-	require.Len(t, cfgTables, 3)
+	require.Len(t, cfgTables, 4)
 
 	users := cfgTables.FindByName("users")
 	require.NotNil(t, users)
@@ -31,6 +31,9 @@ func TestLoadFromFile(t *testing.T) {
 	orders := cfgTables.FindByName("orders")
 	require.NotNil(t, orders)
 	assert.Equal(t, "users.active = TRUE", orders.Filter.Match)
+
+	colours := cfgTables.FindByName("colours")
+	require.NotNil(t, colours)
 }
 
 func TestWriteSample(t *testing.T) {
@@ -77,5 +80,22 @@ const (
   [Tables.Filter]
     Match = ""
     Limit = 0
+
+[[Tables]]
+  Name = "colours"
+  IgnoreData = false
+  [Tables.Filter]
+    Match = ""
+    Limit = 0
+
+  [[Tables.Replace]]
+    Column = "reference"
+    Before = "something.somewhere.com"
+    After = "something.somewhere.dev"
+
+  [[Tables.Replace]]
+    Column = "reference"
+    Before = "something.else.com"
+    After = "something.else.dev"
 `
 )

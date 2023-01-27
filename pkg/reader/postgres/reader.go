@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"fmt"
 	"strconv"
-	"strings"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -33,11 +32,6 @@ func NewStorage(conn *sql.DB, dumper PgDumper, timeout time.Duration) reader.Rea
 	}, timeout)
 }
 
-// removeQuotesFromTableName this functions address a issue cause by have tables in camel case format
-func removeQuotesFromTableName(table string) string {
-	return strings.ReplaceAll(table, "\"", "")
-}
-
 // GetTables gets a list of all tables in the database
 func (s *storage) GetTables() ([]string, error) {
 	log.Debug("fetching table list")
@@ -59,7 +53,6 @@ func (s *storage) GetTables() ([]string, error) {
 			return nil, err
 		}
 
-		tableName = removeQuotesFromTableName(tableName)
 		tables = append(tables, tableName)
 	}
 

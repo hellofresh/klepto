@@ -1,6 +1,7 @@
 package reader
 
 import (
+	"strconv"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -27,6 +28,12 @@ func TestNewReadTableOpt(t *testing.T) {
 				ForeignKey:      "r2-fk",
 				ReferencedTable: "r2-reference-table",
 				ReferencedKey:   "r2-reference-key",
+			},
+			{
+				Table:           strconv.Quote("TableName"),
+				ForeignKey:      "r1-fk",
+				ReferencedTable: "r1-reference-table",
+				ReferencedKey:   "r1-reference-key",
 			},
 		},
 	}

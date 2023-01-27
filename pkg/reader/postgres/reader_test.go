@@ -9,7 +9,6 @@ import (
 )
 
 func TestRemoveQuotaFromTableName(t *testing.T) {
-
 	//given : expected
 	tables := map[string]string{
 		strconv.Quote("TableName"): "TableName",

@@ -113,7 +113,7 @@ func (d *pgDumper) PreDumpTables(tables []string) error {
 		}
 		query := fmt.Sprintf("ALTER TABLE %s DROP CONSTRAINT %s", strconv.Quote(fk.tableName), strconv.Quote(fk.constraintName))
 		if _, err := d.conn.Exec(query); err != nil {
-			return fmt.Errorf("failed to frop contraint %s.%s: %w", fk.tableName, fk.constraintName, err)
+			return fmt.Errorf("failed to drop constraint %s.%s: %w", fk.tableName, fk.constraintName, err)
 		}
 		d.foreignKeys = append(d.foreignKeys, fk)
 	}

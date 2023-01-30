@@ -47,7 +47,7 @@ func (d *pgDumper) DumpStructure(sql string) error {
 	return nil
 }
 
-// quoteIfNotQuoted this function avoid double quote strings
+// quoteIfNotQuoted this function avoid quote strings that are already quoted.
 func quoteIfNotQuoted(s string) string {
 	if len(s) > 0 && s[0] == '"' {
 		return s

@@ -3,7 +3,7 @@ package postgres
 import (
 	"database/sql"
 	"fmt"
-	"strconv"
+	"strings"
 
 	"github.com/lib/pq"
 	log "github.com/sirupsen/logrus"
@@ -85,7 +85,7 @@ func (d *pgDumper) PreDumpTables(tables []string) error {
 	if !d.isRDS {
 		log.Debug("Disabling triggers")
 		for _, tbl := range tables {
-			query := fmt.Sprintf("ALTER TABLE %s DISABLE TRIGGER ALL", strconv.Quote(tbl))
+			query := fmt.Sprintf("ALTER TABLE %q DISABLE TRIGGER ALL", strings.Trim(tbl, "\""))
 			if _, err := d.conn.Exec(query); err != nil {
 				return fmt.Errorf("failed to disable triggers for %s: %w", tbl, err)
 			}
@@ -111,9 +111,9 @@ func (d *pgDumper) PreDumpTables(tables []string) error {
 		if err := rows.Scan(&fk.tableName, &fk.constraintName, &fk.constraintDefinition); err != nil {
 			return fmt.Errorf("failed to load ForeignKeyInfo: %w", err)
 		}
-		query := fmt.Sprintf("ALTER TABLE %s DROP CONSTRAINT %s", strconv.Quote(fk.tableName), strconv.Quote(fk.constraintName))
+		query := fmt.Sprintf("ALTER TABLE %q DROP CONSTRAINT %q", strings.Trim(fk.tableName, "\""), strings.Trim(fk.constraintName, "\""))
 		if _, err := d.conn.Exec(query); err != nil {
-			return fmt.Errorf("failed to frop contraint %s.%s: %w", fk.tableName, fk.constraintName, err)
+			return fmt.Errorf("failed to drop constraint %s.%s: %w", fk.tableName, fk.constraintName, err)
 		}
 		d.foreignKeys = append(d.foreignKeys, fk)
 	}
@@ -126,7 +126,7 @@ func (d *pgDumper) PostDumpTables(tables []string) error {
 	if !d.isRDS {
 		log.Debug("Reenabling triggers")
 		for _, tbl := range tables {
-			query := fmt.Sprintf("ALTER TABLE %s ENABLE TRIGGER ALL", strconv.Quote(tbl))
+			query := fmt.Sprintf("ALTER TABLE %q ENABLE TRIGGER ALL", strings.Trim(tbl, "\""))
 			if _, err := d.conn.Exec(query); err != nil {
 				return fmt.Errorf("failed to enable triggers for %s: %w", tbl, err)
 			}
@@ -136,7 +136,7 @@ func (d *pgDumper) PostDumpTables(tables []string) error {
 
 	log.Debug("Recreating foreign keys")
 	for _, fk := range d.foreignKeys {
-		query := fmt.Sprintf("ALTER TABLE %s ADD CONSTRAINT %s %s", strconv.Quote(fk.tableName), strconv.Quote(fk.constraintName), fk.constraintDefinition)
+		query := fmt.Sprintf("ALTER TABLE %q ADD CONSTRAINT %q %s", strings.Trim(fk.tableName, "\""), strings.Trim(fk.constraintName, "\""), fk.constraintDefinition)
 		if _, err := d.conn.Exec(query); err != nil {
 			return fmt.Errorf("failed to re-create ForeignKey %s.%s: %w", fk.tableName, fk.constraintName, err)
 		}

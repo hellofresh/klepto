@@ -25,6 +25,12 @@ CREATE TABLE "order_items" (
   FOREIGN KEY (order_id) REFERENCES orders(id)
 );
 
+CREATE TABLE "OrderItems" (
+  id UUID PRIMARY KEY NOT NULL,
+  order_id UUID NOT NULL,
+  created_at timestamp,
+  FOREIGN KEY (order_id) REFERENCES orders(id)
+);
 
 CREATE VIEW "users_view" AS SELECT id, username FROM "users" WHERE active=true;
 

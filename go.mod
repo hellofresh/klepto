@@ -8,7 +8,7 @@ require (
 	github.com/go-sql-driver/mysql v1.6.0
 	github.com/hellofresh/updater-go/v3 v3.0.1
 	github.com/icrowley/fake v0.0.0-20180203215853-4178557ae428
-	github.com/lib/pq v1.10.4
+	github.com/lib/pq v1.10.9
 	github.com/palantir/stacktrace v0.0.0-20161112013806-78658fd2d177
 	github.com/sirupsen/logrus v1.8.1
 	github.com/spf13/cobra v1.3.0

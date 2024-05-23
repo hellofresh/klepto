@@ -3,7 +3,7 @@ module github.com/hellofresh/klepto
 go 1.17
 
 require (
-	github.com/BurntSushi/toml v1.3.2
+	github.com/BurntSushi/toml v1.4.0
 	github.com/Masterminds/squirrel v1.5.4
 	github.com/go-sql-driver/mysql v1.7.1
 	github.com/hellofresh/updater-go/v3 v3.0.6

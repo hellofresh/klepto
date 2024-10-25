@@ -6,7 +6,7 @@ require (
 	github.com/BurntSushi/toml v1.3.2
 	github.com/Masterminds/squirrel v1.5.4
 	github.com/go-sql-driver/mysql v1.7.1
-	github.com/hellofresh/updater-go/v3 v3.0.6
+	github.com/hellofresh/updater-go/v3 v3.0.7
 	github.com/icrowley/fake v0.0.0-20221112152111-d7b7e2276db2
 	github.com/lib/pq v1.10.9
 	github.com/palantir/stacktrace v0.0.0-20161112013806-78658fd2d177

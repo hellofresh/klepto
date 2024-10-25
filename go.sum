@@ -1432,8 +1432,8 @@ github.com/hashicorp/logutils v1.0.0/go.mod h1:QIAnNjmIWmVIIkWDTG1z5v++HQmx9WQRO
 github.com/hashicorp/mdns v1.0.4/go.mod h1:mtBihi+LeNXGtG8L9dX59gAEa12BDtBQSp4v/YAJqrc=
 github.com/hashicorp/memberlist v0.5.0/go.mod h1:yvyXLpo0QaGE59Y7hDTsTzDD25JYBZ4mHgHUZ8lrOI0=
 github.com/hashicorp/serf v0.10.1/go.mod h1:yL2t6BqATOLGc5HF7qbFkTfXoPIY0WZdWHfEvMqbG+4=
-github.com/hellofresh/updater-go/v3 v3.0.6 h1:V7xyDov05BzBcu8TW9/NyEyaDUKp148GybWFBksER64=
-github.com/hellofresh/updater-go/v3 v3.0.6/go.mod h1:ZcBfdBFCElU6myB+VvPQOr50Pu3L5ECoKQ6JYvAj2+w=
+github.com/hellofresh/updater-go/v3 v3.0.7 h1:ty1JfV8d2DowvzWnH1iXjkN+VfwPMrb7t3Fnn3Un/II=
+github.com/hellofresh/updater-go/v3 v3.0.7/go.mod h1:ZcBfdBFCElU6myB+VvPQOr50Pu3L5ECoKQ6JYvAj2+w=
 github.com/iancoleman/strcase v0.2.0/go.mod h1:iwCmte+B7n89clKwxIoIXy/HfoL7AsD47ZCWhYzw7ho=
 github.com/ianlancetaylor/demangle v0.0.0-20181102032728-5e5cf60278f6/go.mod h1:aSSvb/t6k1mPoxDqO4vJh6VOCGPwU4O0C2/Eqndh1Sc=
 github.com/ianlancetaylor/demangle v0.0.0-20200824232613-28f6c0f3b639/go.mod h1:aSSvb/t6k1mPoxDqO4vJh6VOCGPwU4O0C2/Eqndh1Sc=

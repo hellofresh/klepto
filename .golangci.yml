@@ -5,7 +5,7 @@ linters:
   disable-all: true
   enable:
     - gofmt
-    - golint
+    - revive
     - goimports
   fast: false
 linters-settings:
@@ -13,3 +13,10 @@ linters-settings:
     simplify: false
 issues:
   exclude-use-default: false
+  exclude-rules: 
+    - linters:
+        - revive
+      text: "package-comments:"
+    - linters:
+        - revive
+      text: "unused-parameter:"

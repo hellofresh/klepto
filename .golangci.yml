@@ -17,3 +17,6 @@ issues:
     - linters:
         - revive
       text: "package-comments:"
+    - linters:
+        - revive
+      text: "unused-parameter:"

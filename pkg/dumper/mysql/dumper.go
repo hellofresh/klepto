@@ -162,12 +162,18 @@ func (d *myDumper) insertIntoTable(txn *sql.Tx, tableName string, rowChan <-chan
 				case nil:
 					rowValues[i] = null
 				case string:
-					rowValues[i] = row[col].(string)
+					rowValues[i] = v
 				case []uint8:
-					rowValues[i] = string(row[col].([]uint8))
+					rowValues[i] = string(v)
 				default:
 					log.WithField("type", v).Info("we have an unhandled type. attempting to convert to a string \n")
-					rowValues[i] = row[col].(string)
+					stringValue, ok := row[col].(string)
+					if ok {
+						rowValues[i] = stringValue
+					} else {
+						log.WithField("type", v).Errorf("failed to convert to string, writing as %v", v)
+						rowValues[i] = fmt.Sprintf("%v", v)
+					}
 				}
 			}
 

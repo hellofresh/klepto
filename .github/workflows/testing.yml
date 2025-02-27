@@ -12,9 +12,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v2
+        uses: golangci/golangci-lint-action@v6
 
   test:
     name: Test
@@ -52,10 +52,10 @@ jobs:
           --health-retries 5
 
     steps:
-      - name: Set up Go
-        uses: actions/setup-go@v2
       - name: Check out code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
+      - name: Set up Go
+        uses: actions/setup-go@v5
       - name: Run tests
         if: success()
         run: go test -cover ./... -coverprofile=coverage.txt -covermode=atomic
@@ -64,8 +64,7 @@ jobs:
           TEST_MYSQL: root:test@tcp(localhost:${{ job.services.mysql.ports[3306] }})/?charset=utf8
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v1
+        uses: codecov/codecov-action@v5
         if: success()
         with:
-          file: ./coverage.txt
-          fail_ci_if_error: false
+          files: ./coverage.txt

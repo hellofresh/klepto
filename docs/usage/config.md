@@ -77,7 +77,7 @@ You can anonymise specific columns in your table using the `Anonymise` key. Anon
     password = "literal:1234"
 ```
 
-This would replace all the specified columns from the `customer` and `users` tables with the spcified fake function.
+This would replace all the specified columns from the `customer` and `users` tables with the specified fake function.
 
 If a function requires arguments to be passed, we can specify them splitting with the `:` character, the default value of a argument type will be used in case the provided one is invalid or missing.
 
@@ -85,7 +85,7 @@ There is also a special function `literal:[some-constant-value]` to specify a co
 
 Available data types can be found in [fake.go](https://github.com/hellofresh/klepto/blob/master/pkg/anonymiser/fake.go). This file is generated from [https://github.com/icrowley/fake](https://github.com/icrowley/fake) (it had to be generated because it is written in such a way that Go cannot reflect upon it).
 
-Bellow are the instructions used to generate the file:
+Below are the instructions used to generate the file:
 
 ```sh
 go get github.com/ungerik/pkgreflect
@@ -109,7 +109,7 @@ To dump the latest 100 users with their orders:
 [[Tables]]
   Name = "orders"
   [[Tables.Relationships]]
-    # behind the scenes klepto will create a inner join between orders and users
+    # behind the scenes Klepto will create a inner join between orders and users
     ForeignKey = "user_id"
     ReferencedTable = "users"
     ReferencedKey = "id"
@@ -119,5 +119,6 @@ To dump the latest 100 users with their orders:
       created_at = "desc"
 ```
 
-!!! info "Tip"
-    You can find some [configuration examples](https://github.com/hellofresh/klepto/tree/master/examples) in Klepto's repository.
+> **Tip:**
+> You can find some [configuration examples](https://github.com/hellofresh/klepto/tree/master/examples) in Klepto's repository.
+

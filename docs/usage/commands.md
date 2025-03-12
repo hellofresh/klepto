@@ -1,6 +1,6 @@
-# Command
+# Commands
 
-Detailed list of Klepto's available commands
+Detailed list of Klepto's available commands:
 
 ```sh
 klepto --help
@@ -43,7 +43,7 @@ klepto init
 
 ## Update
 
-Klepto can self update by running the `update` command
+Klepto can self update by running the `update` command.
 
 ```sh
 klepto update
@@ -55,7 +55,7 @@ klepto update
 
 Klepto `steal` command starts the copy from the instructions defined in `.klepto.toml` file.
 
-- **Postgres:**
+- **Postgres**
 
   ```sh
   klepto steal \
@@ -73,7 +73,7 @@ Klepto `steal` command starts the copy from the instructions defined in `.klepto
 
 Behind the scenes Klepto will establishes the connection with the source and target databases with the given parameters passed, and will dump the tables.
 
-Available options can be seen by running `klepto steal --help`
+Available options can be seen by running `klepto steal --help`.
 
 ```sh
 klepto steal --help

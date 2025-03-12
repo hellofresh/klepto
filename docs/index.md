@@ -1,25 +1,26 @@
 # Klepto
 
-![klepto_logo](./assets/klepto_logo.png){ width=200 }
+<img src="./assets/klepto_logo.png" alt="klepto_logo" style="width:200px;"/>
 
-Klepto is a tool for copying and anonymising data.
+**Klepto: a tool for copying and anonymising data.**
 
 ## Features
 
 Klepto core features are:
 
-- Copy data to your local database or to stdout, stderr
-- Filter the source data
-- Anonymise the source data
+- Copy data to your local database or to stdout and stderr.
+- Filter the source data.
+- Anonymise the source data.
 
 ## Supported Databases
 
 - PostgreSQL
 - MySQL
 
-!!! note "Is your database missing?"
-    Contributions are very welcomed, check our Contribution guide and add it to this list.
+> **Note:** Is your database missing?  
+> Contributions are very welcome! Check our [Contribution Guide](https://github.com/hellofresh/klepto/blob/master/CONTRIBUTING.md) and add it to this list.
+
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](https://github.com/hellofresh/klepto/blob/master/LICENSE) file for details
+This project is licensed under the MIT License - see the [LICENSE](https://github.com/hellofresh/klepto/blob/master/LICENSE) file for details.

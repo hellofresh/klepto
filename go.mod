@@ -7,7 +7,7 @@ toolchain go1.23.3
 require (
 	github.com/BurntSushi/toml v1.4.0
 	github.com/Masterminds/squirrel v1.5.4
-	github.com/go-sql-driver/mysql v1.9.0
+	github.com/go-sql-driver/mysql v1.9.3
 	github.com/hellofresh/updater-go/v3 v3.0.7
 	github.com/icrowley/fake v0.0.0-20240710202011-f797eb4a99c0
 	github.com/lib/pq v1.10.9

@@ -49,6 +49,7 @@ const (
 [[Tables]]
   Name = "users"
   IgnoreData = false
+  Omit = ["generatedKey"]
   [Tables.Filter]
     Match = "users.active = TRUE"
     Limit = 100

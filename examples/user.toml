@@ -1,7 +1,7 @@
 [[Tables]]
-  # Dump the database structure without importing data
-  Name = "user_history"
-  IgnoreData = true
+# Dump the database structure without importing data
+Name = "user_history"
+IgnoreData = true
 
 [[Tables]]
   Name = "users"

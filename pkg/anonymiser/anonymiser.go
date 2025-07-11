@@ -47,17 +47,44 @@ func NewAnonymiser(source reader.Reader, tables config.Tables) reader.Reader {
 	return &anonymiser{source, tables}
 }
 
+// GetColumns decorates the reader.GetColumns method to add support for omitting columns for data transfer
+func (a *anonymiser) GetColumns(tableName string) ([]string, error) {
+	columns, err := a.Reader.GetColumns(tableName)
+	if err != nil {
+		return nil, err
+	}
+
+	table := a.tables.FindByName(tableName)
+	if table == nil || len(table.Omit) == 0 {
+		return columns, nil
+	}
+
+	omitMap := make(map[string]bool)
+	for _, col := range table.Omit {
+		omitMap[col] = true
+	}
+
+	filteredColumns := make([]string, 0, len(columns))
+	for _, col := range columns {
+		if !omitMap[col] {
+			filteredColumns = append(filteredColumns, col)
+		}
+	}
+
+	return filteredColumns, nil
+}
+
 // ReadTable decorates reader.ReadTable method for anonymising rows published from the reader.Reader
 func (a *anonymiser) ReadTable(tableName string, rowChan chan<- database.Row, opts reader.ReadTableOpt) error {
 	logger := log.WithField("table", tableName)
 	logger.Debug("Loading anonymiser config")
 	table := a.tables.FindByName(tableName)
 	if table == nil {
-		logger.Debug("the table is not configured to be anonymised")
+		logger.Debug("the table is not configured to be anonymised or to have columns omitted")
 		return a.Reader.ReadTable(tableName, rowChan, opts)
 	}
 
-	if len(table.Anonymise) == 0 {
+	if len(table.Anonymise) == 0 && len(table.Omit) == 0 {
 		logger.Debug("Skipping anonymiser")
 		return a.Reader.ReadTable(tableName, rowChan, opts)
 	}
@@ -73,6 +100,12 @@ func (a *anonymiser) ReadTable(tableName string, rowChan chan<- database.Row, op
 				return
 			}
 
+			// Remove omitted columns from the row
+			for _, omitCol := range table.Omit {
+				delete(row, omitCol)
+			}
+
+			// Anonymise specified columns with Faker
 			for column, fakerType := range table.Anonymise {
 				if strings.HasPrefix(fakerType, literalPrefix) {
 					row[column] = strings.TrimPrefix(fakerType, literalPrefix)

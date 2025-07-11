@@ -1,5 +1,5 @@
 [[Matchers]]
-  Latest100ActiveUsers = "users.active = true ORDER BY users.created_at DESC LIMIT 100"
+Latest100ActiveUsers = "users.active = true ORDER BY users.created_at DESC LIMIT 100"
 
 [[Tables]]
   Name = "users"
@@ -11,39 +11,39 @@
     Match = "Latest100ActiveUsers"
 
 [[Tables]]
-  # Dump only orders which are related to the matching users
-  Name = "orders"
-  # Behind the scenes it will generate the following sql query:
-  # SELECT orders.* FROM orders
-  # JOIN users ON users.id = orders.user_id 
-  # WHERE users.status = 'active'
-  # ORDER BY created_at DESC
-  [[Tables.Relationships]]
-    Table = "orders"
-    ForeignKey = "user_id"
-    ReferencedTable = "users"
-    ReferencedKey = "id"
-  [Tables.Filter]
-    Match = "Latest100ActiveUsers"
+# Dump only orders which are related to the matching users
+Name = "orders"
+# Behind the scenes it will generate the following sql query:
+# SELECT orders.* FROM orders
+# JOIN users ON users.id = orders.user_id
+# WHERE users.status = 'active'
+# ORDER BY created_at DESC
+[[Tables.Relationships]]
+Table = "orders"
+ForeignKey = "user_id"
+ReferencedTable = "users"
+ReferencedKey = "id"
+[Tables.Filter]
+Match = "Latest100ActiveUsers"
 
 [[Tables]]
-  # Dump only order items which are related to the matching users orders
-  Name = "order_items"
-  # Behind the scenes it will generate the following sql query:
-  # SELECT order_items.* FROM order_items
-  # JOIN orders ON orders.id = order_items.order_id
-  # JOIN users ON users.id = orders.user_id 
-  # WHERE users.status = 'active'
-  # ORDER BY created_at DESC
-  [[Tables.Relationships]]
-    Table = "order_items"
-    ForeignKey = "order_id"
-    ReferencedTable = "orders"
-    ReferencedKey = "id"
-  [[Tables.Relationships]]
-    Table = "orders"
-    ForeignKey = "user_id"
-    ReferencedTable = "users"
-    ReferencedKey = "id"
-  [Tables.Filter]
-    Match = "Latest100ActiveUsers"
+# Dump only order items which are related to the matching users orders
+Name = "order_items"
+# Behind the scenes it will generate the following sql query:
+# SELECT order_items.* FROM order_items
+# JOIN orders ON orders.id = order_items.order_id
+# JOIN users ON users.id = orders.user_id
+# WHERE users.status = 'active'
+# ORDER BY created_at DESC
+[[Tables.Relationships]]
+Table = "order_items"
+ForeignKey = "order_id"
+ReferencedTable = "orders"
+ReferencedKey = "id"
+[[Tables.Relationships]]
+Table = "orders"
+ForeignKey = "user_id"
+ReferencedTable = "users"
+ReferencedKey = "id"
+[Tables.Filter]
+Match = "Latest100ActiveUsers"

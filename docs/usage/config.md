@@ -17,9 +17,10 @@ You can set a number of keys in the configuration file. Below is a list of all c
     - `Limit` - The number of results to be fetched.
     - `Sorts` - Defines how the table is sorted.
   - `Anonymise` - Indicates which columns to anonymise.
+  - `Omit` - Specifies columns to omit from the data transfer.
   - `Relationships` - Represents a relationship between the table and referenced table.
     - `Table` - The table name.
-    - `ForeignKey` - The table's foreign key. 
+    - `ForeignKey` - The table's foreign key.
     - `ReferencedTable` - The referenced table name.
     - `ReferencedKey` - The referenced table primary key.
 
@@ -90,6 +91,20 @@ Bellow are the instructions used to generate the file:
 ```sh
 go get github.com/ungerik/pkgreflect
 fake master pkgreflect -notypes -novars -norecurs vendor/github.com/icrowley/fake/
+```
+
+### **Omit**
+
+You can omit specific columns from the data transfer using the `Omit` key. Omitted columns will still exist in the target database structure, but no data will be transferred for these columns. This is useful for cases like Postgres generated columns, where the database will reject the COPY command entirely if the column is present.
+
+```toml
+[[Tables]]
+  Name = "users"
+  # Omit generated columns and sensitive data from transfer
+  Omit = ["ssn", "generated_calendar_dates"]
+  [Tables.Anonymise]
+    email = "EmailAddress"
+    first_name = "FirstName"
 ```
 
 ### **Relationships**

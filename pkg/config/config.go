@@ -40,6 +40,8 @@ type (
 		Filter Filter
 		// Anonymise anonymises columns.
 		Anonymise map[string]string
+		// Omit specifies columns to omit from the data transfer.
+		Omit []string
 		// Relationship is an collection of relationship definitions.
 		Relationships []*Relationship
 	}
@@ -135,6 +137,7 @@ func WriteSample(w io.Writer) error {
 					Limit: 100,
 				},
 				Anonymise: map[string]string{"firstName": "FirstName", "email": "EmailAddress"},
+				Omit:      []string{"generatedKey"},
 			},
 			{
 				Name: "orders",

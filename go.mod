@@ -1,14 +1,12 @@
 module github.com/hellofresh/klepto
 
-go 1.23.0
-
-toolchain go1.23.3
+go 1.24.0
 
 require (
 	github.com/BurntSushi/toml v1.4.0
 	github.com/Masterminds/squirrel v1.5.4
 	github.com/go-sql-driver/mysql v1.9.0
-	github.com/hellofresh/updater-go/v3 v3.0.7
+	github.com/hellofresh/updater-go/v3 v3.0.8
 	github.com/icrowley/fake v0.0.0-20240710202011-f797eb4a99c0
 	github.com/lib/pq v1.10.9
 	github.com/palantir/stacktrace v0.0.0-20161112013806-78658fd2d177
@@ -51,7 +49,7 @@ require (
 	go.opentelemetry.io/otel/trace v1.34.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/exp v0.0.0-20250218142911-aa4b98e5adaa // indirect
-	golang.org/x/oauth2 v0.27.0 // indirect
+	golang.org/x/oauth2 v0.31.0 // indirect
 	golang.org/x/sys v0.30.0 // indirect
 	golang.org/x/text v0.22.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect

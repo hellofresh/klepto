@@ -3,6 +3,7 @@ package postgres
 import (
 	"bytes"
 	"os/exec"
+	"strings"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -55,5 +56,16 @@ func (p *PgDump) GetStructure() (string, error) {
 		logger.Error("failed to load schema for table")
 	}
 
-	return buf.String(), nil
+	// Process the output to drop lines starting with /restrict or /unrestrict
+	output := buf.String()
+	lines := strings.Split(output, "\n")
+	filteredLines := make([]string, 0, len(lines))
+	for _, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		if !strings.HasPrefix(trimmed, `\restrict`) && !strings.HasPrefix(trimmed, `\unrestrict`) {
+			filteredLines = append(filteredLines, line)
+		}
+	}
+
+	return strings.Join(filteredLines, "\n"), nil
 }

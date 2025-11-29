@@ -8,7 +8,7 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/hellofresh/klepto)](https://goreportcard.com/report/github.com/hellofresh/klepto)
 [![Go Doc](https://godoc.org/github.com/hellofresh/klepto?status.svg)](https://godoc.org/github.com/hellofresh/klepto)
 
-Klepto is a tool for copying and anonymising data
+Klepto is a tool for copying and pseudonymising data
 
 - [Installation](docs/installation.md)
 - [Usage](docs/usage/commands.md)
